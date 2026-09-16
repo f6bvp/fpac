@@ -1,4 +1,3 @@
-
 /********************************************************
  * wp/wplist.c                                       	*
  * FPAC project.            FPAC WP LIST             	*
@@ -26,7 +25,7 @@ void now_date(char *buf);
 int main(int argc, char **argv)
 {
 	int nb = 1000;
-	unsigned int flags = 0;
+	unsigned int flags = WP_INCLUDE_DELETED_FLAG;	/* sysop tool: shows a Status column, see wp.h */
 	int p;
 	int i, j;
 	wp_t *wp;
@@ -39,7 +38,7 @@ int main(int argc, char **argv)
 	   {
 	   printf ("\nWplist (version %s)\n",__DATE__);
 	   printf ("Usage: wplist [-acdnrl number] <callsign index>\n");
-	   printf ("options :  -n = nodes only  -l = max number of answers\n");       
+	   printf ("options :  -n = nodes only  -l = max number of answers\n");
 	   printf ("sort by :  -a address  -c callsign (default)  -d date  -r reverse\n");
 	   printf("\n");
 	   return (1);
@@ -75,6 +74,13 @@ int main(int argc, char **argv)
 			flags &= ~(WP_ADDRSORT_FLAG);
 			flags |= WP_DATESORT_FLAG;
 			break;
+		case '?':
+		default:
+			/* unknown option or missing argument (e.g. -l without number) */
+			printf ("\nUsage: wplist [-acdnrl number] <callsign index>\n");
+			printf ("options :  -n = nodes only  -l = max number of answers\n");
+			printf ("sort by :  -a address  -c callsign (default)  -d date  -r reverse\n\n");
+			return (1);
 		}
 	}
 
@@ -85,15 +91,65 @@ int main(int argc, char **argv)
 
 	if (wp_open("NODE") == 0) {
 
-	printf("Callsign  Last update UTC   DNIC address N/U  \tDigi \tLocator City \tStatus\n");
-
 	if (wp_get_list(&wp, &nb, flags, argv[optind]) != -1)
 	{
+		int shown = 0;
+		int wdigi = (int) strlen("Digi");
+		int wloc  = (int) strlen("Locator");
+		int wcity = (int) strlen("City");
+		char (*dlist)[64] = NULL;
+		int len;
+
+		/* The list stops at the first record with a null date. */
 		for (i = 0; i < nb; i++)
 		{
 			if (wp[i].date == 0L)
 				break;
+			shown++;
+		}
 
+		if (shown > 0)
+			dlist = malloc(sizeof(*dlist) * shown);
+		if (dlist == NULL)
+			shown = 0;
+
+		/* First pass : build the digipeaters strings (space        */
+		/* separated, one column) and measure the variable-length   */
+		/* columns (Digi, City) so the table lines up whatever the   */
+		/* records hold.                                             */
+		for (i = 0; i < shown; i++)
+		{
+			dlist[i][0] = '\0';
+			for (j = wp[i].address.srose_ndigis - 1; j >= 0; j--)
+			{
+				char *digi = ax25_ntoa(&wp[i].address.srose_digis[j]);
+				if (strstr(digi,"-") == NULL)
+					strcat(digi,"-0");
+				if (dlist[i][0] != '\0')
+					strncat(dlist[i], " ", sizeof(dlist[i]) - strlen(dlist[i]) - 1);
+				strncat(dlist[i], digi, sizeof(dlist[i]) - strlen(dlist[i]) - 1);
+			}
+
+			len = (int) strlen(dlist[i]);
+			if (len > wdigi)
+				wdigi = len;
+			len = (int) strlen(wp[i].locator);
+			if (len > wloc)
+				wloc = len;
+			len = (int) strlen(wp[i].city);
+			if (len > wcity)
+				wcity = len;
+		}
+
+		printf("%-9s %-14s %-4s %-7s %-4s %-*s %-*s %-*s %s\n",
+		       "Callsign", "Update UTC", "DNIC", "Address", "N/U",
+		       wdigi, "Digi", wloc, "Locator", wcity, "City", "Status");
+
+		/* Second pass : print the records. Empty strings show up as */
+		/* spaces in their fixed-width column, keeping every line    */
+		/* aligned.                                                  */
+		for (i = 0; i < shown; i++)
+		{
 			add = rose_ntoa(&wp[i].address.srose_addr);
 			call = ax25_ntoa(&wp[i].address.srose_call);
 
@@ -104,31 +160,20 @@ int main(int argc, char **argv)
 			dnic[4] = '\0';
 
 			my_date(buf, wp[i].date);
-			printf("%-9s %s => %s %-7s", call, buf, dnic, add + 4);
 
-			if (wp[i].is_node)
-				printf(" Node ");
-			else
-				printf(" User ");
-
-			if (wp[i].address.srose_ndigis == 0)
-				printf("\t - ");
-
-			for (j = wp[i].address.srose_ndigis - 1; j >= 0; j--)
-			{
-				call = ax25_ntoa(&wp[i].address.srose_digis[j]);
-				if (strstr(call,"-") == NULL)
-					strcat(call,"-0");
-				printf("\t%-9s ", call);				
-			}
-			
-			printf("\t%s \t%s", wp[i].locator, wp[i].city);
-
-			if (wp[i].is_deleted == 1)
-				printf("\tDELETED\n");
-			else
-				printf("\tOk\n");
+			printf("%-9s %-14s %-4s %-7s %-4s %-*s %-*s %-*s %s\n",
+			       call,
+			       buf,
+			       dnic,
+			       add + 4,
+			       wp[i].is_node ? "Node" : "User",
+			       wdigi, dlist[i],
+			       wloc, wp[i].locator,
+			       wcity, wp[i].city,
+			       wp[i].is_deleted ? "DELETED" : "Ok");
 		}
+
+		free(dlist);
 	}
 
 	if (nb == 0)
@@ -148,4 +193,3 @@ int main(int argc, char **argv)
 	}
 	return (0);
 }
-

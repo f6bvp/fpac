@@ -1270,42 +1270,42 @@ int do_users(int argc, char **argv)
 			case 0:
 				cp = "Disconnected";
 				if(Colored)
-					tprintf("%s%s%s%s", ResetColor, NodeColors.ax25_disconnected, cp, ResetColor);
+					tprintf(" %s%s%s%s", ResetColor, NodeColors.ax25_disconnected, cp, ResetColor);
 				else
 					tprintf(" %s",cp);
 				break;
 			case 1:
 				cp = "Conn pending";
 				if(Colored)
-					tprintf("%s%s%s%s", ResetColor, NodeColors.ax25_conn_pending, cp, ResetColor);
+					tprintf(" %s%s%s%s", ResetColor, NodeColors.ax25_conn_pending, cp, ResetColor);
 				else
 					tprintf(" %s",cp);
 				break;
 			case 2:
 				cp = "Disc pending";
 				if(Colored)
-					tprintf("%s%s%s%s", ResetColor, NodeColors.ax25_disc_pending, cp, ResetColor);
+					tprintf(" %s%s%s%s", ResetColor, NodeColors.ax25_disc_pending, cp, ResetColor);
 				else
-					tprintf("---------");
+					tprintf(" %s",cp);
 				break;
 			case 3:
 				cp = "Connected   ";
 				if(Colored)
-					tprintf("%s%s%s%s", ResetColor, NodeColors.ax25_connected, cp, ResetColor);
+					tprintf(" %s%s%s%s", ResetColor, NodeColors.ax25_connected, cp, ResetColor);
 				else
 					tprintf(" %s",cp);
 				break;
 			case 4:
 				cp = "Recovery    ";
 				if(Colored)
-					tprintf("%s%s%s%s", ResetColor, NodeColors.ax25_recovery, cp, ResetColor);
+					tprintf(" %s%s%s%s", ResetColor, NodeColors.ax25_recovery, cp, ResetColor);
 				else
 					tprintf(" %s",cp);
 				break;
 			default:
 				cp = "Unknown     ";
 				if(Colored)
-					tprintf("%s%s%s%s", ResetColor, NodeColors.ax25_unknown, cp, ResetColor);
+					tprintf(" %s%s%s%s", ResetColor, NodeColors.ax25_unknown, cp, ResetColor);
 				else
 					tprintf(" %s",cp);
 				break;
@@ -2503,10 +2503,17 @@ int do_netrom(int argc, char **argv)
 				}
 				else
 				{
-					/* tri qualité (défaut) : qualité selon seuil seulement */
-					const char *qcol = (p->qual1 == 0)  ? NodeColors.qualite_nulle
-					                 : (p->qual1 <= 50) ? NodeColors.qualite_moyenne
-					                 :                    NodeColors.qualite_bonne;
+					/* tri qualité (défaut) : qualité selon seuil seulement.
+					 * F6BVP 2026-09-16: 120 est la valeur figee a la
+					 * declaration statique dans rc.netrom (nrparms
+					 * -nodes ... 120 ...) -- si elle vaut encore
+					 * exactement 120, la fiche n'a jamais ete rafraichie
+					 * par une vraie annonce dynamique et reste donc
+					 * suspecte, meme si numeriquement > 50. */
+					const char *qcol = (p->qual1 == 0)   ? NodeColors.qualite_nulle
+					                 : (p->qual1 <= 50)  ? NodeColors.qualite_moyenne
+					                 : (p->qual1 == 120) ? NodeColors.qualite_nulle
+					                 :                     NodeColors.qualite_bonne;
 					tprintf("%-16.16s(%s%-3d%s) %c",
 							print_node(p->alias, p->call),
 							qcol, p->qual1, ResetColor,
@@ -2558,9 +2565,10 @@ int do_netrom(int argc, char **argv)
 			if (p->n == 0)		/* local node */
 			{
 				const char *qcol = Colored
-					? ((p->qual1 == 0)  ? NodeColors.qualite_nulle
-					 : (p->qual1 <= 50) ? NodeColors.qualite_moyenne
-					 :                    NodeColors.qualite_bonne)
+					? ((p->qual1 == 0)   ? NodeColors.qualite_nulle
+					 : (p->qual1 <= 50)  ? NodeColors.qualite_moyenne
+					 : (p->qual1 == 120) ? NodeColors.qualite_nulle
+					 :                     NodeColors.qualite_bonne)
 					: "";
 				tprintf("%s%-7d%s %-12d\n",
 						qcol, p->qual1, Colored ? ResetColor : "",
@@ -2570,9 +2578,10 @@ int do_netrom(int argc, char **argv)
 			if ((np = find_neigh(p->addr1, nlist)) != NULL)
 			{
 				const char *qcol = Colored
-					? ((p->qual1 == 0)  ? NodeColors.qualite_nulle
-					 : (p->qual1 <= 50) ? NodeColors.qualite_moyenne
-					 :                    NodeColors.qualite_bonne)
+					? ((p->qual1 == 0)   ? NodeColors.qualite_nulle
+					 : (p->qual1 <= 50)  ? NodeColors.qualite_moyenne
+					 : (p->qual1 == 120) ? NodeColors.qualite_nulle
+					 :                     NodeColors.qualite_bonne)
 					: "";
 				tprintf("%s%-7d%s %-12d %-6s %s%s%s\n",
 						qcol, p->qual1, Colored ? ResetColor : "",
@@ -2585,9 +2594,10 @@ int do_netrom(int argc, char **argv)
 			if (p->n > 1 && (np = find_neigh(p->addr2, nlist)) != NULL)
 			{
 				const char *qcol = Colored
-					? ((p->qual2 == 0)  ? NodeColors.qualite_nulle
-					 : (p->qual2 <= 50) ? NodeColors.qualite_moyenne
-					 :                    NodeColors.qualite_bonne)
+					? ((p->qual2 == 0)   ? NodeColors.qualite_nulle
+					 : (p->qual2 <= 50)  ? NodeColors.qualite_moyenne
+					 : (p->qual2 == 120) ? NodeColors.qualite_nulle
+					 :                     NodeColors.qualite_bonne)
 					: "";
 				tprintf("                  ");
 				tprintf("%s%-7d%s %-12d %-6s %s%s%s\n",
@@ -2601,9 +2611,10 @@ int do_netrom(int argc, char **argv)
 			if (p->n > 2 && (np = find_neigh(p->addr3, nlist)) != NULL)
 			{
 				const char *qcol = Colored
-					? ((p->qual3 == 0)  ? NodeColors.qualite_nulle
-					 : (p->qual3 <= 50) ? NodeColors.qualite_moyenne
-					 :                    NodeColors.qualite_bonne)
+					? ((p->qual3 == 0)   ? NodeColors.qualite_nulle
+					 : (p->qual3 <= 50)  ? NodeColors.qualite_moyenne
+					 : (p->qual3 == 120) ? NodeColors.qualite_nulle
+					 :                     NodeColors.qualite_bonne)
 					: "";
 				tprintf("                  ");
 				tprintf("%s%-7d%s %-12d %-6s %s%s%s\n",
@@ -2708,6 +2719,8 @@ int do_status(int argc, char **argv)
 	struct proc_rs *rp, *rlist;
 	struct proc_rs_nodes *rsno, *rsnolist;
 	struct proc_rs_neigh *rsne, *rsnelist;
+	port_t *pp;
+	char userports[256];
 	/* cfg_t cfg; -- supprimé : on utilise le cfg global déjà chargé au démarrage */
 
 	memtotal = memfree = buffers = cached = swaptotal = swapcached = swapfree = 0;
@@ -2719,6 +2732,20 @@ int do_status(int argc, char **argv)
 	}
 
 	/* cfg_open(&cfg) supprimé : évite double appel + corruption heap + putenv(buffer local) */
+
+	/* UserPort declared in fpac.conf (list of AX.25 ports open to users,
+	 * "*" meaning all of them) -- NOT to be confused with "Connected via"
+	 * below, which is the port/address this particular session actually
+	 * came in on. */
+	userports[0] = '\0';
+	for (pp = cfg.port ; pp != NULL ; pp = pp->next)
+	{
+		if (userports[0] != '\0')
+			strncat(userports, " ", sizeof(userports) - strlen(userports) - 1);
+		strncat(userports, pp->name, sizeof(userports) - strlen(userports) - 1);
+	}
+	if (userports[0] == '\0')
+		strcpy(userports, "-");
 
 	node_msg("Status:");
 	time(&t);
@@ -2735,6 +2762,8 @@ int do_status(int argc, char **argv)
 			if (cfg.inetport != 0)
 				tprintf("UDP/TCP/IP port  : %s%d%s\n", NodeColors.version,cfg.inetport, ResetColor);
 		tprintf("Default port     : %s\n", cfg.def_port);
+		tprintf("User port        : %s\n", userports);
+		tprintf("Connected via    : %s\n", User.ul_name);
 		tprintf("Inet address     : %s\n", cfg.def_addr);
 		tprintf("City             : %s\n", cfg.city);
 		tprintf("Zip - State      : %s\n", cfg.state);
@@ -2742,7 +2771,7 @@ int do_status(int argc, char **argv)
 		tprintf("Locator          : %s\n\n", cfg.locator);
 		tprintf("Operating system : %s%s %s (%s)%s\n", NodeColors.adresse, name.sysname,
 				name.release, name.machine,ResetColor);
-		tprintf("FPAC version     : %s%s %s(built %s)%s\n", NodeColors.version, VERSION, NodeColors.node, __DATE__ , ResetColor);
+		tprintf("FPAC version     : %s%s %s(built %s %s)%s\n", NodeColors.version, VERSION, NodeColors.node, __DATE__, __TIME__, ResetColor);
 		}
 		
 		else {
@@ -2755,6 +2784,8 @@ int do_status(int argc, char **argv)
 			if (cfg.inetport != 0)
 				tprintf("UDP/TCP/IP port  : %d\n", cfg.inetport);
 		tprintf("Default port     : %s\n", cfg.def_port);
+		tprintf("User port        : %s\n", userports);
+		tprintf("Connected via    : %s\n", User.ul_name);
 		tprintf("Inet address     : %s\n", cfg.def_addr);
 		tprintf("City             : %s\n", cfg.city);
 		tprintf("Zip - State      : %s\n", cfg.state);
@@ -2762,7 +2793,7 @@ int do_status(int argc, char **argv)
 		tprintf("Locator          : %s\n\n", cfg.locator);
 		tprintf("Operating system : %s %s (%s)\n", name.sysname,
 				name.release, name.machine);
-		tprintf("FPAC version     : %s (built %s)\n",VERSION, __DATE__);
+		tprintf("FPAC version     : %s (built %s %s)\n",VERSION, __DATE__, __TIME__);
 		}
 
 /* read and calculate the amount of uptime and format it nicely */

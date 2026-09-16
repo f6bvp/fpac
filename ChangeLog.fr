@@ -1,0 +1,1101 @@
+Traduction française du ChangeLog de FPAC. Original en anglais dans le fichier ChangeLog.
+Les noms de fichiers, de fonctions et de variables sont conservés tels quels.
+
+fpac (4.1.5)
+
+	* White Pages (annuaire du réseau) : plusieurs défauts qui
+	  empêchaient les fiches de se synchroniser correctement entre
+	  nœuds ont été corrigés. Une fiche marquée « supprimée » peut de
+	  nouveau se réparer toute seule si le nœud d'origine continue de
+	  l'annoncer, au lieu de rester bloquée jusqu'à une intervention
+	  manuelle. Chaque nœud réannonce désormais sa propre fiche
+	  régulièrement (tous les 7 jours), même sans redémarrage, pour ne
+	  jamais paraître périmé aux autres nœuds. Le délai avant
+	  effacement définitif d'une fiche supprimée est maintenant
+	  respecté. Une fiche supprimée n'apparaît plus dans la commande
+	  utilisateur Wp mais reste visible pour le sysop via wplist. Une
+	  connexion ROSE explicite réussie vers un indicatif dont la fiche
+	  était marquée « supprimée » la restaure désormais
+	  automatiquement. wplist affiche un état (Ok/DELETED) et une
+	  meilleure mise en page ; plusieurs commandes de wpedit qui ne
+	  fonctionnaient plus (suppression de fiche notamment) sont
+	  réparées, avec un message clair quand le démon n'est pas lancé.
+
+	* Fiabilité du démon White Pages (fpacwpd) : plusieurs causes de
+	  blocage ou de plantage ont été corrigées -- une connexion à un
+	  nœud voisin restée bloquée en cours d'établissement isolait le
+	  nœud jusqu'à un redémarrage manuel ; le démon pouvait planter
+	  quelques minutes après son démarrage ; une fiche supprimée trop
+	  ancienne reçue d'un voisin coupait la session au lieu d'être
+	  simplement ignorée. Tout cela est désormais corrigé, et le démon
+	  se répare seul dans ces situations.
+
+	* Connexions ROSE : la bascule automatique en cas d'échec
+	  (failover) est plus robuste et couvre maintenant aussi le cas le
+	  plus fréquent (échec immédiat de la première tentative). Les
+	  messages affichés à l'utilisateur nomment désormais le voisin
+	  réellement tenté au lieu de rester vagues. Une adresse ROSE
+	  courte tapée sans indiquer le réseau (DNIC) se complétait
+	  silencieusement avec celui du nœud local, ce qui pouvait envoyer
+	  la connexion vers le mauvais réseau sans avertissement --
+	  corrigé. La connexion à un alias affiche désormais ce à quoi il
+	  correspond réellement.
+
+	* Connexions AX.25/NetRom : une tentative de connexion vers un
+	  port AX.25 invalide ou non configuré est maintenant correctement
+	  rejetée au lieu d'être silencieusement acceptée sur le mauvais
+	  port. Le message affiché pendant une tentative de connexion
+	  indique maintenant le port utilisé. « Connect INDICATIF via
+	  DIGIPEATER » (sans indiquer de port) a été réparé, cette syntaxe
+	  n'était plus interprétée correctement.
+
+	* Affichage : les couleurs de fpacnode sont personnalisables sans
+	  recompilation via un fichier de configuration
+	  (/usr/local/etc/ax25/fpacnode.colors -- voir ce fichier pour le
+	  détail des réglages). Plusieurs incohérences de couleur ont été
+	  corrigées (liste des utilisateurs, liens, qualité des routes).
+	  Dans la liste des nœuds NetRom (« ne »), une qualité restée
+	  figée à sa valeur de démarrage s'affiche maintenant en rouge
+	  pour repérer les fiches jamais réellement confirmées par le
+	  réseau. L'état d'un nœud (« s ») distingue clairement le port
+	  utilisateur déclaré du port réellement utilisé par la session en
+	  cours, et affiche l'heure exacte de compilation en plus de la
+	  date.
+
+	* Stabilité générale : plusieurs plantages ont été corrigés,
+	  notamment un plantage systématique après la séquence de
+	  commandes « s » puis « u », des dépassements de mémoire tampon
+	  dans l'affichage et la messagerie, et un tri de la liste NetRom
+	  qui pouvait boucler indéfiniment sur un grand réseau.
+
+	* Divers : le ChangeLog et le fichier NEWS sont désormais aussi
+	  disponibles en français (ChangeLog.fr et NOUVELLES). La
+	  construction du paquet source (make dist) a été fiabilisée, et
+	  la compilation fonctionne maintenant correctement sur les
+	  architectures 32 bits (armhf).
+
+-- Bernard Pidoux <bernard.f6bvp@gmail.com>  mercredi 16 septembre 2026
+
+Assisté par Claude Sonnet 5 (Anthropic) <noreply@anthropic.com>.
+
+fpac (4.1.4)
+
+	* Ajout de la commande interne COlor pour basculer le mode
+	  d'affichage couleur ON et OFF.
+	* Avertissements du compilateur satisfaits, supprimés
+	* Les SSID des chiffres restent égaux à 0 par défaut. À corriger
+	* La commande de connexion de fpacnode doit être optimisée pour
+	  améliorer le routage
+
+-- Bernard Pidoux <f6bvp@free.fr>  jeudi 1er juin 2025 00:00:00 -0000
+
+fpac (4.1.4-beta6)
+
+	* Ajout de la commande interne COLor pour basculer l'affichage
+	  coloré du statut du nœud.
+	* users, links, routes, heard
+	* la valeur par défaut est constituée de menus colorés.
+	* Ceci remplace l'option de couleur en ligne de commande de la
+	  version beta précédente
+	* wpedit était bogué. Corrigé.
+	* Ajout de l'affichage SSID -0 dans wpmaint, wpedit, wplist,
+	  fpacnode, wpserv
+	* Menus mis à jour dans wpmaint, wpedit, wplist, fpacnode, wpserv
+
+-- Bernard Pidoux <f6bvp@free.fr>  lundi 26 mai 2025 00:00:00 -0000
+
+fpac (4.1.3)
+
+	* L'interface réseau rose0 ne devrait pas recevoir d'adresse
+	  TCP/IP (affectation supprimée dans fpad.c)
+
+ -- Bernard Pidoux <f6bvp@free.fr>  mer. 30 août 2023 00:00:00 -0000
+
+fpac (4.1.3-beta)
+
+	* Suppression d'un free() faisant planter fpacnode en cas de
+	  répétition
+	* Suppression du contrôle configure.ac pour sys/io.h
+	* Suppression des références à remote (usage du port parallèle)
+	  dans tools/Makefile.am
+	* Suppression de #define extern dans node/fpacnode et déclaration
+	  à la place des table et pointeurs manquants
+	* Ajout de messages d'erreur plus verbeux
+	* Nom du port rose1 changé en rose0 dans wp_listen()
+
+ -- Bernard Pidoux <f6bvp@free.fr>  mar. 12 janv. 2022 00:00:00 -0000
+
+fpac (4.1.2-beta) Non publiée
+
+	* fpacnode plantait parfois à cause d'un free() redondant
+	quand les commandes « s » et « l » étaient répétées.
+
+ -- Bernard Pidoux <f6bvp@free.fr>  dim. 12 janv. 2019 00:00:00 -0000
+
+fpac (4.1.1-beta)
+	* Réduction de la taille du tampon de mot de passe de 256 à 243
+	  pour éviter un débordement
+
+ -- Bernard Pidoux <f6bvp@free.fr>  sam. 1 janv. 2021 00:00:00 -0000
+
+fpac (4.1.1-beta)
+	* Réduction de la taille du tampon de mot de passe de 256 à 243
+	pour éviter un avertissement de débordement de tampon à la
+	compilation
+	* Augmentation de la taille du tampon ssid de 8 à 12 pour éviter
+	un avertissement de débordement de tampon à la compilation
+	* Augmentation de la taille du tampon call de 10 à 13 pour éviter
+	un avertissement de débordement de tampon à la compilation
+	* Ajout d'une gestion d'erreur à un ensemble d'appels write pour
+	corriger des avertissements de compilation
+	* Ajout d'une gestion d'erreur à chdir dans wp/daemon.c
+	* Ajout d'une gestion d'erreur à chmod, chown, setuid et setgid
+	dans fpacshell.c
+	* Ajout d'une gestion d'erreur à read dans listen.c
+
+fpac (4.1.0)
+	* Changement de la façon d'installer les fichiers de configuration
+	dans /etc/ax25. Installe les valeurs par défaut si elles n'existent
+	pas déjà. Si elles existent, elles sont installées avec une
+	extension .dist, afin de ne pas écraser les fichiers existants. La
+	cible « make installconf » n'est plus nécessaire pour installer les
+	fichiers de configuration.
+	* Suppression de la dépendance au fichier SVNREV, non utilisé
+	actuellement.
+	* Changement de la façon de faire la substitution de variables dans
+	pathnames.h pour faciliter le débogage.
+	* Mise à jour des fichiers d'empaquetage Debian vers la dernière
+	compatibilité.
+	* Le script configure échoue désormais si l'un des en-têtes requis
+	est manquant.
+
+ -- Lee Woldanski <ve7fet@tparc.org>  dim. 3 févr. 2019 10:45:00 -0800
+
+fpac (4.0.5)
+	* Version actuellement en développement
+	* la prochaine devrait réparer l'arbre de la commande Call (...)
+	* Penser à construire une route par défaut (...)
+	* Quelques inclusions décommentées pour satisfaire une nouvelle
+	version du compilateur C
+	* outil calibrate réparé
+
+ -- Bernard Pidoux <f6bvp@free.fr>  mer. 27 déc. 2017 00:00:00 -0000
+
+fpac (4.0.4)
+	* Version actuellement en développement
+	* devrait réparer l'arbre de la commande Call (...)
+	* Devrait inclure une route par défaut (...)
+	* Suite à la remarque de Tom SP2L, la ligne « syslog(LOG_INFO ... »
+	a été commentée afin d'économiser de la place sur le disque.
+
+ -- Bernard Pidoux <f6bvp@free.fr>  mar. 5 janv. 2016 00:00:00 -0000
+
+fpac (4.0.3)
+	* wpcmp inclut désormais un message d'usage et ne plante plus.
+	* README n'affiche plus les rapports de problèmes, désormais dans
+	les issues du dépôt GIT
+	* Si le serveur WP renvoie 0 enregistrement, vérifier la base WP
+	locale
+	* la suppression de ++pos dans gateway.c évite des erreurs de
+	segmentation
+	* Commentaire mal placé
+
+ -- Bernard Pidoux <f6bvp@free.fr>  mar. 29 déc. 2015 00:00:00 -0000
+
+fpac (4.0.2)
+	* Ne plus afficher les nœuds locaux dans routes. Ils sont listés
+	dans Links
+	* Le répertoire m4 est nécessaire
+	* Ajout dans fpacnode de l'affichage L(inks) des adjacents
+	connectés, ports, Ifaces et périphériques
+	* fpacnode L(inks) ne liste maintenant que les liens connectés (la
+	commande U(sers) affiche le statut de connexion)
+	* Ajout du listing des ports Rose et NetRom dans la commande
+	P(ort) de fpacnode
+	* Ajout de la liste des ports netrom à la commande fpacnode
+	'p(ort)'
+	* Un caractère supplémentaire autorisé pour le nom de port dans la
+	fonction fpacnode m(heard)
+
+ -- Bernard Pidoux <f6bvp@free.fr>  ven. 25 déc. 2015 00:00:00 -0000
+
+fpac (4.0.1-beta)
+	* un échec d'appel à ioctl renvoie une valeur <0 dans fpad.c et
+	fpacconf.c
+	* correction de la faute de frappe SIOCRSSL2CALL dans fpad.c et
+	fpacconf.c
+	* suppression des fins de ligne CR-LF dans ce fichier à l'aide de
+	l'utilitaire DOS2UNIX
+
+ -- Bernard Pidoux <f6bvp@free.fr>  jeu. 29 janv. 2015 00:00:00 -0000
+
+fpac (4.0.1)
+	* Tomi a fait une erreur dans son code en n'incluant pas de
+	term_handler. Je suppose qu'il pensait que le regrouper dans la
+	routine signal_handler serait suffisant, mais ce n'est pas le cas.
+	Le nœud peut recevoir le signal mais ne sait pas assez précisément
+	comment se terminer, laissant ainsi la session ouverte. L'ajout du
+	term_handler garantira la fermeture correcte du nœud. Des
+	compilateurs plus récents acceptent peut-être cela maintenant, mais
+	je n'en suis pas sûr. Considérant que le nœud GB7CIP de G4APL a été
+	touché par cet exploit l'an dernier, je ne peux que penser qu'il
+	existe toujours. J'ai découvert ce bogue il y a un bon moment mais
+	je n'ai compris ce qui se passait qu'après une trace via gdb.
+
+ -- Bernard Pidoux <f6bvp@free.fr>  mer. 28 janv. 2015 00:00:00 -0000
+
+fpac (4.00.00)
+	* Publiée en tant que version 4.00.00 en raison de changements
+	significatifs. Basée sur le code fonctionnel 3.27.19 (non publié).
+	La compatibilité avec les versions <3.27.18 n'est pas garantie
+	* Nettoyage de la base de code SVN
+	* Déplacement des fichiers d'aide de /etc/ax25/fpac/help vers
+	/var/ax25/fpac/help pour une meilleure conformité aux règles et
+	moins de risque de sécurité
+	* Ajout de certains scripts de K4GBB : ax25, ax25-up, ax25-down,
+	ax25parms
+	* Suppression du code mkissattach obsolète (et du dossier kiss)
+	* K4GBB a ajouté un grand nombre de pages de manuel pour les
+	binaires produits par ce logiciel
+	* Davantage de commentaires ajoutés dans le code source
+	* F6BVP a réparé l'option -o et ajouté l'option -d (debug) dans
+	mon_tcp
+	* F6BVP a ajouté un message d'usage à call_tcp
+	* F6BVP a ajouté davantage de détails d'usage à wpserv et fait en
+	sorte que wpserv et wplist affichent l'indicatif complet, SSID -0
+	inclus
+	* F6BVP a corrigé la compatibilité 32/64 bits pour libwp et le
+	calcul de l'âge des enregistrements WP basé sur l'heure GMT
+	* F6BVP les enregistrements des pages blanches sont désormais
+	stockés avec l'heure GMT pour éviter les problèmes de fuseau
+	horaire sur les grands systèmes répartis sur plusieurs fuseaux
+	* F6BVP a ajouté davantage de rapports d'erreur à wpedit
+	* F6BVP a nettoyé certains messages de débogage dans fpacwpd
+	* F6BVP a ajouté un correctif à wpedit pour permettre l'édition
+	d'un enregistrement malgré son âge/sa date
+	* K4GBB a nettoyé la sortie de l'utilitaire fpaccfg
+	* F6BVP a corrigé les utilitaires wpedit et wpmaint pour mieux
+	gérer les anciens enregistrements
+	* Raccourcissement des délais de conservation des enregistrements
+	obsolètes des pages blanches avant leur suppression
+	* F6BVP a amélioré les échanges de pages blanches entre nœuds pour
+	accélérer et réduire la surcharge
+	* F6BVP a modifié wpmaint pour récupérer la base depuis une
+	sauvegarde si le fichier de travail est corrompu/manquant
+	* F6BVP a modifié wpmaint pour permettre la suppression ou
+	l'effacement des enregistrements de nœud (comme les enregistrements
+	d'utilisateur)
+	* K4GBB a corrigé un bogue où wp_set() n'initialisait pas
+	correctement wp->date
+	* F6BVP a corrigé la façon dont time(NULL) est utilisé pour bien
+	régler les heures
+	* F6BVP a apporté des modifications à wplist concernant
+	l'affichage et le traitement de la ligne de commande
+	* F6BVP a corrigé une erreur de segmentation dans call_tcp
+	* F6BVP a corrigé gateway.c pour empêcher une erreur de
+	segmentation de fpad
+	* F6BVP a modifié wpedit pour créer un nouvel enregistrement avec
+	la date et l'heure courantes
+	* F6BVP a modifié fpacconf et fpacnode pour avertir quand les
+	routes ne sont pas définies au lieu d'abandonner avec une erreur,
+	afin de permettre à fpacnode de tourner en mode autonome
+	* Correctif de SP2LOB corrigeant une erreur dans le message
+	d'accueil de fpacnode
+	* F6BVP a modifié fpacnode pour accepter les indicatifs NetRom avec
+	SSID=0 ou sans SSID
+	* F6BVP a modifié monitor pour s'arrêter si aucun port ax.25 n'est
+	défini, a nettoyé certains messages d'erreur, rapporte la version
+	et la date de compilation, et ne fait plus de dump de trame pour
+	CLEAR REQUEST et CLEAR CONFIRMATION
+	* F6BVP a corrigé une erreur de segmentation dans fpacwpd quand le
+	débogage verbeux est activé et que context[client] était vide, a
+	ajouté la date de compilation et la version, et a aussi supprimé
+	wp_send_pdu() dans fpacwpd et wp_flush_pdu() dans WaitEvent() pour
+	éviter des boucles d'émission folles (situation de compétition)
+	* F6BVP a modifié fpacnode pour forcer l'indicatif utilisé par call
+	en majuscules et ajouter le SSID -0 s'il est manquant
+	* K4GBB a ajouté now_date() à wplist, wpserve et wpmaint
+	* F6BVP a modifié wp pour ne pas fermer le socket wp en cas
+	d'erreur de wp_set() wp_receive-pdu()
+	* F6BVP a modifié fpacconf pour vérifier si fpac.conf, fpac.nodes
+	et fpac.routes ont été modifiés
+	* F6BVP a ajouté la date de compilation à wpmaint
+	* F6BVP a modifié fpacnode pour accepter un indicatif en argument
+	de ligne de commande
+	* F6BVP fpacwpd rejette un enregistrement WP s'il est supprimé et
+	que l'indicatif est absent de la base
+
+ -- Lee Woldanski <ve7fet@tparc.org> jeu. 20 nov. 2014 10:00:00 -0800
+
+fpac (3.27.18)
+	* Fusion de certaines corrections de Bernard sur la base de
+	données des pages blanches
+	* Changements cosmétiques mineurs pour l'affichage des données WP
+	* Bernard a mis à jour le How-To inclus vers la version 1.77
+	* Changement de la fonction user en fpac_user pour contourner un
+	bogue lors de la compilation croisée
+
+ -- Lee Woldanski <ve7fet@tparc.org> dim. 28 août 2011 10:00:00 -0800
+
+fpac (3.27.17)
+	* Fusion de plusieurs correctifs pour FLEX afin de mieux le faire
+	fonctionner
+	* Mise à jour du fichier fpac.spec pour mieux vérifier l'OS et
+	sélectionner les dépendances de compilation
+	* Bernard a mis à jour le How-To inclus vers la version 1.75
+	* Ajout du correctif aprslist.c qui avait été appliqué sur le
+	tronc mais pas sur cette branche
+
+ -- Lee Woldanski <ve7fet@tparc.org> lun. 7 mars 2011 10:00:00 -0800
+
+fpac (3.27.16)
+	* Correction d'un bogue dans l'expansion des variables des
+	fichiers de config avec make
+	* Ajout de variables à configure.ac pour mieux découper le numéro
+	de version lors de la construction des paquets
+	* Ajout d'un fichier fpac.spec pour construire des paquets RPM
+	* Leo, IZ5FSA, a fait un gros travail sur le code FLEX pour le
+	refaire fonctionner (encore en cours)
+	* Bernard, F6BVP, a apporté quelques modifications de débogage
+
+ -- Lee Woldanski <ve7fet@tparc.org>  lun. 31 janv. 2011 22:00:00 -0800
+
+fpac (3.27.15)
+	* Intégration des changements de Bernard dans une version
+	incrémentale
+	* Mise à jour des sources pour utiliser GNU autotools (portabilité
+	via le script ./configure)
+	* Suppression de fichiers sources inutilisés non liés à aucun
+	programme
+	* Suppression du support #define OLD_AX25, compile désormais avec
+	libax25-0.0.12rc2
+	* Renommage des fonctions rose2asc et ax2asc en rose_ntoa et
+	ax25_ntoa respectivement dans wp/wpconvert.c
+	* Note : wpconvert n'est pas installé par défaut
+	* Les fichiers .conf sont désormais traités par make pour mettre à
+	jour les chemins nécessaires
+	* « make install » installera tous les binaires, les fichiers
+	fpac/help, la doc, ainsi que sbin/fpac.sh, sbin/versions,
+	var/ax25/fpac/loggedin, var/ax25/flex/gateways et
+	var/ax25/flex/destinations
+	* « make installconf » installera tous les fichiers de
+	configuration par défaut dans /etc/ax25
+	* Changement du message d'erreur dans fpacnode quand moins de 3
+	nœuds ou routes fpac ont été définis
+	* Changement du message d'usage des pages blanches pour préciser
+	le bon fichier de base de données WP
+	* Vérification des inclusions avec splint (www.splint.org) dans
+	les sources et suppression en commentaire des en-têtes inutiles
+	* Vérification des contrôles d'en-têtes/bibliothèques de
+	./configure
+
+ -- Lee Woldanski <ve7fet@tparc.org>  ven. 7 janv. 2011 23:00:00 -0800
+
+fpac (3.27.14-pre32)
+	* Le serveur des pages blanches FPAC est toujours en phase de
+	débogage pour la compatibilité entre systèmes 32 et 64 bits.
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.14-pre31)
+	* Le serveur fpacwpd accepte les enregistrements SUPPRIMÉS de
+	moins de WP_OBSOLETE jours. Ce paramètre était de 180 et est
+	maintenant de 14 jours.
+	* D'autres bogues trouvés dans le serveur des pages blanches en
+	raison de la compatibilité ajoutée avec des minuteries plus
+	rapides et des CPU 64 bits.
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.14-pre30)
+	* Le mode de terminaison des programmes démons FPAC a été adapté à
+	Linux 2.6.
+	(fpad, fpacwpd, fpacstat, fpacroute, aprslist et mkissattach
+	[obsolète]) interceptent désormais correctement le signal SIGTERM
+	pour s'arrêter. Exemple : killall -SIGTERM fpacroute
+	* suppression du message de débogage « CONNECTED » restant dans
+	traceroute.
+	* FPACWPD : de nombreuses causes d'échec ont été trouvées dans le
+	serveur des pages blanches FPAC (fpacwpd). Certaines sur Linux 64
+	bits.
+	* la commande « Ports » de fpacnode n'affiche de nouveau que le
+	champ description des ports de /etc/ax25/axports.
+	* les fichiers doc imprimables FPAC-MINI-HOWTO.ps et rtf ont été
+	supprimés pour faire de la place (quelqu'un utilise-t-il encore ces
+	formats ?)
+	* Quand une connexion échoue, le message est maintenant « No Route
+	opened for address specified ». C'était auparavant « No route
+	defined »
+	* Amélioration des tests de configuration aprslist au démarrage du
+	démon APRS.
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.14-pre29)
+	* Message « No NetRom Nodes » si la commande « ne » est saisie et
+	que NetRom n'est pas configuré.
+	* Changement cosmétique dans l'affichage des ports.
+	* Quand Fpacnode démarre, davantage de tests sont effectués
+	concernant l'initialisation ROSE FPAC.
+	* fpacnode et flexd sont plus verbeux lorsqu'ils signalent des
+	fichiers manquants.
+	* node.routes est renommé flexd.routes. Un exemple de fichier est
+	fourni et installé si nécessaire.
+	* FPAC-MINI-HOWTO mis à jour dans le répertoire source
+	doc/html FPAC.
+	* davantage de messages ajoutés en cas d'erreurs dans les
+	bibliothèques des pages blanches.
+	* suppression du message de débogage dans traceroute.
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.14-pre28)
+	* Changement cosmétique dans l'affichage Links.
+	* La dernière ligne affichée avec la commande 'ne *' n'était pas
+	correcte. Le nœud local avait une qualité = 0.
+	* Un bogue corrigé dans la bibliothèque AX.25. Merci de
+	télécharger la libax25 corrigée depuis :
+	* http://f6bvp.free.fr/logiciels/ax25/libax25-0.0.12-rc2.patched_f6bvp.tar.bz2
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.14-pre27)
+	* La commande User de fpacnode affichait un message d'erreur
+	quand aucun module NetRom n'était chargé. Corrigé.
+	* Merci à Charlie K4GBB d'avoir signalé ce problème.
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.14-pre26)
+	* La commande User de fpacnode affiche maintenant aussi le statut
+	de connexion Netrom
+	* changement de certains en-têtes dans config.h pour la
+	compatibilité avec la nouvelle bibliothèque AX.25 (plus de
+	kernel_ax25.h, kernel_rose.h, kernel_netrom.h)
+	* Merci à Claude F5PBL d'avoir signalé ce changement dans le dépôt
+	officiel AX25.
+	* le script versions avait une faute de frappe à la ligne 2. Le
+	caractère 'x' manquait dans le second ax25ipd - cela devrait être
+	« grep ax25ipd »
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.14-pre25)
+	* traceroute était bogué. Corrigé
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.14-pre24)
+	* node/gateway.c node_is_connected() était bogué. Corrigé (en
+	pre-23)
+	* le script /usr/local/bin/versions est fourni pour faciliter la
+	maintenance à distance par les SYSOPs
+	* le fichier etc/itu.dnic est fourni à titre d'information pour le
+	Sysop
+	* ajout du statut de connexion ROSE dans la commande user de
+	fpacnode
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.14-pre23)
+	* Ajout de la liste symbolique à trois lettres des DNIC suivante
+	dans /etc/ax25/fpac.dnic
+	  FRA 2080
+	  ESP 2120
+	  USA 3100
+	  CUR 3620
+	  ARU 3630
+	  AUS 5050
+	  NIC 7100
+	  COS 7120
+	  CAN 3020
+	* Quand la commande fpacnode " n * " est saisie, la liste des nœuds
+	FPAC affiche une description de nœud étendue.
+	* argument -pthread ajouté à rules.make - Utile ?
+	* fpacnode plantait quand une connexion était tentée vers un
+	indicatif ax25 identique à un port ax25 local. Corrigé
+	* la commande Ports de fpacnode "p" affiche maintenant une liste
+	plus complète des paramètres des ports ax25.
+	* la commande Links de fpacnode "l" affiche maintenant le statut
+	d'un lien : Yes si connecté.
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.14-pre22)
+	* Nouvel argument "a" de la commande NetRom ne de fpacnode affiche
+	les nœuds NetRom en ordre alphabétique compact par indicatif.
+	Syntaxe : ne a
+	Note : la syntaxe ne ou ne * reste valide.
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.14-pre21)
+	* Cette version est rétrocompatible avec le fpac.conf précédent
+	* Cependant les nœuds adjacents FPAC peuvent désormais être
+	configurés dans un fichier séparé /etc/ax25/fpac.nodes
+	et les routes FPAC peuvent être configurées dans un fichier séparé
+	/etc/ax25/fpac.routes
+	Ou bien Nodes et Routes configurés tous deux dans le même fichier,
+	soit fpac.nodes soit fpac.routes
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.14-pre20)
+	* Cette version est rétrocompatible avec le fpac.conf précédent
+	* Cependant les Nœuds et Routes FPAC peuvent désormais être
+	déclarés dans un fichier séparé /etc/ax25/fpac.routes
+	* FPACROUTES (dans fpac.h) définit l'emplacement du fichier
+	fpac.routes
+	* les messages d'erreur de flexd sont moins anonymes.
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.14-pre19)
+	* WPMAINT ne supprime plus les enregistrements de nœud (wpedit
+	peut toujours supprimer manuellement un enregistrement de nœud)
+	* suppression des instructions register (ignorées par les
+	compilateurs modernes)
+	* L'exemple de fichier fpac.conf fourni ne contenait pas les
+	entrées City, State et Country.
+	Ce fichier est installé quand la commande "make installconf" est
+	saisie.
+	Attention, cela effacera tout fichier /etc/ax25/fpac.conf déjà
+	présent.
+	* le tampon listen() de monitor est vidé pour éviter l'affichage
+	d'anciennes données
+	* monitor s'arrêtait avec un signal SIGSEGV (violation de segment)
+	dans rose_dump(). Corrigé.
+	* les facilités ROSE ne sont plus supportées par le noyau Linux
+	2.6. L'ioctl correspondant a été supprimé.
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.14-pre18)
+	* Les FPAC-MINI-HOWTO inclus sont mis à jour (dans ~/doc/html)
+	* aprslist rapportait de fausses erreurs de port inconnu.
+	* indicatifs source et destination inversés dans l'affichage des
+	utilisateurs L2.
+	* beaucoup de réarrangements de #include pour se conformer au
+	axlib.h "officiel".
+	* FPAC peut maintenant être compilé en utilisant la libax25
+	"officielle" depuis http://www.linux-ax25.org/
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.14-pre17)
+	* la commande de suppression de digis "D ." de wpedit efface
+	aussi les champs Name, City et Locator
+	* dans make.defs, INCAX25 = /usr/include remplace INCAX25 =
+	/usr/src/linux/include pour tenir compte des changements récents
+	des en-têtes du noyau.
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.14-pre16)
+	* Amélioration de la vérification de la valeur de retour des
+	fonctions wp par new_l3_connection dans fpad
+	* monitor affiche l'en-tête "ROSE X.25"
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.14-pre15)
+	* Nom du fichier journal FPAC changé. Maintenant LOG=/var/log/fpac.log
+	* changement cosmétique dans les sessions et transits AX.25 L3
+	pour une meilleure lisibilité
+	* délai d'expiration des événements fpacwpd augmenté
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.14-pre14)
+	* fpacnode vérifie si fpacwpd est présent
+	* nombre maximum de nœuds adjacents augmenté à 32
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.14-pre13)
+	* fpacwpd s'arrêtait trop souvent quand le délai d'expiration de
+	l'API du serveur WP était atteint. Délai augmenté.
+	* ajout de deux nouvelles entrées dans le fichier de configuration
+	fpac pour davantage d'espace pour code postal-état et pays
+	* Vous pouvez saisir jusqu'à 22 caractères pour les noms de City,
+	State et Country. Par exemple :
+	  City      = Paris
+	  State     = 75017
+	  Country   = France
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.14-pre12)
+	* affiche un avertissement sur stderr en cas de réception d'un
+	datagramme de longueur nulle (désormais filtré au niveau ROSE) et
+	FBB 7.04r ne devrait plus envoyer de trames vides.
+	* changements cosmétiques dans les affichages des menus node,
+	route et netrom
+	* Users L3 Sessions de fpacnode affichait les adresses Rose source
+	et destination inversées.
+	* bogues connus (?) :
+	En essayant de connecter un nœud non connecté, FPAC essaie via
+	l'adresse WP mais pas une route alternative
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.14-pre11)
+	* davantage de nettoyage du code pour améliorer la conformité au
+	compilateur GCC.
+	* mise à jour de l'application monitor dérivée de listen
+	d'ax25-apps, se termine quand la touche ENTRÉE est pressée
+	* fpacnode devrait afficher des informations mémoire correctes
+	avec les derniers noyaux 2.4 (?) et 2.6.
+	* les routes ROSE dans fpacnode sont affichées Opened si une route
+	rose est réellement ouverte, c'est-à-dire qu'un nœud adjacent est
+	connecté au nœud FPAC local.
+	* lecture des minuteries (t1, t2, t3, idle, rtt) changée pour
+	correspondre au nouveau format du noyau 2.6
+	* fpacnode abandonne si fpad n'est pas présent, c.-à-d. pas de
+	proc rose.
+	* la famille de socket PF_INET et la famille d'adresse AF_INET
+	pour le type SOCK_PACKET sont obsolètes.
+	* Remplacées respectivement par la famille de protocole PF_PACKET
+	et la famille d'adresse AF_PACKET.
+	* La commande Status affiche davantage d'informations sur le nœud
+	* Ajout de la commande APplication pour une liste des applications
+	démarrées par connexion à un indicatif spécifique.
+	* Inclut une date d'obsolescence pour les enregistrements WP
+	supprimés. Les données WP plus anciennes ne sont plus transmises
+	ni acceptées.
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.13)
+	* flexd dispose maintenant du protocole ROSE, utilisant le
+	périphérique rose0 et l'adresse de nœud de destination rose
+	* correction d'un certain nombre de bogues de compilation
+	(déclarations de tableau ou de variable mal placées)
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.12)
+	* Une sous-routine dédiée patchée dans le module rose du noyau
+	Linux active la capacité de routage alternatif.
+	* Désormais, une demande de connexion ou un transit de niveau 3
+	est automatiquement redirigé vers un voisin adjacent connecté qui
+	route l'adresse rose cible.
+	* Toute la liste des nœuds adjacents est parcourue jusqu'à ce que
+	rose trouve une route correspondante, y compris les routes
+	alternatives.
+	* Il était temps de changer la version WP pour limiter la taille
+	des messages de mise à jour WP.
+	* Les enregistrements supprimés de la base WP ont été retirés et
+	le nom de la base de données changé pour exclure la contamination
+	par des nœuds faisant tourner une ancienne version WP.
+	* option de compilation make.defs -Wstrick-prototypes réactivée
+	* optimisation -O2 et options de compilation de débogage -g
+	supprimées (temporairement ?)
+	* suppression d'un certain nombre de messages de débogage syslog()
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.11)
+	* Amélioration de l'algorithme Traceroute (commande TR).
+	Explore désormais toute la table de routage pour trouver un nœud
+	connecté routant l'adresse demandée. Saisir soit une adresse rose
+	à 10 chiffres, soit une adresse rose à 6 chiffres (le DNIC du pays
+	local est alors supposé), soit un indicatif (il doit être présent
+	dans la base WP pour obtenir l'adresse rose à tracer).
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.10)
+	* 'fpac.sh status' inclut l'affichage du statut de ax25ipd, ax25d
+	et netromd (comme suggéré par KP4DJT)
+	* moins d'avertissements à la compilation de wp/db.c
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.9)
+	* l'affichage du statut mémoire se fait maintenant en vrais Ko.
+	* doc/html/ inclut le mini-HOWTO Linux FPAC Flash pour installer
+	FPAC sur une clé USB amorçable
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.8)
+	* ETC_DIR dans make.defs devient /usr/local/etc/ax25
+	* VAR_DIR dans make.defs devient /usr/local/var/ax25
+	* dans node/command.c, int connected provoquait une erreur avec
+	Gcc 2.96. Déclaration déplacée.
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.7)
+	* make testera si le fichier /usr/local/etc/ax25/fpac.conf existe.
+	Si oui, ne l'effacera pas.
+	* S'il n'est pas présent, copiera les fichiers de configuration
+	depuis etc vers /usr/local/etc/ax25 et créera si nécessaire le
+	répertoire /usr/local/etc/ax25. Ceci pour éviter un abandon
+	silencieux de FPAC au démarrage sans fichier de config.
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.6)
+	* version candidate - août 2007
+	* Status rapporte maintenant correctement les informations mémoire
+	sur les noyaux 2.6 (et 2.4 ?)
+	* correction du bogue d'alias (le SSID était tronqué à un seul
+	caractère)
+	* fpac.sh : les champs NODECALL et CONNECT doivent être édités
+	pour convenir à la configuration locale
+	* doc/html/ inclut les versions anglaise et française 1.1.6 du
+	FPAC-MINI-HOWTO
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.27.5)
+	* version candidate pour la version 3.27
+	* compatible avec le noyau 2.6 qui inclut le correctif de routes
+	ROSE alternatives de Jean-Paul F6FBB
+	* la demande de connexion utilise n'importe laquelle des trois
+	routes de nœuds adjacents disponibles.
+	* la commande route (r) affiche le statut des routes : opened (si
+	le nœud est connecté) ou closed
+	* fpacnode rapporte davantage d'informations système (s).
+	* nombre maximum de nœuds adjacents augmenté de 11 à 16.
+	* l'application aprslist corrigée, elle plantait. Champ balise
+	optionnel ajouté dans apsrlist.conf.
+	* wpeditor est autorisé à supprimer un nœud de la liste
+	* wpmaint supprimera un enregistrement s'il a plus de 6 mois
+
+ -- Bernard Pidoux <f6bvp@free.fr>
+
+fpac (3.26)
+	* version image disquette publiée
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (3.25)
+	* Supporte maintenant 10 ports rose.
+	* Correction de bogues dans wpedit (une WP fermée ne pouvait pas
+	être rouverte).
+	* Correction de bogues dans la table des destinations Flexnet.
+	* Fpac.sh devrait fonctionner avec toutes les distributions.
+	* Ajout de la recherche par motif sur les requêtes WP et
+	Destinations (les jokers ? et * utilisables).
+	* Correction d'un problème de priorité entre le routage
+	Fpac_WP/netrom/flex.
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (3.24)
+	* (Version de test uniquement)
+	* Correction de quelques bogues mineurs.
+	* Makefile nettoyé
+	* Nouvelle version de fpacwpd (v1.7). Correction d'une boucle dans
+	certains cas.
+	* Ajout de Fpacroute. Teste la route vers un indicatif/une adresse
+	trouvé dans WP et affiche le RTT entre chaque saut.
+	* Wpserv est obsolète. Ce service est maintenant inclus dans
+	fpacnode.
+	* Première approche Flexnet avec flexd (comme flexnode et
+	Awznode).
+	* Nouvelle commande D (destinations Flexnet).
+	* Fpac essaie maintenant de router avec :
+	   les entrées rose ou wp,
+	   les destinations flexnet,
+	   netrom,
+	   les entrées mheard.dat,
+	   et termine avec le port par défaut
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (3.23)
+	* Pas d'information
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (3.22)
+	* Quelques corrections de bogues mineures dans fpad
+	* Ajout du mot-clé InetAddr dans fpac.conf pour configurer le
+	périphérique :
+	  L3call    = F6FBB-9
+	  L2call    = F6FBB-8
+	  DNIC      = 2080
+	  Address   = 931503
+	  Coverage  = 931603 931203 931103
+	  InetPort  = 1022
+	  InetAddr  = 44.151.31.6
+	  Password  = f6bexf6fbb
+	  City      = Roquettes
+	  Locator   = JN03QL
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (3.21)
+	* Version pour libax25 et les noyaux 2.2
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (3.11)
+	* fpad essaie de reconnecter le serveur WP local s'il a été
+	déconnecté.
+	* bogue trouvé dans le tri WP si 2 enregistrements ou plus ont la
+	même date. Corrigé.
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (3.10)
+	* Ajout du programme mailbbs pour envoyer un fichier ou l'entrée
+	standard à une BBS distante sous forme de message.
+	* correction d'un plantage dans fpad.
+	* fpacshell réécrit pour convenir à libc6.
+	* le nouveau fpac.sh inclut l'option "-t" qui relance fpad ou
+	fpacwpd.
+	* la commande "w" de fpacnode a désormais "*" par défaut
+	* Les applications répondent maintenant aux demandes de connexion
+	L2.
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (3.09)
+	* La commande route donne la couverture et les adresses des ports.
+	* fpacwpd pouvait boucler avec une base corrompue. Corrigé.
+	* Ajout de NetRom et du mot de passe en clair à la commande SYSop.
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (3.08)
+	* Correction d'un plantage de FPAD
+	* Ajout de la recherche DNIC. Le fichier est /etc/ax25/fpac.dnic.
+	Cela permet une chaîne de connexion comme :
+	 connect F6FBB via xxxx,FRA,931501
+	* la commande "N" étendue de fpacnode donne les nœuds FPAC/Linux &
+	NetRom.
+	* Autorise "N indicatif", "N liste d'indicatifs", "N *"
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (3.07)
+	* Ajout de davantage de services au serveur WP.
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (3.06)
+	* Ajout de services pour obtenir des listes de résultats depuis
+	WP.
+	* Ajout des nœuds FPAC dans la commande "nodes" de l'interpréteur.
+	* Ajout de l'échange indicatif vers adresse dans pad et node.
+	Ex. en utilisant le pad (connexion externe) :
+	 connect F6FBB via F6BEX-8 931503
+	et
+	 connect F6FBB via F6BEX-8 F6FBB-8
+	sont équivalents pour F6FBB-8/2080,931503
+	Ex. depuis le nœud :
+	 F6BEX-8: c F6FBB F6FBB-8
+	et
+	 F6BEX-8: c F6FBB 931503
+	* Les informations sont tirées de la base de données des pages
+	blanches.
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (3.05)
+	* wpserv a reçu l'option -n pour n'afficher que les nœuds
+	* Ajout de la lecture du fichier /etc/ax25/fpac.hello à la
+	connexion au nœud
+	* fpacstat supprime son fichier verrou au démarrage
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (3.04)
+	* Connect ne fonctionnait pas correctement avec les indicatifs/
+	alias netrom. Corrigé
+	 ajout de variables d'environnement depuis n'importe quelle
+	application fpac :
+	  FPAC_L2CALL
+	  FPAC_L3CALL
+	  FPAC_ADDRESS
+	  FPAC_CITY
+	  FPAC_LOCATOR
+	* Les informations du nœud local sont maintenant mises à jour (si
+	nécessaire) au démarrage de fpacwpd.
+	* fpacwpd vérifie sa base de données avant de démarrer
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (3.03)
+	* Le serveur WP adjacent est déconnecté en cas de mauvaise
+	version.
+	* Les ajouts suivants nécessitent rose-kernel rose0728
+	* Ajout de la commande : Link add port indicatif
+	* Ajout de la commande : route add|del adresse adjacent
+	* En cas de changement d'adjacent et/ou de route, le fichier de
+	configuration doit être mis à jour par le sysop. Au prochain
+	redémarrage, les changements seront perdus.
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (3.02)
+	* la version précédente de WP faisait planter fpacwpd. Corrigé.
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (3.01)
+	* Correction de quelques bogues mineurs
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (3.00)
+	* Ajout du multi-digipeating
+	* Nécessite rose0710 (version 0.61) ou ultérieure
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (2.02)
+	* Distribution
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (2.01z)
+	* Création automatique du fichier rsports par fpad
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (2.01y)
+	* Un digi rose dans un indicatif L2 était marqué comme digipeaté.
+	Corrigé.
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (2.01x)
+	* Le protocole WP est changé :
+	 ajout d'un numéro de version au début du vecteur
+	 ajout d'une somme de contrôle
+	 correction d'un problème de ping-pong lors de la mise à jour de
+	la base
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (2.01w)
+	* Ajout d'un nouveau programme "remote". Ce programme permet de
+	lire et écrire le port parallèle. Permet le contrôle à distance de
+	matériel.
+	* Ajout du digipeater dans l'enregistrement WP
+	* fpacwpd vérifie les données reçues pour éviter les
+	enregistrements "corrompus".
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (2.01v)
+	* Ajout de la variable %* dans fpac.conf : signifie tous les
+	arguments de la ligne de commande
+	* L'aide en ligne du nœud accepte les raccourcis. Les lettres
+	majuscules dans le nom de fichier indiquent le nombre minimum de
+	lettres pour le raccourci.
+	Les noms de fichiers seront comme :
+	 Connect.hlp CONFerence.hlp Status.hlp STATS.hlp
+	* Une commande vide dans fpac.conf désactive une commande de base.
+	Exemple :
+	"Nodes =" supprimera la commande Nodes de la liste des commandes
+	de base.
+	* Ajout de la commande "Alias" pour lister les alias fpac.
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (2.01u)
+	* La connexion au serveur WP depuis les applications n'est plus
+	permanente.
+	* Le serveur WP n'est connecté que lorsque l'information est
+	nécessaire.
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (2.01t)
+	* les nœuds sans chemin ne sont plus affichés dans les
+	statistiques.
+	* Algorithme de sécurité MD5 ajouté. MD2 sera supprimé car il
+	n'est pas dans le domaine public.
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (2.01s)
+	* ajout de la valeur de qualité dans les statistiques
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (2.01r)
+	* suppression de la reprise yapp automatique lors du téléversement
+	vers le nœud (l'option -r force désormais)
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (2.01q)
+	* messages de connexion/déconnexion réécrits pour convenir aux
+	facilités
+	* affichage des facilités dans le programme monitor
+	* noyau rose incluant les facilités fpac (rose0412.tgz)
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (2.01p)
+	* wpserv accepte les indicatifs ou dnic ou adresses (jokers
+	inclus)
+	* échange maître/esclave des informations WP
+	* ajout du support des facilités FPAC
+	* nouveau noyau rose incluant les facilités fpac (rose0407.tgz)
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (2.01o)
+	* le fichier info est /etc/ax25/fpac.info
+	* les fichiers d'aide sont recherchés dans le répertoire
+	/etc/ax25/fpac/help. Le fichier d'aide de la commande routes sera
+	/etc/ax25/fpac/help/routes.hlp
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (2.01n)
+	* Ajout d'options aux commandes
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (2.01m)
+	* L'arborescence de distribution est réorganisée. Les Makefiles
+	ont été réécrits.
+	* Une seule lib : libfpac.a en statique ou libfpac.so en
+	dynamique, libax25.so est distribuée
+	* ajout du programme monitor. Presque identique à "listen" mais
+	il est possible de terminer avec la touche <Entrée> et il n'utilise
+	pas curses.
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (2.01l)
+	* tampon de paquets du pad augmenté à 4096 octets. Cette version
+	ne fonctionne qu'avec le ROSE-L3 incluant la segmentation M-BIT.
+	(rose_lb_mbit.tgz)
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (2.01k)
+	* utilisation de l'adresse de port (si elle existe) au lieu de
+	l'adresse du nœud pour la connexion des utilisateurs et la mise à
+	jour wp
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (2.01j)
+	* Correction d'un bogue qui faisait planter wpserv
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (2.01i)
+	* call_tcp limite le paclen à 250 côté BBS pour éviter des paquets
+	plus gros que 256 dans le ROSE L3
+	* Les lignes sont filtrées dans la commande users de fpacnode.
+	Seules celles ayant au moins un indicatif valide sont listées.
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>
+
+fpac (2.01h)
+	* Ajout de l'information client pour les pages blanches
+
+ -- Jean-Paul Roubelat <jpr@f6fbb.org>

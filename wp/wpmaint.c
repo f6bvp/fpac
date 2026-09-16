@@ -288,12 +288,28 @@ int main(int argc, char **argv)
 
 		my_date(buf, wp.date);
 
-/* Records marked deleted and older than "e_temps" delay are erased i.e. not copied */
-		if (wp.is_deleted && wp.date > erase_temps) {
-			printf("%-9s %s => %s %-7s", call, buf, dnic, add+4);
-			printf("%s", " deleted record ERASED");
-			printf("\n");
-			continue;
+/* Records marked deleted for longer than "e_temps" days are erased i.e.
+ * not copied. Uses del_date (F6BVP 2026-09-15), NOT wp.date: since
+ * wp.date now keeps tracking the record's own last real content change
+ * (see the DELETED block below) rather than being bumped at deletion
+ * time, it can no longer stand in for "how long has this been deleted".
+ * erase_temps = temps - e_temps days, so "older than e_temps" means
+ * del_date < erase_temps (del_date is a point further in the past). */
+		if (wp.is_deleted) {
+			time_t del_date = wp_get_del_date(&wp);
+
+			if (del_date == 0) {
+				/* Deleted by code older than this field (pre-rc23) or
+				 * via wpedit's (R)emove before it existed: don't guess
+				 * how long ago that was -- start the grace period now. */
+				wp_set_del_date(&wp, temps);
+			}
+			else if (del_date < erase_temps) {
+				printf("%-9s %s => %s %-7s", call, buf, dnic, add+4);
+				printf("%s", " deleted record ERASED");
+				printf("\n");
+				continue;
+			}
 		}
 /* Records older than "d_temps" days are marked DELETED */ 	
 		printf("%9s %s => %s %-7s", call, buf, dnic, add+4);
@@ -326,9 +342,18 @@ int main(int argc, char **argv)
 //		printf("\t%s \t%s", wp.locator, wp.city);
 
 		if (wp.date < delete_temps) {
+			if (!wp.is_deleted)
+				wp_set_del_date(&wp, temps);
 			wp.is_deleted = 1;
 			printf("\t%s", " deleted ");
-			wp.date = temps;
+			/* Keep the original wp.date instead of bumping it to "now":
+			 * WP reconciliation treats the most recent date as
+			 * authoritative, so touching the date here made a wrongly
+			 * (or prematurely) deleted record permanently win over a
+			 * genuine, still-valid update from the origin node -- the
+			 * record could never self-heal via normal sync. (The line
+			 * above stamps del_date instead, only the first time a
+			 * record transitions to deleted -- see the erase check.) */
 		}
 
 /* Records dated after present time are set to present time */

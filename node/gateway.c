@@ -287,7 +287,193 @@ DESCRIPTION
         `s' nor `d' entered) depends on sysop configuration.
 
  */
-static int connect_to(char *address[], int family, int escape, char *source)
+
+/*
+ * --- Failover ROSE sur repli generique multi-voisins (WP) ---
+ *
+ * Quand une adresse trouvee dans les White Pages n'a pas de route
+ * specifique locale, fpad/fpacwpd s'appuient sur l'entree de repli
+ * DNIC=0 declarant plusieurs voisins candidats (ex: "2080 = HubA HubB").
+ * Le noyau (rose_get_neigh(), net/rose/rose_route.c) choisit alors le
+ * PREMIER voisin dont le lien AX.25 est up, sans savoir s'il connait
+ * reellement la destination au-dela. Si ce voisin renvoie un CLEAR
+ * "route introuvable" (ROSE_NOT_OBTAINABLE / ROSE_OUT_OF_ORDER), rien
+ * ne bascule automatiquement vers un autre candidat declare.
+ *
+ * ROSE_FAILOVER_MAX bornes le nombre d'essais. On ne retire jamais
+ * plus d'entrees que de candidats reellement declares pour l'adresse
+ * visee, et on restaure systematiquement (rose_restore_failover())
+ * tout ce qui a ete retire, succes ou echec final, pour ne pas
+ * degrader la table de routage partagee au-dela de la duree de la
+ * tentative en cours.
+ */
+#define ROSE_FAILOVER_MAX 6
+
+/*
+ * Cherche, parmi les entrees /proc/net/rose_nodes dont le prefixe
+ * correspond a addr10, un voisin candidat pas encore present dans
+ * tried[]. Reproduit la logique de selection de rose_get_neigh() : le
+ * noyau trie deja rose_node_list par masque decroissant (le match le
+ * plus specifique en tete), donc un simple parcours dans l'ordre
+ * suffit a retrouver le meme candidat que celui que le noyau vient de
+ * choisir, puis a passer au suivant une fois celui-ci retire de la
+ * table.
+ *
+ * N'exige PAS ng->restart == "yes" : le noyau accepte de tenter un
+ * voisin dont le lien AX.25 n'est pas encore etabli (il l'etablit a la
+ * demande via SABM pendant la tentative ROSE), donc exclure ces
+ * voisins ici desynchronise notre liste de candidats de celle
+ * reellement utilisee par le noyau (observe le 11/09/2026 : un voisin
+ * declare en 3eme position, restart=no, etait bien tente par le noyau
+ * mais jamais nomme dans le message affiche a l'utilisateur).
+ *
+ * Retourne 0 et remplit *out si un candidat est trouve, -1 sinon
+ * (plus aucun candidat non essaye pour cette adresse).
+ */
+static int rose_pick_failover(const char *addr10,
+			       char tried[][10], int ntried,
+			       struct rose_route_struct *out)
+{
+	struct proc_rs_nodes *nodes, *n;
+	struct proc_rs_neigh *neighs, *ng;
+	unsigned int cand[3];
+	int ncand, i, j, skip;
+
+	if ((nodes = read_proc_rs_nodes()) == NULL)
+		return -1;
+
+	if ((neighs = read_proc_rs_neigh()) == NULL)
+	{
+		free_proc_rs_nodes(nodes);
+		return -1;
+	}
+
+	for (n = nodes; n; n = n->next)
+	{
+		if (n->n < 2)
+			continue;	/* pas un repli a plusieurs candidats */
+		if (strncmp(n->address, addr10, n->mask) != 0)
+			continue;
+
+		ncand = 0;
+		if (n->neigh1) cand[ncand++] = n->neigh1;
+		if (n->neigh2) cand[ncand++] = n->neigh2;
+		if (n->neigh3) cand[ncand++] = n->neigh3;
+
+		for (i = 0; i < ncand; i++)
+		{
+			for (ng = neighs; ng; ng = ng->next)
+			{
+				if ((unsigned int) ng->addr != cand[i])
+					continue;
+
+				skip = 0;
+				for (j = 0; j < ntried; j++)
+					if (strcasecmp(tried[j], ng->call) == 0)
+					{
+						skip = 1;
+						break;
+					}
+				if (skip)
+					continue;
+
+				memset(out, 0, sizeof(*out));
+				rose_aton(n->address, out->address.rose_addr);
+				out->mask = n->mask;
+				strcpy(out->device, ng->dev);
+				ax25_aton_entry(ng->call, out->neighbour.ax25_call);
+
+				free_proc_rs_neigh(neighs);
+				free_proc_rs_nodes(nodes);
+				return 0;
+			}
+		}
+	}
+
+	free_proc_rs_neigh(neighs);
+	free_proc_rs_nodes(nodes);
+	return -1;
+}
+
+/*
+ * Restaure dans la table de routage noyau toutes les entrees retirees
+ * par rose_pick_failover()/SIOCDELRT pendant les essais successifs.
+ * A appeler systematiquement en sortie, que la connexion ait fini par
+ * reussir ou que tous les candidats aient ete epuises.
+ */
+static void rose_restore_failover(struct rose_route_struct *removed, int nremoved)
+{
+	int rs, k;
+
+	if (nremoved <= 0)
+		return;
+
+	if ((rs = socket(AF_ROSE, SOCK_SEQPACKET, 0)) < 0)
+		return;
+
+	for (k = 0; k < nremoved; k++)
+		ioctl(rs, SIOCADDRT, &removed[k]);
+
+	close(rs);
+}
+
+/*
+ * Tente une bascule vers le prochain voisin candidat declare pour
+ * l'adresse addr10, si la cause d'echec le justifie et qu'il reste des
+ * essais disponibles (ntried < ROSE_FAILOVER_MAX). Utilisee aussi bien
+ * apres un echec immediat de connect_to() (le voisin choisi par le
+ * noyau refuse tout de suite la connexion : cas le plus frequent) que,
+ * comme avant, apres un CLEAR recu en cours de session.
+ *
+ * En cas de succes, retire la route du candidat fautif (SIOCDELRT),
+ * l'enregistre dans removed[]/tried[] pour restauration/exclusion
+ * ulterieures, et retourne 1 (l'appelant doit reessayer). Retourne 0
+ * si aucune bascule n'est tentee (cause non pertinente, essais
+ * epuises, ou plus aucun candidat disponible).
+ */
+static int rose_try_failover(int cause, const char *addr10,
+			      char tried[][10], int *ntried,
+			      struct rose_route_struct *removed, int *nremoved,
+			      char *next_call)
+{
+	struct rose_route_struct cand, next_cand;
+	int rs;
+
+	if (cause != ROSE_NOT_OBTAINABLE && cause != ROSE_OUT_OF_ORDER)
+		return 0;
+	if (*ntried >= ROSE_FAILOVER_MAX)
+		return 0;
+	if (rose_pick_failover(addr10, tried, *ntried, &cand) != 0)
+		return 0;
+
+	if ((rs = socket(AF_ROSE, SOCK_SEQPACKET, 0)) < 0)
+		return 0;
+
+	if (ioctl(rs, SIOCDELRT, &cand) == -1)
+	{
+		close(rs);
+		return 0;
+	}
+
+	removed[(*nremoved)++] = cand;
+	strcpy(tried[(*ntried)++], ax25_ntoa(&cand.neighbour));
+	close(rs);
+
+	/* Indicatif du voisin que le noyau va essayer au prochain retry,
+	 * pour l'afficher a l'utilisateur (message plus informatif que
+	 * "un autre voisin"). Chaine vide si aucun candidat restant. */
+	if (next_call)
+	{
+		if (rose_pick_failover(addr10, tried, *ntried, &next_cand) == 0)
+			strcpy(next_call, ax25_ntoa(&next_cand.neighbour));
+		else
+			*next_call = '\0';
+	}
+	return 1;
+}
+
+static int connect_to(char *address[], int family, int escape, char *source,
+		       struct rose_cause_struct *out_cause)
 {
 	int i;
 	int fd;
@@ -307,6 +493,7 @@ static int connect_to(char *address[], int family, int escape, char *source)
 	unsigned retlen = sizeof(int);
 	int paclen;
 	int pos;
+	int explicit_dnic;
 	char c;
 	int nb;
 	struct hostent *hp;
@@ -361,6 +548,7 @@ static int connect_to(char *address[], int family, int escape, char *source)
 
 		pos = 1;
 		memset(path, 0, sizeof(path));
+		explicit_dnic = 0;
 
 		/* Default DNIC */
 		memcpy(path, rs_get_addr(NULL), 4);
@@ -369,16 +557,18 @@ static int connect_to(char *address[], int family, int escape, char *source)
 
 		if (addrlen == 3)
 		{
-			/* Country designator */
+			/* Country designator, given as its own argument */
 			memcpy(path, des2dnic(address[pos]), 4);
-/*			++pos;*/
+			explicit_dnic = 1;
+			++pos;
 			addrlen = strlen(address[pos]);
 		}
 		else if (addrlen == 4)
 		{
-			/* DNIC */
+			/* DNIC, given as its own argument */
 			memcpy(path, address[pos], 4);
-/*			++pos;*/
+			explicit_dnic = 1;
+			++pos;
 			addrlen = strlen(address[pos]);
 		}
 // DEBUG F6BVP
@@ -391,6 +581,25 @@ static int connect_to(char *address[], int family, int escape, char *source)
 		}
 
 		memcpy(path + (10 - addrlen), address[pos], addrlen);
+
+		/*
+		 * F6BVP 2026-09-16: a 6-digit address with no explicit DNIC
+		 * (either as its own 3/4-digit argument, or embedded in a
+		 * full 10-digit address) silently defaults to THIS node's own
+		 * DNIC (rs_get_addr() above), not to whatever network the
+		 * destination actually lives on. On a node whose own DNIC
+		 * differs from the target's (e.g. F4KLO-9 is DNIC 2090, but
+		 * f6bvp-8/f6bvp-10/f6bvp-12 are DNIC 2080), this silently
+		 * builds a wrong address that still finds *a* route (the
+		 * DNIC=0 generic fallback) and can trigger a routing loop on
+		 * the far end instead of a clean, obvious failure. Root cause
+		 * of the F3KT/f6bvp-8 ROSE storm of 2026-09-16. Warn so the
+		 * sysop notices immediately and can abort/retype with the
+		 * full address instead of the connection silently going to
+		 * the wrong network.
+		 */
+		if (!explicit_dnic && addrlen == 6)
+			node_msg("*** Pas de DNIC indique, DNIC local suppose : %s @ %s -- indiquez l'adresse complete si le correspondant est sur un autre reseau", strupr(address[0]), roseaddr(path));
 
 		sprintf(User.dl_name, "%s @ %s", strupr(address[0]), roseaddr(path));
 
@@ -494,8 +703,9 @@ static int connect_to(char *address[], int family, int escape, char *source)
 FSA*/
                 if ((dest = ax25_config_get_addr(address[0])) == NULL) {
                     node_msg("Port AX.25 invalide : %s", address[0]);
+                    return -1;
                 }
-		
+
 		if (strcasecmp(address[0], cfg.alt_callsign) == 0)
 		{
 			node_msg("already connected to %s", call);
@@ -610,6 +820,20 @@ FSA*/
 	}
 	if (family == AF_FLEXNET)
 		node_msg("Trying %s%s...", (source) ? source : "", User.dl_name);
+	else if (family == AF_AX25)
+	{
+		/* F6BVP 2026-09-16: name the port (User.dl_port, set a few
+		 * lines above for this family) alongside the callsign --
+		 * "(user port)" alone gave no clue which AX.25 port was
+		 * actually being tried. Bernard 2026-09-16: put it inside the
+		 * existing "(user port)" parenthesis rather than after it. */
+		if (source && strcmp(source, "(user port) ") == 0)
+			node_msg("Trying (user port %s) %s... Type <RETURN> to abort", User.dl_port, User.dl_name);
+		else if (source && strcmp(source, "(heard) ") == 0)
+			node_msg("Trying (heard on port %s) %s... Type <RETURN> to abort", User.dl_port, User.dl_name);
+		else
+			node_msg("Trying %s%s %s... Type <RETURN> to abort", (source) ? source : "", User.dl_port, User.dl_name);
+	}
 	else
 		node_msg("Trying %s%s... Type <RETURN> to abort", (source) ? source : "", User.dl_name);
 	usflush(User.fd);
@@ -650,6 +874,8 @@ FSA*/
 			}
 			node_msg("*** Failure with %s", User.dl_name);
 			node_msg("*** %s", reason(rose_cause.cause));
+			if (out_cause)
+				*out_cause = rose_cause;
 		}
 		else
 		{
@@ -724,6 +950,8 @@ FSA*/
 					node_msg("*** Failure with %s%s", User.dl_name, origin);
 					node_msg("*** %s", cp);
 					free(cp);
+					if (out_cause)
+						*out_cause = rose_cause;
 
 /*				node_msg("fail call : %s at adresse %s\n", ax25_ntoa(&facilities.fail_call), fpac2asc(&facilities.fail_addr)); 					*/
 				}
@@ -890,10 +1118,27 @@ int do_connect(int argc, char **argv)
 	char *source;
 	wp_t wpt;
 	ax25_address ax25;
+	/* F6BVP 2026-09-15: set when the user dials a ROSE address
+	 * explicitly (numeric DNIC/address, not resolved via WP) -- see
+	 * the "ROSE connections" branch below and its use after a
+	 * successful connect_to(). */
+	char explicit_rose_call[12] = "";
 	char **argvp;
 	char **argvp_base = NULL;
 	int default_port = 0;
 	int wp_opened = 0;
+	/* F6BVP 2026-09-16: "via" is stripped below with no trace left, so
+	 * "c CALL via DIGI" (one argument before "via") ends up with the
+	 * exact same argv shape as "c PORT CALL" or a numeric ROSE
+	 * address+digi -- it was being misrouted into the "ROSE
+	 * connections" branch (or straight to the AX25 default case) with
+	 * CALL wrongly read as a port name ("Port AX.25 invalide : CALL").
+	 * via_used/argc_before_via remember how many real arguments came
+	 * before "via" so the WP/NetRom/Flexnet/mheard/default-port
+	 * dispatch below can use that instead of the post-strip argc. */
+	int via_used = 0;
+	int argc_before_via = 0;
+	int eff_argc;
 
 	argvp = calloc(10, sizeof(*argvp));
 	argvp_base = argvp;
@@ -904,12 +1149,18 @@ int do_connect(int argc, char **argv)
 	/* Delete the "v" or "via" */
 	for (cpt = 0, n = 0; n < argc; n++)
 	{
+		if (!via_used && (strcasecmp(argv[n], "v") == 0 || strcasecmp(argv[n], "via") == 0))
+		{
+			via_used = 1;
+			argc_before_via = cpt;
+		}
 		argv[cpt] = argv[n];
 		if (strcasecmp(argv[n], "v") && strcasecmp(argv[n], "via"))
 			++cpt;
 	}
 	argv[cpt] = NULL;
 	argc = cpt;
+	eff_argc = via_used ? argc_before_via : argc;
 
 	stay = ReConnectTo;
 	if (!strcasecmp(argv[argc - 1], "s"))
@@ -946,6 +1197,11 @@ int do_connect(int argc, char **argv)
 
 		if (is_alias(argv[1], &alias))
 		{
+			/* F6BVP 2026-09-15: show what the alias actually expands to
+			 * before parse_args() splits alias.path into argv[] in
+			 * place (it null-terminates each token, so alias.path
+			 * itself is only good for this until then). */
+			node_msg("*** Alias %s -> %s", argv[1], alias.path);
 			argc = parse_args(argv + 1, alias.path) + 1;
 		}
 
@@ -967,7 +1223,7 @@ int do_connect(int argc, char **argv)
 		}
 
 		/* Check if known NetRom node */
-		else if ((argc == 2) && (is_netrom(argv[1], netromcall)))
+		else if ((eff_argc == 2) && (is_netrom(argv[1], netromcall)))
 		{
 			argv[1] = netromcall;
 			family = AF_NETROM;
@@ -975,7 +1231,7 @@ int do_connect(int argc, char **argv)
 		}
 
 		/* Check if in FPAC WP */
-		else if ((argc == 2) && (is_wp(argv[1], &wpaddr)))
+		else if ((eff_argc == 2) && (is_wp(argv[1], &wpaddr)))
 		{
 			strcpy(roseroute, rose_ntoa(&wpaddr.srose_addr));
 
@@ -992,18 +1248,20 @@ int do_connect(int argc, char **argv)
 		}
 
 		/* ROSE connections */
-		else if (argc > 2)
+		else if (eff_argc > 2)
 		{
 			if ((strlen(argv[2]) == 3) && (des2dnic(argv[2]) != NULL))
 			{
 				/* Digi is a country designator */
 				strcpy(argv[2], des2dnic(argv[2]));
 				family = AF_ROSE;
+				strncpy(explicit_rose_call, argv[1], sizeof(explicit_rose_call) - 1);
 			}
 			else if (strspn(argv[2], "0123456789") == strlen(argv[2]))
 			{
 				/* Digi is a DNIC */
 				family = AF_ROSE;
+				strncpy(explicit_rose_call, argv[1], sizeof(explicit_rose_call) - 1);
 			}
 			else
 			{
@@ -1030,7 +1288,7 @@ int do_connect(int argc, char **argv)
 			}
 		}
 		/* Check if known Flex destination */
-		else if ((argc == 2) && ((flx = find_dest(argv[1], NULL)) != NULL))
+		else if ((eff_argc == 2) && ((flx = find_dest(argv[1], NULL)) != NULL))
 		{						/* Check FlexNet */
 			k = 1;
 			strcpy(netromcall, argv[1]);
@@ -1066,8 +1324,13 @@ int do_connect(int argc, char **argv)
 		family = flgt->af_mode;
 
 		}
-		/* Try mheard */
-		else if (is_heard(argv + 1))
+		/* Try mheard -- F6BVP 2026-09-16: skip when the user gave an
+		 * explicit "via DIGI", since is_heard() (lib/procutils.c)
+		 * unconditionally OVERWRITES argv[2+] with whatever digipeater
+		 * path was recorded in the mheard log for that station's last
+		 * heard packet, silently discarding the digi the user just
+		 * typed. An explicit via should win over mheard's guess. */
+		else if (!via_used && is_heard(argv + 1))
 		{
 			family = AF_AX25;
 			source = "(heard) ";
@@ -1078,6 +1341,20 @@ int do_connect(int argc, char **argv)
 			strcpy(argvp[0], argv[0]);
 			strcpy(argvp[1], cfg.def_port);
 			strcpy(argvp[2], argv[1]);
+
+			/* F6BVP 2026-09-16: carry over any explicit "via DIGI..."
+			 * digipeaters instead of silently dropping them -- see
+			 * via_used/eff_argc above. argvp has 10 pointer slots
+			 * (calloc'd, so already NULL past index 2); only the
+			 * first 3 own their own fixed buffers, the rest just
+			 * alias the original argv strings. */
+			if (via_used)
+			{
+				int ai, di = 3;
+				for (ai = eff_argc; ai < argc && di < 9; ai++, di++)
+					argvp[di] = argv[ai];
+				argvp[di] = NULL;
+			}
 
 			family = AF_AX25;
 			source = "(user port) ";
@@ -1093,25 +1370,121 @@ int do_connect(int argc, char **argv)
 	escape = 1;
 
 	if (default_port == 0)
+		++argv;
+	else
+		++argvp;
+
 	{
-		if ((fd = connect_to(++argv, family, escape, source)) == -1)
+	/* Failover uniquement pour une adresse ROSE resolue via les White
+	 * Pages (ou l'alias node WP) : jamais pour une connexion ROSE
+	 * explicitement tapee par l'utilisateur avec sa propre digi/route. */
+	int rose_wp_failover = (family == AF_ROSE) && (source != NULL) &&
+		(strcmp(source, "(fpac wp) ") == 0 ||
+		 strcmp(source, "(fpac node) ") == 0);
+	char rose_addr10[11];
+	char rose_tried[ROSE_FAILOVER_MAX][10];
+	int rose_ntried = 0;
+	struct rose_route_struct rose_removed[ROSE_FAILOVER_MAX];
+	int rose_nremoved = 0;
+	struct rose_cause_struct conn_cause;
+	char rose_next_call[10];
+
+	/* F6BVP 2026-09-15: informational only, shown for every ROSE
+	 * connection (previously only the WP-failover-enabled ones) -- an
+	 * explicitly dialed address (e.g. "c F3KT-10 444501") gives no clue
+	 * which neighbour the kernel is about to try, which can look like a
+	 * silent hang when that neighbour's AX.25 link isn't already up
+	 * (established on demand, can take a moment). rose_wp_failover
+	 * itself is untouched: an explicit dial still never auto-retries
+	 * through an alternate neighbour on failure, only WP-resolved ones
+	 * do -- this only adds the "about to try" message. */
+	if (family == AF_ROSE)
+	{
+		struct rose_route_struct first_cand;
+
+		strncpy(rose_addr10, argv[1], 10);
+		rose_addr10[10] = '\0';
+
+		/* Indicatif du voisin par lequel le noyau va relayer le tout
+		 * premier essai (avant tout echec/bascule) : simple lecture,
+		 * rose_pick_failover() ne modifie pas la table de routage. */
+		if (rose_pick_failover(rose_addr10, rose_tried, rose_ntried, &first_cand) == 0)
+			node_msg("*** Relais via %s...", ax25_ntoa(&first_cand.neighbour));
+	}
+
+rose_retry:
+	memset(&conn_cause, 0, sizeof(conn_cause));
+	if (default_port == 0)
+	{
+		if ((fd = connect_to(argv, family, escape, source, &conn_cause)) == -1)
 		{
 			set_eolmode(User.fd, EOLMODE_TEXT);
 			if (fcntl(User.fd, F_SETFL, 0) == -1)
 				node_perror("do_connect: fcntl - stdin", errno);
+			if (rose_wp_failover && rose_try_failover(conn_cause.cause,
+					rose_addr10, rose_tried, &rose_ntried,
+					rose_removed, &rose_nremoved, rose_next_call))
+			{
+				if (*rose_next_call)
+					node_msg("*** Route indisponible, nouvel essai via %s...", rose_next_call);
+				else
+					node_msg("*** Route indisponible, nouvel essai via un autre voisin...");
+				goto rose_retry;
+			}
+			rose_restore_failover(rose_removed, rose_nremoved);
 			goto done;
 		}
 	}
 	else
 	{
-		if ((fd = connect_to(++argvp, family, escape, source)) == -1)
+		if ((fd = connect_to(argvp, family, escape, source, &conn_cause)) == -1)
 		{
 			set_eolmode(User.fd, EOLMODE_TEXT);
 			if (fcntl(User.fd, F_SETFL, 0) == -1)
 				node_perror("do_connect: fcntl - stdin", errno);
+			if (rose_wp_failover && rose_try_failover(conn_cause.cause,
+					rose_addr10, rose_tried, &rose_ntried,
+					rose_removed, &rose_nremoved, rose_next_call))
+			{
+				if (*rose_next_call)
+					node_msg("*** Route indisponible, nouvel essai via %s...", rose_next_call);
+				else
+					node_msg("*** Route indisponible, nouvel essai via un autre voisin...");
+				goto rose_retry;
+			}
+			rose_restore_failover(rose_removed, rose_nremoved);
 			goto done;
 		}
 	}
+
+	/* F6BVP 2026-09-15: a successful connection via an explicitly
+	 * dialed ROSE address (numeric DNIC/address, not resolved through
+	 * WP -- explicit_rose_call is only set in that case) is a strong
+	 * signal that the target really is reachable. If we already have a
+	 * White Pages entry for it but it's marked deleted, undelete it --
+	 * it was very likely wrongly or prematurely deleted by wpmaint
+	 * (see its del_date fix) or another node, and this user just
+	 * proved otherwise. Only ever touches a record we already had;
+	 * never creates a new one from an arbitrary connection attempt. */
+	if (*explicit_rose_call)
+	{
+		ax25_address call2;
+		wp_t wpt2;
+
+		if (ax25_aton_entry(explicit_rose_call, call2.ax25_call) != -1 &&
+			wp_open("NODE") == 0)
+		{
+			if (wp_get(&call2, &wpt2) == 0 && wpt2.is_deleted)
+			{
+				wpt2.is_deleted = 0;
+				wp_set_del_date(&wpt2, 0);
+				if (wp_set(&wpt2) == 0)
+					node_msg("*** White Pages entry for %s restored", explicit_rose_call);
+			}
+			wp_close();
+		}
+	}
+
 	if (connstr)
 	{
 		usprintf(fd, "%s\n", connstr);
@@ -1201,12 +1574,28 @@ int do_connect(int argc, char **argv)
 					fpac2asc(&facilities.fail_addr));
 		}
 		else
-			
+
 		if (*origin)
 			node_msg("*** Disconnected%s", origin);
+
+		if (rose_wp_failover && rose_try_failover(rose_cause.cause,
+				rose_addr10, rose_tried, &rose_ntried,
+				rose_removed, &rose_nremoved, rose_next_call))
+		{
+			close(fd);
+			if (*rose_next_call)
+				node_msg("*** Route indisponible, nouvel essai via %s...", rose_next_call);
+			else
+				node_msg("*** Route indisponible, nouvel essai via un autre voisin...");
+			goto rose_retry;
+		}
+
 		node_msg("*** %02X%02X - %s", rose_cause.cause,
 				 rose_cause.diagnostic, reason(rose_cause.cause));
 
+	}
+
+	rose_restore_failover(rose_removed, rose_nremoved);
 	}
 
 	close(fd);
@@ -1277,7 +1666,7 @@ int do_finger(int argc, char **argv)
 	}
 	addr[1] = "finger";
 	addr[2] = NULL;
-	if ((fd = connect_to(addr, AF_INET, -1, "(finger) ")) != -1)
+	if ((fd = connect_to(addr, AF_INET, -1, "(finger) ", NULL)) != -1)
 	{
 		if (fcntl(fd, F_SETFL, 0) == -1)
 			node_perror("do_finger: fcntl - fd", errno);

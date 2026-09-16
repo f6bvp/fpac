@@ -641,12 +641,44 @@ static void vector_request(struct wp_adjacent *wpa)
 		if (verbose) syslog(LOG_INFO, "vector request sent ! rc %d", rc);
 }
 
+/* F6BVP 2026-09-15: touch our own node record's date without changing
+ * anything else about it, so a stable record (address/locator/city never
+ * change) doesn't silently go stale and get marked deleted by wpmaint on
+ * some other node just because nothing forced a rewrite locally. Reads
+ * the record back rather than keeping the startup copy around, in case
+ * something else (e.g. a config reload) legitimately changed it since.
+ * force=1 is required by db_set() for is_node records (see db.c). */
+static void reannounce_self(time_t mytime)
+{
+	ax25_address call;
+	wp_t wp;
+
+	ax25_aton_entry(cfg.alt_callsign, call.ax25_call);
+	if (db_get(&call, &wp) != 0) {
+		syslog(LOG_WARNING, "reannounce_self: own record not found");
+		return;
+	}
+	wp.date = mytime;
+	if (db_set(&wp, 1) < 0)
+		syslog(LOG_WARNING, "reannounce_self: db_set failed");
+	else if (verbose)
+		syslog(LOG_INFO, "reannounce_self: own record re-dated");
+}
+
 static void poll_adjacents(void)
 {
 	struct wp_adjacent *wpa;
+	static time_t next_self_announce = 0;
 	time_t mytime;
-       
+
 	mytime = time(NULL);
+
+	if (next_self_announce == 0)
+		next_self_announce = mytime + WP_SELF_REANNOUNCE_PERIOD;
+	else if (mytime >= next_self_announce) {
+		reannounce_self(mytime);
+		next_self_announce = mytime + WP_SELF_REANNOUNCE_PERIOD;
+	}
 	
 	for (wpa=wp_adjacent_list; wpa; wpa=wpa->next) {
 		switch (wpa->state) {

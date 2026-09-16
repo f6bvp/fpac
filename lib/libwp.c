@@ -1216,3 +1216,27 @@ void now_date(char *buf)
 	strftime(buf, max,"%b %d %Y - %H:%M %Z\n", gmtime(&now));
 }
 
+
+/* F6BVP 2026-09-15: see wp_t.del_date comment in wp.h. Local-only,
+ * fixed-width little-endian encoding so it does not depend on the
+ * local time_t width (32 vs 64-bit nodes coexist on this network). */
+time_t wp_get_del_date(const wp_t *wp)
+{
+	unsigned long v;
+
+	v =  (unsigned long)(unsigned char)wp->del_date[0];
+	v |= (unsigned long)(unsigned char)wp->del_date[1] << 8;
+	v |= (unsigned long)(unsigned char)wp->del_date[2] << 16;
+	v |= (unsigned long)(unsigned char)wp->del_date[3] << 24;
+	return (time_t)v;
+}
+
+void wp_set_del_date(wp_t *wp, time_t t)
+{
+	unsigned long v = (unsigned long)t;
+
+	wp->del_date[0] = (unsigned char)(v & 0xff);
+	wp->del_date[1] = (unsigned char)((v >> 8) & 0xff);
+	wp->del_date[2] = (unsigned char)((v >> 16) & 0xff);
+	wp->del_date[3] = (unsigned char)((v >> 24) & 0xff);
+}

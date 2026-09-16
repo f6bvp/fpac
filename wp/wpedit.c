@@ -361,6 +361,8 @@ if (verbose) syslog(LOG_INFO, "retour wp_get()");
 			wp_get(&wp.address.srose_call, &wp);
 			break;
 		case 'R':
+			if (!wp.is_deleted)
+				wp_set_del_date(&wp, time(NULL));
 			wp.is_deleted = 1;
 			if (wp_set(&wp) == 0)
 				printf("WP record '%s' deleted", call);
@@ -371,6 +373,7 @@ if (verbose) syslog(LOG_INFO, "retour wp_get()");
 			break;
 		case 'U':
 			wp.is_deleted = 0;
+			wp_set_del_date(&wp, 0);
 if (verbose) syslog(LOG_INFO,"calling wp_set()");
 			if (wp_set(&wp) == 0)
 				printf("WP record '%s' restored", call);

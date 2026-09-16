@@ -7,9 +7,10 @@ des messages de connexion, et quelques améliorations d'affichage.
 
 WHITE PAGES (annuaire du réseau)
 
-  * Une fiche marquée "supprimée" par le nettoyage nocturne ne reste
+  * Une fiche marquée « supprimée » par le nettoyage nocturne ne reste
     plus bloquée : elle peut de nouveau se réparer toute seule dès que
-    le nœud d'origine réannonce son adresse, sans intervention manuelle.
+    le nœud d'origine réannonce son adresse, sans intervention
+    manuelle.
 
   * Chaque nœud réannonce désormais sa propre fiche tous les 7 jours,
     même sans redémarrage, pour ne jamais paraître périmé aux yeux des
@@ -19,12 +20,12 @@ WHITE PAGES (annuaire du réseau)
     maintenant respecté correctement (il ne s'effondrait plus à
     quasiment un jour).
 
-  * Une fiche marquée "supprimée" n'apparaît plus dans la commande
+  * Une fiche marquée « supprimée » n'apparaît plus dans la commande
     utilisateur Wp (elle reste visible pour le sysop via wplist), ce
     qui évitait de tenter des connexions vers des adresses obsolètes.
 
   * Une connexion ROSE explicite réussie vers un indicatif dont la
-    fiche était marquée "supprimée" la restaure désormais
+    fiche était marquée « supprimée » la restaure désormais
     automatiquement.
 
   * La bascule ROSE en cas d'échec (failover) est plus robuste : elle
@@ -34,9 +35,9 @@ WHITE PAGES (annuaire du réseau)
 
 CONNEXIONS PLUS CLAIRES
 
-  * Le message "Trying (user port) INDICATIF..." indique maintenant
+  * Le message « Trying (user port) INDICATIF... » indique maintenant
     le nom du port utilisé, directement dans la parenthèse (ex.
-    "Trying (user port AXUDP) INDICATIF...") — pratique pour savoir
+    « Trying (user port AXUDP) INDICATIF... ») — pratique pour savoir
     par où part une connexion, y compris quand elle est résolue via
     l'historique des stations entendues (mheard).
 
@@ -46,7 +47,7 @@ CONNEXIONS PLUS CLAIRES
     réseau sans que rien ne le signale. Un avertissement est
     désormais affiché immédiatement.
 
-  * "Connect INDICATIF via DIGIPEATER" (sans indiquer de port)
+  * « Connect INDICATIF via DIGIPEATER » (sans indiquer de port)
     n'était plus interprété correctement et échouait ou perdait le
     digipeater demandé. Corrigé.
 
@@ -57,15 +58,15 @@ CONNEXIONS PLUS CLAIRES
 AFFICHAGE
 
   * Correction d'un décalage dans la colonne d'état AX.25 de la liste
-    des utilisateurs (commande "u"), et de l'affichage de l'état
-    "Disc pending".
+    des utilisateurs (commande « u »), et de l'affichage de l'état
+    « Disc pending ».
 
-  * Dans la liste des nœuds NetRom (commande "ne"), une qualité restée
-    figée à sa valeur de démarrage (120) s'affiche maintenant en rouge
-    au lieu de vert, pour repérer d'un coup d'œil les fiches jamais
-    réellement confirmées par le réseau.
+  * Dans la liste des nœuds NetRom (commande « ne »), une qualité
+    restée figée à sa valeur de démarrage (120) s'affiche maintenant
+    en rouge au lieu de vert, pour repérer d'un coup d'œil les fiches
+    jamais réellement confirmées par le réseau.
 
-  * L'état d'un nœud ("s") distingue clairement le port utilisateur
+  * L'état d'un nœud (« s ») distingue clairement le port utilisateur
     déclaré du port réellement utilisé par la session en cours, et
     affiche l'heure exacte de compilation.
 
@@ -82,6 +83,6 @@ Cette version corrige aussi plusieurs plantages et erreurs de
 compilation hérités des versions précédentes (voir ChangeLog pour
 l'historique complet).
 
--- Bernard Pidoux <bernard.f6bvp@gmail.com>  Wednesday, september 16 2026
+-- Bernard Pidoux <bernard.f6bvp@gmail.com>  mercredi 16 septembre 2026
 
-Assisted by Claude Sonnet 5 (Anthropic) <noreply@anthropic.com>.
+Assisté par Claude Sonnet 5 (Anthropic) <noreply@anthropic.com>.

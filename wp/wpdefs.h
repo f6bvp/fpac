@@ -52,7 +52,13 @@ struct wp_adjacent {
 #define WPA_CONNECTED		2
 
 #define WPA_RETRY_CONNECT	(30*60)	/* Retry adjacent connection delay */
-#define WPA_VECTOR_PERIOD	(3600)	/* Process a vector exchange every hour */	
+#define WPA_VECTOR_PERIOD	(3600)	/* Process a vector exchange every hour */
+
+/* F6BVP 2026-09-15: refresh our own node's wp.date periodically, well under
+ * wpmaint's deletion delay (30 days by default), so a stable node record
+ * that never otherwise changes is never wrongly aged out by wpmaint just
+ * because nothing forced a rewrite since the last daemon restart. */
+#define WP_SELF_REANNOUNCE_PERIOD	(7L*24L*3600L)	/* Re-date our own record every 7 days */
 
 /* #define WP_API_TIMEOUT	10	Timeout for access to wp server */
 #define PROC_RS_FILE		"/proc/net/rose"

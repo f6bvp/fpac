@@ -131,9 +131,12 @@ int db_list_get(list_req_t *req, wp_t **pwp, int *nb)
 		else
 			ofst = index;
 		
-		/* F6BVP : keep deleted records so wplist can display them */
-		/* if (db_records[ofst].is_deleted)
-			continue; */
+		/* F6BVP 2026-09-15: deleted records are only sent back when the
+		 * caller explicitly asks for them (wplist does; fpacnode's
+		 * "Wp" command, used by regular users, does not -- see
+		 * WP_INCLUDE_DELETED_FLAG in wp.h). */
+		if (db_records[ofst].is_deleted && !(req->flags & WP_INCLUDE_DELETED_FLAG))
+			continue;
 
 		full_call = ax25_ntoa(&db_records[ofst].address.srose_call);
 		if (*full_call == '\0')
