@@ -1,0 +1,148 @@
+.TH FPACRTD 1 "9 October 2026" Linux "FPAC Operator's Manual"
+.SH NAME
+fpacrtd \- dynamic ROSE routes daemon of the FPAC node
+.SH SYNOPSIS
+.B fpacrtd [-c <filename>] [-f] [-n] [-t] [-v]
+.SH DESCRIPTION
+.LP
+.B fpacrtd
+exchanges ROSE routes with the direct neighbours of the node. Each node
+announces the destinations it can reach, learns the ones it lacks and
+installs them in the ROSE routing table of the kernel.
+.P
+Only two kinds of destinations are exchanged: the full address of a node
+(10 digits) and a whole DNIC (4 digits). A route written in
+.B fpac.routes
+always keeps the last word: a destination found there with the same
+address and the same length is never installed by
+.B fpacrtd.
+.P
+.B fpacrtd
+is started and stopped by
+.B myfpac.sh
+with the other FPAC daemons. It does nothing and exits at once when
+neither
+.B RouteAnnounce
+nor
+.B RouteLearn
+is set, so a node that does not use dynamic routes is not affected.
+.P
+This daemon is new in FPAC 4.2 and still experimental.
+.SH OPERATION
+.LP
+The neighbours are the adjacent nodes declared in
+.B fpac.nodes.
+A neighbour takes part only when its Node block carries
+.B Route = yes.
+The others are never called, and a call from a node that is not a
+declared, participating neighbour is refused.
+.P
+The sessions are ROSE connections to the service callsign
+.B FPACRT.
+The first call is made 30 seconds after the start, to let the neighbours
+start their own daemon. A neighbour that does not answer within 120
+seconds, or that closes the session, is called again 30 minutes later.
+.P
+The cost of a route is a number of hops. A destination is announced with
+the cost of this node, the neighbour adds one, and a route of more than
+6 hops is dropped. A destination is never announced to the neighbour it
+is reached through.
+.P
+A full table is sent when a session opens and every 30 minutes after
+that. Changes in between are sent about 10 seconds after they happen. A
+learned route is removed when the neighbour withdraws it, when it has
+been missing from 3 full tables in a row, or as soon as the session with
+that neighbour closes. A neighbour from which routes were learned and
+that has sent no full table for 90 minutes has its session closed, and
+is called again 30 minutes later.
+.P
+Every minute
+.B fpacrtd
+checks that the routes it installed are still in the kernel, and puts
+back any that disappeared. When it stops it removes all of them. The
+routes it has installed are also written to a state file, so that the
+next start can remove what a crash would have left behind.
+.SH CONFIGURATION
+.LP
+The keywords below are read by
+.B fpacrtd
+itself in
+.B fpac.conf
+and
+.B fpac.nodes.
+The other FPAC programs ignore them.
+.TP 20
+.BI "RouteAnnounce = yes|no"
+send the table of this node to its neighbours. Default: no.
+.TP 20
+.BI "RouteLearn = no|nodes|all"
+learn nothing, only node addresses, or node addresses and whole DNICs.
+Default: no.
+.TP 20
+.BI "RouteOrigin = <dnic>"
+announce this node as the exit gateway of a DNIC (4 digits). One line
+per DNIC. The line is ignored, with a warning in the log, unless
+.B fpac.routes
+holds a route to that whole DNIC.
+.TP 20
+.BI "Route = yes"
+inside the Node block of a neighbour: exchange routes with it.
+.P
+.B Route = yes
+must be written only for a neighbour that runs
+.B fpacrtd.
+A node without it does not refuse a call to the FPACRT service: it
+handles it as a call from a user.
+.SH OPTIONS
+.TP 20
+.BI "\-c <filename>"
+also read the Route keywords of this file. Meant for trials, to keep
+them out of fpac.conf.
+.TP 20
+.BI \-f
+stay in the foreground and also print the log to the terminal
+.TP 20
+.BI \-n
+dry run: exchange tables but never change the kernel routes, and do not
+write the state file
+.TP 20
+.BI \-t
+show the configuration as it was read (node, neighbours, origins) and
+exit
+.TP 20
+.BI \-v
+verbose mode: log every line sent and received, and a summary of each
+full table
+.SH FILES
+.I /etc/ax25/fpac.conf
+.br
+.I /etc/ax25/fpac.nodes
+.br
+.I /etc/ax25/fpac.routes
+.br
+.I /var/ax25/fpac/fpacrt.dat
+(routes installed by the daemon: address, length, neighbour, device)
+.br
+.I /var/ax25/fpac/fpacrtd.lock
+(held locked while the daemon runs; a second
+.B fpacrtd
+finds it locked, reports
+.I another fpacrtd is already running
+and exits with status 1)
+.SH DIAGNOSTICS
+.LP
+Messages go to syslog with the tag
+.B fpacrtd.
+Without
+.B \-v
+they report the start and the stop, each session opened or closed, and
+each route added to or removed from the kernel.
+.SH SEE ALSO
+fpad(1) fpacwpd(1) fpacroute(1) myfpac.sh(1) fpac.conf(5) fpac.nodes(5)
+fpac.routes(5)
+.P
+The specification is in the file
+.I dynamic-routes.md
+of the FPAC documentation.
+.SH AUTHOR
+Bernard Pidoux F6BVP <bernard.f6bvp@gmail.com>

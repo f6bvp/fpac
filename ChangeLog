@@ -1,3 +1,37 @@
+fpac (4.2-rc1)
+
+	* fpacrtd: new daemon, dynamic ROSE routes (route/fpacrtd.c). Each
+	  node announces to its direct neighbours the destinations it can
+	  reach - full node addresses and whole DNICs - learns the ones it
+	  lacks and installs them in the kernel. The routes of fpac.routes
+	  always keep the last word. The sessions are ROSE connections to
+	  the service callsign FPACRT; the cost is a number of hops, with a
+	  ceiling of 6; a full table is sent every 30 minutes and a route
+	  missing from 3 tables in a row is removed. Experimental.
+	* fpacrtd: new keywords RouteAnnounce, RouteLearn and RouteOrigin
+	  in fpac.conf, and Route = yes in the Node block of each neighbour
+	  that takes part. They are read by fpacrtd alone; without them the
+	  daemon exits at once and the node behaves as before.
+	* fpacrtd: a neighbour that stopped sending tables while its
+	  circuit stayed open kept its routes on the other nodes for ever,
+	  as ageing only counted the tables received. A session with a
+	  neighbour from which routes were learned is now closed after 90
+	  minutes without a full table, which removes those routes; the
+	  neighbour is called again 30 minutes later.
+	* fpacrtd: in verbose mode (-v) each full table sent or received
+	  is reported in the log with its number of routes.
+	* myfpac.sh: starts fpacrtd after flexd and stops it first, so that
+	  the learned routes are withdrawn while fpad is still running;
+	  fpacrtd is listed by "status".
+	* New manual page fpacrtd(1); the specification is installed with
+	  the documentation (doc/dynamic-routes.md, English and French).
+	* fpacrtd: refuses to start when another fpacrtd is already
+	  running on the node (lock held on fpac/fpacrtd.lock for the life
+	  of the daemon, released by the kernel even after kill -9). A
+	  second daemon purged the routes of the first one and both called
+	  the same neighbours; it happened when a script restarted AX.25
+	  without stopping fpacrtd. The -t option does not take the lock.
+
 fpac (4.1.6-rc10)
 
 	* flexd, aprslist: only one copy of each may run, like fpad,

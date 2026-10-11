@@ -17,6 +17,7 @@ man_MANS = \
 	fpaccfg.1 \
 	fpacnode.1 \
 	fpacroute.1 \
+	fpacrtd.1 \
 	fpacshell.1 \
 	fpacstat.1 \
 	fpacwpd.1 \

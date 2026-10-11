@@ -1,3 +1,20 @@
+FPAC 4.2-rc1 — routes ROSE dynamiques (version candidate, expérimentale)
+========================================================================
+
+  * Nouveau démon fpacrtd : un nœud peut apprendre des routes ROSE de
+    ses voisins directs au lieu de les avoir toutes écrites à la main
+    dans fpac.routes. Les adresses de nœuds et les DNIC entiers sont
+    échangés ; les routes de fpac.routes gardent toujours le dernier
+    mot.
+
+  * Rien ne change sur un nœud qui ne le demande pas : la fonction
+    est inactive tant que RouteAnnounce ou RouteLearn n'est pas écrit
+    dans fpac.conf, et un voisin ne participe qu'avec « Route = yes »
+    dans son bloc Node. Ne l'écrire que pour un voisin qui fait
+    tourner fpacrtd.
+
+  * Voir la page de manuel fpacrtd(1) et doc/dynamic-routes.md.
+
 FPAC 4.1.6-rc10 — les sessions NetRom dans Users (version candidate)
 ====================================================================
 

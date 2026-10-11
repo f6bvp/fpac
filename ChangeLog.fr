@@ -1,6 +1,45 @@
 Traduction française du ChangeLog de FPAC. Original en anglais dans le fichier ChangeLog.
 Les noms de fichiers, de fonctions et de variables sont conservés tels quels.
 
+fpac (4.2-rc1)
+
+	* fpacrtd : nouveau démon, routes ROSE dynamiques
+	  (route/fpacrtd.c). Chaque nœud annonce à ses voisins directs les
+	  destinations qu'il sait joindre - adresses complètes de nœuds et
+	  DNIC entiers -, apprend celles qui lui manquent et les installe
+	  dans le noyau. Les routes de fpac.routes gardent toujours le
+	  dernier mot. Les sessions sont des connexions ROSE vers
+	  l'indicatif de service FPACRT ; le coût est un nombre de sauts,
+	  plafonné à 6 ; une table complète est envoyée toutes les 30
+	  minutes et une route absente de 3 tables de suite est retirée.
+	  Expérimental.
+	* fpacrtd : nouveaux mots-clés RouteAnnounce, RouteLearn et
+	  RouteOrigin dans fpac.conf, et Route = yes dans le bloc Node de
+	  chaque voisin qui participe. Ils ne sont lus que par fpacrtd ;
+	  sans eux le démon sort aussitôt et le nœud se comporte comme
+	  avant.
+	* fpacrtd : un voisin qui cessait d'envoyer des tables en gardant
+	  son circuit ouvert laissait ses routes indéfiniment chez les
+	  autres nœuds, le vieillissement ne comptant que les tables
+	  reçues. Une session avec un voisin dont des routes ont été
+	  apprises est maintenant fermée après 90 minutes sans table
+	  complète, ce qui retire ces routes ; le voisin est rappelé 30
+	  minutes plus tard.
+	* fpacrtd : en mode verbeux (-v), chaque table complète envoyée ou
+	  reçue est signalée au journal avec son nombre de routes.
+	* myfpac.sh : lance fpacrtd après flexd et l'arrête en premier,
+	  pour que les routes apprises soient retirées tant que fpad
+	  tourne encore ; fpacrtd figure dans « status ».
+	* Nouvelle page de manuel fpacrtd(1) ; la spécification est
+	  installée avec la documentation (doc/dynamic-routes.md, anglais
+	  et français).
+	* fpacrtd : refuse de démarrer si un autre fpacrtd tourne déjà sur
+	  le nœud (verrou tenu sur fpac/fpacrtd.lock pendant toute la vie
+	  du démon, libéré par le noyau même après un kill -9). Un second
+	  démon purgeait les routes du premier et tous deux appelaient les
+	  mêmes voisins ; cela se produisait quand un script relançait
+	  AX.25 sans arrêter fpacrtd. L'option -t ne prend pas le verrou.
+
 fpac (4.1.6-rc10)
 
 	* flexd, aprslist : un seul exemplaire de chacun peut tourner, comme
