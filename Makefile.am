@@ -15,7 +15,7 @@ do_subst:
 
 CLEANFILES = $(pathheader)
 
-SUBDIRS = lib cfg man monitor node flex pad tcp wp tools stats doc help scripts etc
+SUBDIRS = lib cfg man monitor node flex pad tcp wp route tools stats doc help scripts etc
 
 install-data-hook:
 	@echo

@@ -70,7 +70,9 @@ case "$1" in
 	# and is deliberately NOT touched here, so FPAC can be cycled while the
 	# AX.25 stack keeps running. Each daemon is TERMed, waited on, and KILLed
 	# only if it survives.
-	for PROC_NAME in fpacshell fpacnode mailbbs flexd fpacroute fpacstat fpacwpd fpad fpacwdog
+	# fpacrtd goes first: it withdraws its learned routes while fpad is
+	# still there.
+	for PROC_NAME in fpacrtd fpacshell fpacnode mailbbs flexd fpacroute fpacstat fpacwpd fpad fpacwdog
 	do
 		echo -n " [$PROC_NAME]"
 		stop_proc "$PROC_NAME"
@@ -92,7 +94,7 @@ case "$1" in
 	echo " "
         echo -e "\nStatus of FPAC :"
 
-	for PROC_NAME in fpad fpacwpd fpacstat fpacroute flexd ax25ipd netromd kissattach
+	for PROC_NAME in fpad fpacwpd fpacstat fpacroute fpacrtd flexd ax25ipd netromd kissattach
 	do
 	        PID=`/bin/pidof -x $DIR/$PROC_NAME`
 		if [ -n "$PID" ]; then
@@ -147,6 +149,18 @@ fpacwpd)
 	$DIR/fpacroute >> $LOG 2>&1
 	echo -n " [flexd] "
 	$DIR/flexd >> $LOG 2>&1
+	# Dynamic ROSE routes. fpacrtd exits by itself when neither
+	# RouteAnnounce nor RouteLearn is set. FPACRTD_CONF is a test hook:
+	# extra Route keywords kept out of fpac.conf.
+	if [ -x $DIR/fpacrtd ] ; then
+		echo -n " [fpacrtd] "
+		FPACRTD_CONF=/etc/ax25/fpacrt-essai.conf
+		if [ -f $FPACRTD_CONF ] ; then
+			$DIR/fpacrtd -c $FPACRTD_CONF >> $LOG 2>&1
+		else
+			$DIR/fpacrtd >> $LOG 2>&1
+		fi
+	fi
 	sleep 2
 	# No message to the sysop's BBS at each start: mailbbs is a tool to
 	# run by hand (see mailbbs(1)), not from a script started at boot or

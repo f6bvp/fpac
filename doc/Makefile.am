@@ -10,7 +10,8 @@ doc_DATA = 	FPAC-HOWTO.man \
 		ax25 \
 		ax25-up \
 		ax25-down \
-		README.init
+		README.init \
+		dynamic-routes.md
 
 install-data-hook:
 	chmod 755 $(DESTDIR)$(docdir)/ax25

@@ -1,5 +1,5 @@
 AC_PREREQ([2.69])
-AC_INIT([fpac],[4.1.6-rc11],[bernard.f6bvp@gmail.com])
+AC_INIT([fpac],[4.2-rc1],[bernard.f6bvp@gmail.com])
 AM_INIT_AUTOMAKE([-Wall -Werror dist-xz])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_SRCDIR([pathnames.h.in])
@@ -101,6 +101,7 @@ AC_CONFIG_FILES([Makefile \
 	pad/Makefile \
 	tcp/Makefile \
 	wp/Makefile \
+	route/Makefile \
 	tools/Makefile \
 	stats/Makefile \
 	doc/Makefile \

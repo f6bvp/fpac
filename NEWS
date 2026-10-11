@@ -1,3 +1,18 @@
+FPAC 4.2-rc1 — dynamic ROSE routes (release candidate, experimental)
+====================================================================
+
+  * New daemon fpacrtd: a node can learn ROSE routes from its direct
+    neighbours instead of having every one of them written by hand in
+    fpac.routes. Node addresses and whole DNICs are exchanged; the
+    routes of fpac.routes always keep the last word.
+
+  * Nothing changes on a node that does not ask for it: the feature
+    is off until RouteAnnounce or RouteLearn is set in fpac.conf, and
+    a neighbour takes part only with "Route = yes" in its Node block.
+    Write it only for a neighbour that runs fpacrtd.
+
+  * See the fpacrtd(1) manual page and doc/dynamic-routes.md.
+
 FPAC 4.1.6-rc11 — fpad survives a lost interface (release candidate)
 ====================================================================
 
