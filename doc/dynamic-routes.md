@@ -1,12 +1,14 @@
 # FPAC 4.2 — Dynamic ROSE routes / Routes ROSE dynamiques
 
-Specification, working draft of 2026-10-09 — F6BVP.
-Spécification, version de travail du 09/10/2026 — F6BVP.
+Specification, working draft of 2026-10-11 — F6BVP.
+Spécification, version de travail du 11/10/2026 — F6BVP.
 
-Two items: dynamic routes (sections 1 to 15) and White Pages
-sessions closed when idle (section 16).
-Deux chantiers : les routes dynamiques (sections 1 à 15) et les
-sessions White Pages fermées au repos (section 16).
+Three items: dynamic routes (sections 1 to 15), White Pages
+sessions closed when idle (section 16) and obsolete deleted records
+left out of the White Pages vectors (section 17).
+Trois chantiers : les routes dynamiques (sections 1 à 15), les
+sessions White Pages fermées au repos (section 16) et les fiches
+supprimées obsolètes sorties des vecteurs White Pages (section 17).
 
 English text first, French text below. Both say the same thing.
 Le texte anglais vient d'abord, le texte français ensuite. Les deux
@@ -62,6 +64,16 @@ withdrawn while `fpad` is still running.
   `fpacnode` already does.
 - It keeps the list of its routes in `/var/ax25/fpac/fpacrt.dat`, to
   recognise and purge them.
+- Only one `fpacrtd` runs on a node. The daemon holds a lock on
+  `/var/ax25/fpac/fpacrtd.lock` for its whole life; a second one
+  finds it locked, reports `another fpacrtd is already running` and
+  exits. Without this, the second daemon purged the routes of the
+  first and both called the same neighbours.
+
+Any local script that stops AX.25 or FPAC without going through
+`myfpac.sh` must stop `fpacrtd` too, and first: on 2026-10-11 a
+restart of AX.25 on one node left the old daemon alive beside the
+new one.
 
 Why a separate daemon and not `fpacwpd`: a current `fpacwpd` closes
 the session when it receives a message type it does not know
@@ -267,12 +279,16 @@ Today the learned routes can be read in the log of `fpacrtd` (lines
    frame going round (`rose-controle.py`).
 4. One week of observation before extending to the other nodes.
 
-Status on 2026-10-09: step 1 passed on 2026-10-08, including the
+Status on 2026-10-11: step 1 passed on 2026-10-08, including the
 removal when the neighbour's daemon stops and the purge at restart.
-The pair has been running since; after the nightly restart of FPAC
-the session and the two learned routes came back by themselves. Not
-tested yet: the periodic table, ageing, relaying through a third
-node, and a real call through a learned route.
+Since 2026-10-09 three nodes take part: f6bvp-8 announces, f6bvp-12
+and f6bvp-10 learn, each directly from f6bvp-8. After each of three
+nightly restarts of FPAC the sessions and the learned routes came
+back by themselves within 50 seconds, and the table of 6 routes has
+been received every 30 minutes without a miss. Announcing both ways
+(step 2) is not enabled yet. Not tested on the air yet: ageing, the
+90 minute rule, relaying through a third node, and a real call
+through a learned route.
 
 ## 14. Decisions taken and open points
 
@@ -290,6 +306,11 @@ Still open:
 - what if two nodes declare `RouteOrigin` for the same DNIC: it is
   allowed (two real exits), each node takes the nearest. To be
   confirmed in use.
+- a DNIC is announced by `RouteOrigin` even while its exit link is
+  closed, but the kernel lets a call in transit leave only through
+  an open neighbour (a closed one is tried for a local call only).
+  A learned DNIC route may therefore lead nowhere. Either announce
+  a DNIC only while its exit is open, or deal with the kernel rule.
 
 ## 15. Numbering
 
@@ -298,7 +319,11 @@ configuration keywords: it justifies FPAC 4.2. Proposed order:
 
 1. release the stable 4.1.6 with the fixes of rc7;
 2. open 4.2-rc1 with `fpacrtd` and `WpIdle` (see 16), both
-   inactive by default.
+   inactive by default, and the change to the vectors (see 17).
+
+The code under test is public: branch `fpac-4.2` of
+<https://github.com/f6bvp/fpac>. It is experimental and not a
+release.
 
 ## 16. Second item: White Pages sessions closed when idle
 
@@ -349,6 +374,36 @@ whether an exchange is in progress; to be settled when coding.
 Test: on a pair, check that an idle session closes, that a record
 changed with `wpedit` reopens it and reaches the neighbour, and that
 the hourly vector exchange still takes place.
+
+## 17. Third item: obsolete deleted records left out of the vectors
+
+Found on 2026-10-11. Two nodes kept logging `Vectors still differ`
+every hour although both ran the same version.
+
+A deleted record older than 14 days (`WP_OBSOLETE`) is neither sent
+nor accepted between nodes, and a deleted record for an unknown
+callsign is refused. Yet these records count in the vectors, whose
+checksum covers the date and the address of every record. So when
+two nodes mark a record deleted, or erase it, on different days,
+their vectors differ and the exchange cannot repair it: the records
+that would settle the difference are exactly the ones that are not
+exchanged. It lasts until both nodes have erased them.
+
+Here one node ran its nightly `wpmaint -d 100` while the others ran
+`wpmaint -d 30`: it held 12 deleted records the others had erased,
+and two records still valid that were deleted elsewhere.
+
+Decided (F6BVP, 2026-10-11): leave out of the vector checksum the
+deleted records too old to be exchanged. Not coded.
+
+To be settled when coding: a node with the change and a node
+without it compute different vectors and would differ for ever.
+The vector version number has to change, or all nodes have to
+switch together.
+
+Until then: use the same `wpmaint` delays on every node of a
+network. The difference is harmless - three vector rounds an hour
+at most since 4.1.6-rc7 - but it fills the log.
 
 ---
 
@@ -401,6 +456,16 @@ tant que `fpad` tourne encore.
   le fait déjà `fpacnode`.
 - Il tient la liste de ses routes dans
   `/var/ax25/fpac/fpacrt.dat`, pour les reconnaître et les purger.
+- Un seul `fpacrtd` tourne sur un nœud. Le démon tient un verrou sur
+  `/var/ax25/fpac/fpacrtd.lock` pendant toute sa vie ; un second le
+  trouve verrouillé, écrit `another fpacrtd is already running` et
+  sort. Sans cela, le second démon purgeait les routes du premier et
+  tous deux appelaient les mêmes voisins.
+
+Tout script local qui arrête AX.25 ou FPAC sans passer par
+`myfpac.sh` doit aussi arrêter `fpacrtd`, et en premier : le
+11/10/2026, une relance d'AX.25 sur un nœud a laissé l'ancien démon
+en vie à côté du nouveau.
 
 Pourquoi un démon séparé et non `fpacwpd` : une version actuelle de
 `fpacwpd` ferme la session quand elle reçoit un type de message
@@ -611,12 +676,17 @@ Aujourd'hui, les routes apprises se lisent dans le journal de
    sans trame qui tourne (`rose-controle.py`).
 4. Une semaine d'observation avant d'étendre aux autres nœuds.
 
-État au 09/10/2026 : l'étape 1 est passée le 08/10/2026, y compris
+État au 11/10/2026 : l'étape 1 est passée le 08/10/2026, y compris
 le retrait à l'arrêt du démon du voisin et la purge au redémarrage.
-La paire tourne depuis ; après le redémarrage nocturne de FPAC, la
-session et les deux routes apprises sont revenues seules. Pas
-encore éprouvés : la table périodique, le vieillissement, le relais
-par un troisième nœud et un appel réel par une route apprise.
+Depuis le 09/10/2026, trois nœuds participent : f6bvp-8 annonce,
+f6bvp-12 et f6bvp-10 apprennent, chacun directement de f6bvp-8.
+Après chacun des trois redémarrages nocturnes de FPAC, les sessions
+et les routes apprises sont revenues seules en moins de 50 secondes,
+et la table de 6 routes est reçue toutes les 30 minutes sans manque.
+L'annonce dans les deux sens (étape 2) n'est pas encore activée.
+Pas encore éprouvés en réel : le vieillissement, la règle des
+90 minutes, le relais par un troisième nœud et un appel réel par
+une route apprise.
 
 ## 14. Décisions prises et points ouverts
 
@@ -636,6 +706,12 @@ Encore ouvert :
 - que faire si deux nœuds déclarent `RouteOrigin` pour le même DNIC :
   c'est permis (deux sorties réelles), chacun choisit la plus proche.
   À confirmer à l'usage.
+- un DNIC est annoncé par `RouteOrigin` même quand son lien de sortie
+  est fermé, or le noyau ne fait sortir un appel en transit que par
+  un voisin ouvert (un voisin fermé n'est essayé que pour un appel
+  local). Une route de DNIC apprise peut donc ne mener nulle part.
+  Soit n'annoncer un DNIC que si sa sortie est ouverte, soit traiter
+  la règle du noyau.
 
 ## 15. Numérotation
 
@@ -644,7 +720,11 @@ mots-clés de configuration : elle justifie FPAC 4.2. Ordre proposé :
 
 1. sortir la 4.1.6 stable avec les correctifs de la rc7 ;
 2. ouvrir la 4.2-rc1 avec `fpacrtd` et `WpIdle` (voir 16), tous
-   deux inactifs par défaut.
+   deux inactifs par défaut, et le changement des vecteurs (voir 17).
+
+Le code à l'essai est public : branche `fpac-4.2` de
+<https://github.com/f6bvp/fpac>. Il est expérimental, ce n'est pas
+une version publiée.
 
 ## 16. Second chantier : sessions White Pages fermées au repos
 
@@ -695,3 +775,36 @@ qu'il sait si un échange est en cours ; à trancher au moment du code.
 Essai : sur une paire, vérifier qu'une session au repos se ferme,
 qu'une fiche modifiée par `wpedit` la rouvre et arrive chez le
 voisin, et que l'échange horaire de vecteurs a toujours lieu.
+
+## 17. Troisième chantier : fiches supprimées obsolètes sorties des vecteurs
+
+Constaté le 11/10/2026. Deux nœuds écrivaient `Vectors still
+differ` chaque heure alors qu'ils avaient la même version.
+
+Une fiche supprimée de plus de 14 jours (`WP_OBSOLETE`) n'est ni
+envoyée ni acceptée entre nœuds, et une fiche supprimée d'un
+indicatif inconnu est refusée. Ces fiches comptent pourtant dans les
+vecteurs, dont la somme de contrôle couvre la date et l'adresse de
+chaque fiche. Quand deux nœuds marquent une fiche supprimée, ou
+l'effacent, à des jours différents, leurs vecteurs diffèrent et
+l'échange ne peut pas le réparer : les fiches qui régleraient l'écart
+sont justement celles qui ne s'échangent pas. Cela dure jusqu'à ce
+que les deux nœuds les aient effacées.
+
+Ici, un nœud lançait chaque nuit `wpmaint -d 100` quand les autres
+lançaient `wpmaint -d 30` : il gardait 12 fiches supprimées que les
+autres avaient effacées, et deux fiches encore valides, supprimées
+ailleurs.
+
+Décidé (F6BVP, 11/10/2026) : sortir de la somme de contrôle des
+vecteurs les fiches supprimées trop anciennes pour être échangées.
+Pas codé.
+
+À trancher au moment du code : un nœud modifié et un nœud non
+modifié calculent des vecteurs différents et divergeraient sans fin.
+Il faut changer le numéro de version des vecteurs, ou basculer tous
+les nœuds ensemble.
+
+D'ici là : régler les mêmes délais de `wpmaint` sur tous les nœuds
+d'un réseau. L'écart est sans gravité - trois tours de vecteurs par
+heure au plus depuis la 4.1.6-rc7 - mais il remplit le journal.
