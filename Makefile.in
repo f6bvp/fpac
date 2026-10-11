@@ -94,7 +94,7 @@ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
 	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
 	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
-	$(top_srcdir)/acinclude.m4 $(top_srcdir)/configure.ac
+	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(top_srcdir)/configure \
@@ -344,7 +344,7 @@ edit = sed \
 	-e 's|@ax25localstatedir[@]|$(AX25_LOCALSTATEDIR)|g'
 
 CLEANFILES = $(pathheader)
-SUBDIRS = lib cfg man monitor node flex pad tcp wp tools stats doc help scripts etc
+SUBDIRS = lib cfg man monitor node flex pad tcp wp route tools stats doc help scripts etc
 EXTRA_DIST = pathnames.h.in fpac.spec ChangeLog.fr NOUVELLES \
 	attic/README attic/fpacwdog.c attic/fpacwdog.1 \
 	attic/calld.c attic/calld.1 attic/mon_tcp.c attic/remote.1
