@@ -1,7 +1,7 @@
 # FPAC 4.2 — Dynamic ROSE routes / Routes ROSE dynamiques
 
-Specification, working draft of 2026-10-11 — F6BVP.
-Spécification, version de travail du 11/10/2026 — F6BVP.
+Specification, working draft of 2026-10-12 — F6BVP.
+Spécification, version de travail du 12/10/2026 — F6BVP.
 
 Three items: dynamic routes (sections 1 to 15), White Pages
 sessions closed when idle (section 16) and obsolete deleted records
@@ -18,8 +18,8 @@ disent la même chose.
 
 # English
 
-The `fpacrtd` daemon is being tested on two nodes; its code is not
-released yet.
+The `fpacrtd` daemon is being tested on three nodes; its code is
+not released yet.
 
 ## 1. Purpose
 
@@ -74,6 +74,25 @@ Any local script that stops AX.25 or FPAC without going through
 `myfpac.sh` must stop `fpacrtd` too, and first: on 2026-10-11 a
 restart of AX.25 on one node left the old daemon alive beside the
 new one.
+
+The same protection covers the four other daemons since 2026-10-12:
+`fpad`, `fpacwpd`, `fpacstat` and `fpacroute` each hold a lock on
+`/var/ax25/fpac/<name>.lock` and refuse to start when another copy
+is running. They also check their arguments before touching
+anything: `-h` or `-?` shows a short help, `-V` the version, and an
+unknown option or a stray argument is an error. Until then `fpad`
+and `fpacroute` ignored every argument and started: `fpad -V`,
+typed on a running node to read its version, started a second
+`fpad` that cleared and rebuilt the ROSE routes of the node and
+listened on the same addresses as the first one. Note that
+`fpacwpd -v` is still the verbose mode and starts the daemon.
+
+A lock file that cannot be written (file system full or read-only)
+is opened read-only, which is enough to hold the lock. When it
+cannot be opened at all, the daemon logs a warning and starts
+without the protection: a node that does not come back is worse
+than a missing lock. A daemon built before the lock is not seen by
+a new one; the protection holds once the new programs run.
 
 Why a separate daemon and not `fpacwpd`: a current `fpacwpd` closes
 the session when it receives a message type it does not know
@@ -279,16 +298,21 @@ Today the learned routes can be read in the log of `fpacrtd` (lines
    frame going round (`rose-controle.py`).
 4. One week of observation before extending to the other nodes.
 
-Status on 2026-10-11: step 1 passed on 2026-10-08, including the
+Status on 2026-10-12: step 1 passed on 2026-10-08, including the
 removal when the neighbour's daemon stops and the purge at restart.
 Since 2026-10-09 three nodes take part: f6bvp-8 announces, f6bvp-12
-and f6bvp-10 learn, each directly from f6bvp-8. After each of three
+and f6bvp-10 learn, each directly from f6bvp-8. After each of four
 nightly restarts of FPAC the sessions and the learned routes came
 back by themselves within 50 seconds, and the table of 6 routes has
 been received every 30 minutes without a miss. Announcing both ways
 (step 2) is not enabled yet. Not tested on the air yet: ageing, the
 90 minute rule, relaying through a third node, and a real call
 through a learned route.
+
+The daemons with the single instance lock (see 3) have been running
+on seven nodes since 2026-10-12, built from the 4.1.6-rc7 sources
+plus this change. On each node the locks are held and a second
+start of each daemon is refused.
 
 ## 14. Decisions taken and open points
 
@@ -409,8 +433,8 @@ at most since 4.1.6-rc7 - but it fills the log.
 
 # Français
 
-Le démon `fpacrtd` est à l'essai sur deux nœuds ; son code n'est pas
-encore publié.
+Le démon `fpacrtd` est à l'essai sur trois nœuds ; son code n'est
+pas encore publié.
 
 ## 1. But
 
@@ -466,6 +490,26 @@ Tout script local qui arrête AX.25 ou FPAC sans passer par
 `myfpac.sh` doit aussi arrêter `fpacrtd`, et en premier : le
 11/10/2026, une relance d'AX.25 sur un nœud a laissé l'ancien démon
 en vie à côté du nouveau.
+
+La même protection couvre les quatre autres démons depuis le
+12/10/2026 : `fpad`, `fpacwpd`, `fpacstat` et `fpacroute` tiennent
+chacun un verrou sur `/var/ax25/fpac/<nom>.lock` et refusent de
+démarrer si une autre copie tourne. Ils contrôlent aussi leurs
+arguments avant toute action : `-h` ou `-?` affiche une aide courte,
+`-V` la version, et une option inconnue ou un argument isolé est une
+erreur. Jusque-là `fpad` et `fpacroute` ignoraient tout argument et
+démarraient : `fpad -V`, tapé sur un nœud en service pour lire sa
+version, a démarré un second `fpad` qui a vidé puis recréé les
+routes ROSE du nœud et écouté sur les mêmes adresses que le premier.
+Attention, `fpacwpd -v` reste le mode verbeux et démarre le démon.
+
+Un fichier verrou qui ne peut pas être écrit (disque plein ou en
+lecture seule) est ouvert en lecture seule, ce qui suffit à tenir le
+verrou. S'il ne peut pas être ouvert du tout, le démon l'écrit au
+journal et démarre sans cette protection : un nœud qui ne remonte
+pas est pire qu'un verrou absent. Un démon compilé avant le verrou
+n'est pas vu par un nouveau ; la protection vaut une fois les
+nouveaux programmes en service.
 
 Pourquoi un démon séparé et non `fpacwpd` : une version actuelle de
 `fpacwpd` ferme la session quand elle reçoit un type de message
@@ -676,17 +720,23 @@ Aujourd'hui, les routes apprises se lisent dans le journal de
    sans trame qui tourne (`rose-controle.py`).
 4. Une semaine d'observation avant d'étendre aux autres nœuds.
 
-État au 11/10/2026 : l'étape 1 est passée le 08/10/2026, y compris
+État au 12/10/2026 : l'étape 1 est passée le 08/10/2026, y compris
 le retrait à l'arrêt du démon du voisin et la purge au redémarrage.
 Depuis le 09/10/2026, trois nœuds participent : f6bvp-8 annonce,
 f6bvp-12 et f6bvp-10 apprennent, chacun directement de f6bvp-8.
-Après chacun des trois redémarrages nocturnes de FPAC, les sessions
+Après chacun des quatre redémarrages nocturnes de FPAC, les sessions
 et les routes apprises sont revenues seules en moins de 50 secondes,
 et la table de 6 routes est reçue toutes les 30 minutes sans manque.
 L'annonce dans les deux sens (étape 2) n'est pas encore activée.
 Pas encore éprouvés en réel : le vieillissement, la règle des
 90 minutes, le relais par un troisième nœud et un appel réel par
 une route apprise.
+
+Les démons munis du verrou d'instance unique (voir 3) sont en
+service sur sept nœuds depuis le 12/10/2026, compilés à partir des
+sources de la 4.1.6-rc7 et de ce seul changement. Sur chaque nœud
+les verrous sont tenus et un second lancement de chaque démon est
+refusé.
 
 ## 14. Décisions prises et points ouverts
 
