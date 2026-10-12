@@ -58,6 +58,8 @@ fpacwpd		The white pages database server daemon
 fpacstat	computes the traffic statistics of the trunks
 fpacroute	daemon for the Trace (traceroute) command of the node
 flexd		Downloads and handles the Flexnet destinations database
+fpacrtd		(4.2) announces ROSE routes to the direct neighbours and learns theirs
+		(dynamic routes, see man fpacrtd and doc/dynamic-routes.md)
 
 Node and user access
 
