@@ -13,6 +13,13 @@ FPAC 4.2-rc1 — dynamic ROSE routes (release candidate, experimental)
 
   * See the fpacrtd(1) manual page and doc/dynamic-routes.md.
 
+  * New QSl command in the node (QS is enough): a QSL card confirming
+    your connection, shown as text in the session. A sysop who has a
+    web server can also have it made as an image - the picture of the
+    node on the front, the details on the back - and the node gives
+    the link to download it. See doc/qsl.txt; the image needs the
+    python3-pil package.
+
 FPAC 4.1.6-rc10 — the NetRom sessions in Users (release candidate)
 ==================================================================
 

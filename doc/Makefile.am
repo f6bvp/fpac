@@ -6,6 +6,7 @@ doc_DATA = 	FPAC-HOWTO.man \
 		aprslist.txt \
 		call_tcp.txt \
 		mailbbs.txt \
+		qsl.txt \
 		calibrate.txt \
 		ax25 \
 		ax25-up \

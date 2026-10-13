@@ -1,0 +1,164 @@
+QSl - a QSL card for a connection to the node
+QSl - une carte QSL pour une connexion au nœud
+====================================================================
+
+English text first, French text below.
+Le texte anglais vient d'abord, le texte français ensuite.
+
+--------------------------------------------------------------------
+ENGLISH
+--------------------------------------------------------------------
+
+1. Purpose
+
+A user connected to the node types QSl (QS is enough) and receives a
+QSL card confirming the connection, in the manner of the card sent
+after a radio contact.
+
+The card is always shown as text in the session. When the sysop has
+set it up, it is also made as a JPEG image and the node gives a link
+to download it with a web browser. A session only carries text: the
+image itself cannot go through it.
+
+2. What is on the card
+
+Front side: the picture chosen by the sysop.
+
+Back side: the heading "FPAC node <node> confirming connection with
+<user>", the callsign of the user, the date and time (UTC), the time
+the session began, then what the Status command shows down to the
+FPAC version: callsigns of the node, DNIC and address, ports, city,
+country, locator, operating system.
+
+Both sides are in one JPEG file, the front above the back, 1400
+pixels wide. Without a front picture the card has its text side only.
+
+3. Setting it up
+
+Nothing to do for the text card.
+
+For the image, the node needs:
+
+  - the helper /usr/local/sbin/fpacqsl, installed with FPAC, and the
+    Python imaging library:  apt install python3-pil
+  - a directory served by a web server, that the node can write to;
+  - these keywords, in fpac.conf or in a file fpacqsl.conf placed in
+    the same directory:
+
+    QslDir   = /var/www/html/qsl          where the cards are written
+    QslUrl   = http://my.node.org/qsl     the same directory on the web
+    QslImage = /usr/local/etc/ax25/QSL_fpac.jpg     front picture
+    QslKeep  = 30                         days a card is kept
+
+QslDir and QslUrl are both required. QslImage is optional: by
+default the picture is the file QSL_fpac.jpg of the directory of
+fpac.conf. JPEG and PNG are accepted; 1400 x 900 pixels, the shape of
+a 14 x 9 cm card, gives the best result. QslKeep is optional: 30 days
+by default, 0 keeps the cards for ever.
+
+A node without a web server simply leaves QslDir out: its users get
+the text card.
+
+4. Housekeeping and limits
+
+  - The cards older than QslKeep days are erased at each QSl command.
+    Only the files named QSL-*.jpg of QslDir are ever touched.
+  - A user who asks again within 10 minutes is given the card already
+    made.
+  - No image is made while QslDir holds 500 cards.
+  - Each request is written in the file fpac/qsl.log of the FPAC
+    state directory: date, callsign, port, name of the card.
+
+5. Files
+
+  /usr/local/sbin/fpacqsl               draws the image
+  <config>/fpacqsl.conf                 optional keywords
+  <config>/QSL_fpac.jpg                 default front picture
+  <state>/fpac/qsl.log                  cards delivered
+  QSL-<node>-<user>-<date>-<time>.jpg   a card, in QslDir
+
+To try the helper alone:
+
+    fpacqsl text.txt QSL_fpac.jpg card.jpg
+
+where the first line of text.txt is the heading.
+
+--------------------------------------------------------------------
+FRANÇAIS
+--------------------------------------------------------------------
+
+1. À quoi ça sert
+
+Un utilisateur connecté au nœud tape QSl (QS suffit) et reçoit une
+carte QSL qui confirme la connexion, à la manière de la carte envoyée
+après un contact radio.
+
+La carte est toujours affichée en texte dans la session. Quand le
+sysop l'a prévu, elle est aussi fabriquée en image JPEG et le nœud
+donne un lien pour la télécharger avec un navigateur. Une session ne
+transporte que du texte : l'image elle-même ne peut pas y passer.
+
+2. Ce que porte la carte
+
+Recto : l'image choisie par le sysop.
+
+Verso : le titre « FPAC node <nœud> confirming connection with
+<utilisateur> », l'indicatif de l'utilisateur, la date et l'heure
+(UTC), l'heure de début de la session, puis ce que montre la commande
+Status jusqu'à la version de FPAC : indicatifs du nœud, DNIC et
+adresse, ports, ville, pays, locator, système.
+
+Les deux faces sont dans un seul fichier JPEG, le recto au-dessus du
+verso, large de 1400 pixels. Sans image de recto, la carte n'a que sa
+face de texte.
+
+3. Mise en place
+
+Rien à faire pour la carte en texte.
+
+Pour l'image, il faut sur le nœud :
+
+  - le programme /usr/local/sbin/fpacqsl, installé avec FPAC, et la
+    bibliothèque d'images de Python :  apt install python3-pil
+  - un dossier servi par un serveur web, où le nœud peut écrire ;
+  - ces mots-clés, dans fpac.conf ou dans un fichier fpacqsl.conf
+    placé dans le même dossier :
+
+    QslDir   = /var/www/html/qsl          où les cartes sont écrites
+    QslUrl   = http://mon.noeud.org/qsl   le même dossier vu du web
+    QslImage = /usr/local/etc/ax25/QSL_fpac.jpg     image du recto
+    QslKeep  = 30                         jours de conservation
+
+QslDir et QslUrl sont tous deux nécessaires. QslImage est facultatif :
+par défaut l'image est le fichier QSL_fpac.jpg du dossier de
+fpac.conf. JPEG et PNG sont acceptés ; 1400 x 900 pixels, la forme
+d'une carte de 14 x 9 cm, donne le meilleur résultat. QslKeep est
+facultatif : 30 jours par défaut, 0 garde les cartes sans limite.
+
+Un nœud sans serveur web n'indique simplement pas QslDir : ses
+utilisateurs reçoivent la carte en texte.
+
+4. Ménage et limites
+
+  - Les cartes de plus de QslKeep jours sont effacées à chaque
+    commande QSl. Seuls les fichiers nommés QSL-*.jpg de QslDir sont
+    touchés.
+  - Un utilisateur qui redemande dans les 10 minutes reçoit la carte
+    déjà fabriquée.
+  - Aucune image n'est fabriquée tant que QslDir contient 500 cartes.
+  - Chaque demande est inscrite dans le fichier fpac/qsl.log du
+    dossier d'état de FPAC : date, indicatif, port, nom de la carte.
+
+5. Fichiers
+
+  /usr/local/sbin/fpacqsl               dessine l'image
+  <configuration>/fpacqsl.conf          mots-clés, facultatif
+  <configuration>/QSL_fpac.jpg          image du recto par défaut
+  <état>/fpac/qsl.log                   cartes délivrées
+  QSL-<nœud>-<indicatif>-<date>-<heure>.jpg   une carte, dans QslDir
+
+Pour essayer le programme seul :
+
+    fpacqsl texte.txt QSL_fpac.jpg carte.jpg
+
+où la première ligne de texte.txt est le titre.
