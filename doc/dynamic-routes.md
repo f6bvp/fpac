@@ -346,7 +346,9 @@ Decided (F6BVP, 2026-10-13):
   the kernel lets a call in transit leave only through an open
   neighbour (a closed one is tried for a local call only), so a
   DNIC announced over a closed exit leads nowhere. The kernel rule
-  is not changed. Coded on 2026-10-13 (see 4), not yet in service.
+  is not changed. Coded on 2026-10-13 (see 4) and on trial since
+  then on the announcing node, whose table went from 6 routes to 2:
+  four of its five DNICs had a closed exit.
 
 ## 15. Numbering
 
@@ -809,7 +811,9 @@ Décidé (F6BVP, 13/10/2026) :
   voisin ouvert (un voisin fermé n'est essayé que pour un appel
   local), donc un DNIC annoncé sur une sortie fermée ne mène nulle
   part. La règle du noyau n'est pas changée. Codé le 13/10/2026
-  (voir 4), pas encore en service.
+  (voir 4) et à l'essai depuis sur le nœud qui annonce, dont la
+  table est passée de 6 routes à 2 : quatre de ses cinq DNIC
+  avaient une sortie fermée.
 
 ## 15. Numérotation
 
