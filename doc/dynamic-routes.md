@@ -1,7 +1,7 @@
 # FPAC 4.2 — Dynamic ROSE routes / Routes ROSE dynamiques
 
-Specification, working draft of 2026-10-12 — F6BVP.
-Spécification, version de travail du 12/10/2026 — F6BVP.
+Specification, working draft of 2026-10-13 — F6BVP.
+Spécification, version de travail du 13/10/2026 — F6BVP.
 
 Three items: dynamic routes (sections 1 to 15), White Pages
 sessions closed when idle (section 16) and obsolete deleted records
@@ -330,11 +330,15 @@ Still open:
 - what if two nodes declare `RouteOrigin` for the same DNIC: it is
   allowed (two real exits), each node takes the nearest. To be
   confirmed in use.
-- a DNIC is announced by `RouteOrigin` even while its exit link is
-  closed, but the kernel lets a call in transit leave only through
-  an open neighbour (a closed one is tried for a local call only).
-  A learned DNIC route may therefore lead nowhere. Either announce
-  a DNIC only while its exit is open, or deal with the kernel rule.
+
+Decided (F6BVP, 2026-10-13):
+
+- a DNIC declared with `RouteOrigin` is announced only while its
+  exit link is open, and withdrawn when that link closes. Reason:
+  the kernel lets a call in transit leave only through an open
+  neighbour (a closed one is tried for a local call only), so a
+  DNIC announced over a closed exit leads nowhere. The kernel rule
+  is not changed. Not coded.
 
 ## 15. Numbering
 
@@ -420,10 +424,20 @@ and two records still valid that were deleted elsewhere.
 Decided (F6BVP, 2026-10-11): leave out of the vector checksum the
 deleted records too old to be exchanged. Not coded.
 
-To be settled when coding: a node with the change and a node
-without it compute different vectors and would differ for ever.
-The vector version number has to change, or all nodes have to
-switch together.
+A node with the change and a node without it compute different
+vectors and would differ for ever. Decided (F6BVP, 2026-10-13): the
+vector version number changes with the new checksum; this is what
+it is for.
+
+`fpacwpd` up to 4.1.6 closes the White Pages session when it
+receives a vector of another version, and calls again 30 minutes
+later. With nothing more, a 4.2 node and a 4.1.6 node would no
+longer keep a session. Decided (F6BVP, 2026-10-13): 4.2 goes on
+speaking the old version, with the old checksum, to a neighbour
+that is still older; the new version is used between 4.2 nodes
+only. A network may then be upgraded node by node. Not coded; how
+a node learns the version of its neighbour is to be settled when
+coding.
 
 Until then: use the same `wpmaint` delays on every node of a
 network. The difference is harmless - three vector rounds an hour
@@ -756,12 +770,15 @@ Encore ouvert :
 - que faire si deux nœuds déclarent `RouteOrigin` pour le même DNIC :
   c'est permis (deux sorties réelles), chacun choisit la plus proche.
   À confirmer à l'usage.
-- un DNIC est annoncé par `RouteOrigin` même quand son lien de sortie
-  est fermé, or le noyau ne fait sortir un appel en transit que par
-  un voisin ouvert (un voisin fermé n'est essayé que pour un appel
-  local). Une route de DNIC apprise peut donc ne mener nulle part.
-  Soit n'annoncer un DNIC que si sa sortie est ouverte, soit traiter
-  la règle du noyau.
+
+Décidé (F6BVP, 13/10/2026) :
+
+- un DNIC déclaré par `RouteOrigin` n'est annoncé que tant que son
+  lien de sortie est ouvert, et retiré quand ce lien se ferme.
+  Raison : le noyau ne fait sortir un appel en transit que par un
+  voisin ouvert (un voisin fermé n'est essayé que pour un appel
+  local), donc un DNIC annoncé sur une sortie fermée ne mène nulle
+  part. La règle du noyau n'est pas changée. Pas codé.
 
 ## 15. Numérotation
 
@@ -850,10 +867,20 @@ Décidé (F6BVP, 11/10/2026) : sortir de la somme de contrôle des
 vecteurs les fiches supprimées trop anciennes pour être échangées.
 Pas codé.
 
-À trancher au moment du code : un nœud modifié et un nœud non
-modifié calculent des vecteurs différents et divergeraient sans fin.
-Il faut changer le numéro de version des vecteurs, ou basculer tous
-les nœuds ensemble.
+Un nœud modifié et un nœud non modifié calculent des vecteurs
+différents et divergeraient sans fin. Décidé (F6BVP, 13/10/2026) :
+le numéro de version des vecteurs change avec la nouvelle somme de
+contrôle ; c'est son rôle.
+
+`fpacwpd` jusqu'à la 4.1.6 ferme la session White Pages quand il
+reçoit un vecteur d'une autre version, et rappelle 30 minutes plus
+tard. Sans rien de plus, un nœud 4.2 et un nœud 4.1.6 ne garderaient
+plus de session. Décidé (F6BVP, 13/10/2026) : la 4.2 continue de
+parler l'ancienne version, avec l'ancienne somme de contrôle, à un
+voisin resté plus ancien ; la nouvelle version ne sert qu'entre
+nœuds 4.2. Un réseau peut ainsi être mis à jour nœud par nœud. Pas
+codé ; la façon dont un nœud apprend la version de son voisin est à
+régler au moment du code.
 
 D'ici là : régler les mêmes délais de `wpmaint` sur tous les nœuds
 d'un réseau. L'écart est sans gravité - trois tours de vecteurs par
