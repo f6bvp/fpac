@@ -650,9 +650,26 @@ static int date_comp(const void *a, const void *b)
  * Dirty flags are set only for the first vector element
  */
 
+/*
+ * From vector version 0x112 on, a deleted record older than WP_OBSOLETE days
+ * is left out of the vectors. Such a record is neither sent nor accepted
+ * between nodes (see ancien() in libwp.c, same age rule), so when two nodes
+ * marked or erased it on different days their vectors differed and no
+ * exchange could ever settle it. A vector of an older version is computed
+ * as before, for a neighbour that does not know the new rule.
+ */
+static int vector_skips(const wp_t * wp, unsigned short version, time_t now)
+{
+	if (version < WP_VERSION || !wp->is_deleted)
+		return 0;
+	return ((now - wp->date) / 86400L > WP_OBSOLETE);
+}
+
 void db_compute_vector(int dirty, vector_t * vector)
 {
 	unsigned int *sorted_list;
+	int nb_record = 0;
+	time_t now = time(NULL);
 	int i, vec_index;
 	unsigned char crc_buf[4];
 	unsigned int treshold;
@@ -666,29 +683,30 @@ void db_compute_vector(int dirty, vector_t * vector)
 	memset(dirty_cnt, 0, sizeof(dirty_cnt));
 	memset(record_cnt, 0, sizeof(record_cnt));
 
-	sorted_list = calloc(db_header->nb_record, sizeof(*sorted_list));
+	sorted_list = calloc(db_header->nb_record + 1, sizeof(*sorted_list));
 	if (!sorted_list)
 		return;
 
 	for (i = 0; i < db_header->nb_record; i++)
 	{
-		sorted_list[i] = i;
+		if (!vector_skips(&db_records[i], vector->version, now))
+			sorted_list[nb_record++] = i;
 	}
 
 	/* Sort in date descending order */
 
-	qsort(sorted_list, db_header->nb_record, sizeof(*sorted_list), date_comp);
+	qsort(sorted_list, nb_record, sizeof(*sorted_list), date_comp);
 
 	/* Compute best parameters ? */
 
 	if (vector->date_base == 0)
 	{
-		if (db_header->nb_record > 0)
+		if (nb_record > 0)
 		{
 			vector->date_base = db_records[sorted_list[0]].date;
 			vector->interval =
 				1 + (vector->date_base -
-					 db_records[sorted_list[db_header->nb_record - 1]].date) /
+					 db_records[sorted_list[nb_record - 1]].date) /
 				(1 << WP_VECTOR_SIZE);
 		}
 		else
@@ -719,9 +737,9 @@ void db_compute_vector(int dirty, vector_t * vector)
 /* DEBUG F6BVP */
 	if (verbose) syslog(LOG_INFO,"FPACWPD: compute_vector() threshold = %d", treshold) ;
 
-	for (i = 0; i <= db_header->nb_record; i++)
+	for (i = 0; i <= nb_record; i++)
 	{
-		int last_done = (i == db_header->nb_record);
+		int last_done = (i == nb_record);
 		int out_timeslot;
 
 		if (!last_done)

@@ -430,7 +430,8 @@ Here one node ran its nightly `wpmaint -d 100` while the others ran
 and two records still valid that were deleted elsewhere.
 
 Decided (F6BVP, 2026-10-11): leave out of the vector checksum the
-deleted records too old to be exchanged. Not coded.
+deleted records too old to be exchanged. Coded on 2026-10-13, not
+yet in service.
 
 A node with the change and a node without it compute different
 vectors and would differ for ever. Decided (F6BVP, 2026-10-13): the
@@ -443,9 +444,22 @@ later. With nothing more, a 4.2 node and a 4.1.6 node would no
 longer keep a session. Decided (F6BVP, 2026-10-13): 4.2 goes on
 speaking the old version, with the old checksum, to a neighbour
 that is still older; the new version is used between 4.2 nodes
-only. A network may then be upgraded node by node. Not coded; how
-a node learns the version of its neighbour is to be settled when
-coding.
+only. A network may then be upgraded node by node.
+
+As coded on 2026-10-13: the new vector version is 0x112, the old one
+0x111. A node answers a vector request in the version it came in.
+For its own requests it first takes every neighbour for a 4.2 node;
+if the neighbour hangs up before answering, it is spoken to in the
+old version from then on, with one line in the log. A vector in the
+new version received from that neighbour proves it was upgraded.
+Since a session may also drop for another reason at that very
+moment, the new version is tried again once a week. The price with
+a 4.1 neighbour: one session closed at the first exchange, then
+once a week; it reopens within 30 minutes.
+
+Not covered: a recently deleted record that the other node never
+knew is refused there and still counts in the vectors, until it
+becomes obsolete in turn.
 
 Until then: use the same `wpmaint` delays on every node of a
 network. The difference is harmless - three vector rounds an hour
@@ -882,7 +896,7 @@ ailleurs.
 
 Décidé (F6BVP, 11/10/2026) : sortir de la somme de contrôle des
 vecteurs les fiches supprimées trop anciennes pour être échangées.
-Pas codé.
+Codé le 13/10/2026, pas encore en service.
 
 Un nœud modifié et un nœud non modifié calculent des vecteurs
 différents et divergeraient sans fin. Décidé (F6BVP, 13/10/2026) :
@@ -895,9 +909,23 @@ tard. Sans rien de plus, un nœud 4.2 et un nœud 4.1.6 ne garderaient
 plus de session. Décidé (F6BVP, 13/10/2026) : la 4.2 continue de
 parler l'ancienne version, avec l'ancienne somme de contrôle, à un
 voisin resté plus ancien ; la nouvelle version ne sert qu'entre
-nœuds 4.2. Un réseau peut ainsi être mis à jour nœud par nœud. Pas
-codé ; la façon dont un nœud apprend la version de son voisin est à
-régler au moment du code.
+nœuds 4.2. Un réseau peut ainsi être mis à jour nœud par nœud.
+
+Tel que codé le 13/10/2026 : la nouvelle version des vecteurs est
+0x112, l'ancienne 0x111. Un nœud répond à une demande de vecteur
+dans la version où elle est arrivée. Pour ses propres demandes, il
+prend d'abord chaque voisin pour un nœud 4.2 ; si le voisin
+raccroche avant de répondre, il lui parle ensuite dans l'ancienne
+version, avec une ligne au journal. Un vecteur en nouvelle version
+reçu de ce voisin prouve qu'il a été mis à jour. Comme une session
+peut aussi tomber pour une autre raison à ce moment précis, la
+nouvelle version est réessayée une fois par semaine. Le prix avec un
+voisin 4.1 : une session fermée au premier échange, puis une fois
+par semaine ; elle se rouvre dans les 30 minutes.
+
+Non couvert : une fiche supprimée récemment, que l'autre nœud n'a
+jamais connue, y est refusée et compte encore dans les vecteurs,
+jusqu'à ce qu'elle devienne obsolète à son tour.
 
 D'ici là : régler les mêmes délais de `wpmaint` sur tous les nœuds
 d'un réseau. L'écart est sans gravité - trois tours de vecteurs par

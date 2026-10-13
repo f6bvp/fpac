@@ -1,5 +1,19 @@
 fpac (4.2-rc1)
 
+	* fpacwpd: the deleted records older than WP_OBSOLETE (14 days) are
+	  left out of the vectors (db_compute_vector(), wp/db.c). They are
+	  neither sent nor accepted between nodes, yet they counted in the
+	  checksums: two nodes that had marked or erased such a record on
+	  different days logged "Vectors still differ" every hour until
+	  both had erased it. The vector version becomes 0x112
+	  (WP_VERSION); 0x111 is kept as WP_VERSION_OLD.
+	* fpacwpd: a neighbour still running FPAC 4.1 closes the session on
+	  a vector that is not 0x111. A vector request is now answered in
+	  the version it came in, and each adjacent is spoken to in the
+	  old version once it has hung up on a request in the new one
+	  (new fields old_vectors, vector_pending and old_probe_date of
+	  struct wp_adjacent). A vector 0x112 received from it switches
+	  back to the new version, which is also tried again once a week.
 	* fpacrtd: a DNIC declared with RouteOrigin is announced only while
 	  its exit link is open, that is while a neighbour of its route in
 	  fpac.routes is restarted in the kernel (new kernel_exit_open()).

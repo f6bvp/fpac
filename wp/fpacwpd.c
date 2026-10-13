@@ -86,6 +86,47 @@ static int vector_round_allowed(struct wp_adjacent *wpa)
 	return 0;
 }
 
+/* F6BVP 2026-10-13: which vector version to speak with each adjacent.
+ * An adjacent running FPAC 4.1 closes the session when it receives a vector
+ * that is not WP_VERSION_OLD. Every adjacent is first taken for a current
+ * one; if it hangs up on our request before answering it, it is spoken to
+ * in the old version from then on. A vector of the current version received
+ * from it proves it has been upgraded. As a session may also drop for
+ * another reason just then, the current version is tried again once every
+ * WPA_OLD_PROBE_PERIOD. */
+static const char *adjacent_name(struct wp_adjacent *wpa)
+{
+	return (wpa->node ? wpa->node->name : "?");
+}
+
+/* A vector of this version was received from the adjacent: 0 = unknown version */
+static int vector_version_received(struct wp_adjacent *wpa, unsigned short version)
+{
+	if (version != WP_VERSION && version != WP_VERSION_OLD)
+		return 0;
+	if (wpa && version == WP_VERSION && wpa->old_vectors) {
+		wpa->old_vectors = 0;
+		syslog(LOG_INFO, "Adjacent %s now speaks vector version %x", adjacent_name(wpa), WP_VERSION);
+	}
+	return 1;
+}
+
+/* The adjacent hung up while our vector request was waiting for its response */
+static void vector_request_dropped(struct wp_adjacent *wpa)
+{
+	int version = wpa->vector_pending;
+
+	wpa->vector_pending = 0;
+	if (version != WP_VERSION)
+		return;
+	wpa->old_probe_date = time(NULL) + WPA_OLD_PROBE_PERIOD;
+	if (!wpa->old_vectors) {
+		wpa->old_vectors = 1;
+		syslog(LOG_INFO, "Adjacent %s hung up on vector version %x: version %x from now on",
+		       adjacent_name(wpa), WP_VERSION, WP_VERSION_OLD);
+	}
+}
+
 /************************************************************************************
 * Prototypes
 ************************************************************************************/
@@ -181,6 +222,9 @@ static void close_client(int client, int active)
 	 * again (debug dump, F3KT 2026-09-30 08:36). */
 	if (context[client]->adjacent && context[client]->adjacent->context == client) {
 		struct wp_adjacent *wpa = context[client]->adjacent;
+		if (!active && wpa->vector_pending)
+			vector_request_dropped(wpa);
+		wpa->vector_pending = 0;
 		wpa->state = WPA_DISCONNECTED;
 		wpa->context = -1;
 		wpa->retry_connect_date = temps + WPA_RETRY_CONNECT;
@@ -425,7 +469,7 @@ static void rose_read_handler(int s)
 			wp_flush_pdu();
 			break;		  
 	  case wp_type_vector_request:
-		  if (pdu.data.vector.version != WP_VERSION) {
+		  if (!vector_version_received(wpa, pdu.data.vector.version)) {
 			  if (verbose) syslog(LOG_INFO, "Receiving vector request from %s : Bad version number %02x", rose_ntoa(&context[s]->address.srose_addr), pdu.data.vector.version);
 			  rc = -1;
 		  }
@@ -439,7 +483,9 @@ static void rose_read_handler(int s)
 		  }
 		  break;
 	  case wp_type_vector_response:
-		  if (pdu.data.vector.version != WP_VERSION) {
+		  if (wpa)
+			  wpa->vector_pending = 0;
+		  if (!vector_version_received(wpa, pdu.data.vector.version)) {
 			  if (verbose) syslog(LOG_INFO, "Receiving vector response from %s : Bad version number %02x", rose_ntoa(&context[s]->address.srose_addr), pdu.data.vector.version);
 			  rc = -1;
 		  }
@@ -694,7 +740,11 @@ static void vector_request(struct wp_adjacent *wpa)
 	memset(&pdu, 0, sizeof(wp_pdu));
 	pdu.type = wp_type_vector_request;
 
+	/* Old version for an adjacent that refused the current one, which is
+	 * tried again from time to time (see vector_version_received()) */
 	vector.version = WP_VERSION;
+	if (wpa->old_vectors && temps < wpa->old_probe_date)
+		vector.version = WP_VERSION_OLD;
 	vector.date_base = 0;
 	vector.seed = random();
 	db_compute_vector(-1, &vector);
@@ -706,8 +756,10 @@ static void vector_request(struct wp_adjacent *wpa)
 		if (verbose) syslog(LOG_INFO, "Sending vector request FAILED !");
 		close_client(s, 1);
 	}
-	else
-		if (verbose) syslog(LOG_INFO, "vector request sent ! rc %d", rc);
+	else {
+		wpa->vector_pending = vector.version;
+		if (verbose) syslog(LOG_INFO, "vector request sent ! version %x rc %d", vector.version, rc);
+	}
 }
 
 /* F6BVP 2026-09-15: touch our own node record's date without changing
