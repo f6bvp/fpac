@@ -23,7 +23,12 @@
 #include "wp.h"
 #include "fpac.h"
 
-#define WP_VERSION	0x111	/* was 0x107 - fpacwpd2.dat - FPACWP_V002 signature */
+/* Vector version. 0x112 (FPAC 4.2): the deleted records too old to be
+ * exchanged (WP_OBSOLETE) are left out of the vector checksums. 0x111 is
+ * still spoken to a neighbour running FPAC 4.1, which closes the session on
+ * any other version. Was 0x107 - fpacwpd2.dat - FPACWP_V002 signature */
+#define WP_VERSION	0x112
+#define WP_VERSION_OLD	0x111
 /* use strerror or strerror_r */
 /*#define perror(s)	syslog(LOG_ERR, "%s:%s", s, strerror)*/
 #define perror(s)	syslog(LOG_ERR, "%s", s)
@@ -46,6 +51,9 @@ struct wp_adjacent {
 	int	end_no_dirty;	/* client has sent all its dirty records */
 	time_t	round_start;	/* Start of the current vector rounds window */
 	int	round_count;	/* Vector rounds chained in this window */
+	int	old_vectors;	/* This adjacent only takes WP_VERSION_OLD vectors */
+	int	vector_pending;	/* Version of our vector request awaiting its response, 0 = none */
+	time_t	old_probe_date;	/* When to try WP_VERSION again with an old adjacent */
 	struct wp_adjacent *next;
 };
 
@@ -56,6 +64,7 @@ struct wp_adjacent {
 #define WPA_RETRY_CONNECT	(30*60)	/* Retry adjacent connection delay */
 #define WPA_VECTOR_PERIOD	(3600)	/* Process a vector exchange every hour */
 #define WPA_VECTOR_MAX_ROUNDS	3	/* Chained vector rounds allowed per period */
+#define WPA_OLD_PROBE_PERIOD	(7L*24L*3600L)	/* Try the current vector version again with an old adjacent */
 
 /* F6BVP 2026-09-15: refresh our own node's wp.date periodically, well under
  * wpmaint's deletion delay (30 days by default), so a stable node record

@@ -3,6 +3,22 @@ Les noms de fichiers, de fonctions et de variables sont conservés tels quels.
 
 fpac (4.2-rc1)
 
+	* fpacwpd : les fiches supprimées plus anciennes que WP_OBSOLETE
+	  (14 jours) sont sorties des vecteurs (db_compute_vector(),
+	  wp/db.c). Elles ne sont ni envoyées ni acceptées entre nœuds,
+	  mais comptaient dans les sommes de contrôle : deux nœuds qui
+	  avaient marqué ou effacé une telle fiche à des jours différents
+	  écrivaient « Vectors still differ » chaque heure jusqu'à ce que
+	  les deux l'aient effacée. La version des vecteurs passe à 0x112
+	  (WP_VERSION) ; 0x111 est gardée sous le nom WP_VERSION_OLD.
+	* fpacwpd : un voisin resté en FPAC 4.1 ferme la session sur un
+	  vecteur qui n'est pas en 0x111. Une demande de vecteur reçoit
+	  maintenant sa réponse dans la version où elle est arrivée, et
+	  chaque adjacent est servi dans l'ancienne version dès qu'il a
+	  raccroché sur une demande dans la nouvelle (nouveaux champs
+	  old_vectors, vector_pending et old_probe_date de struct
+	  wp_adjacent). Un vecteur 0x112 reçu de lui fait revenir à la
+	  nouvelle version, qui est aussi réessayée une fois par semaine.
 	* fpacrtd : un DNIC déclaré par RouteOrigin n'est annoncé que tant
 	  que son lien de sortie est ouvert, c'est-à-dire tant qu'un voisin
 	  de sa route dans fpac.routes est redémarré dans le noyau
