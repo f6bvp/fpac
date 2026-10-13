@@ -83,7 +83,9 @@ Default: no.
 announce this node as the exit gateway of a DNIC (4 digits). One line
 per DNIC. The line is ignored, with a warning in the log, unless
 .B fpac.routes
-holds a route to that whole DNIC.
+holds a route to that whole DNIC. The DNIC is announced only while a
+neighbour of that route is open (restarted) in the kernel, and withdrawn
+when the exit link closes; each change is written in the log.
 .TP 20
 .BI "Route = yes"
 inside the Node block of a neighbour: exchange routes with it.

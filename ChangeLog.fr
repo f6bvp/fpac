@@ -3,6 +3,17 @@ Les noms de fichiers, de fonctions et de variables sont conservés tels quels.
 
 fpac (4.2-rc1)
 
+	* fpacrtd : un DNIC déclaré par RouteOrigin n'est annoncé que tant
+	  que son lien de sortie est ouvert, c'est-à-dire tant qu'un voisin
+	  de sa route dans fpac.routes est redémarré dans le noyau
+	  (nouvelle fonction kernel_exit_open()). Le noyau ne fait sortir
+	  un appel en transit que par un voisin ouvert : un DNIC annoncé
+	  sur une sortie fermée ne menait nulle part sur les nœuds qui
+	  l'avaient appris. L'état est contrôlé chaque minute ; le DNIC est
+	  retiré quand le lien se ferme et annoncé de nouveau quand il se
+	  rouvre, avec une ligne au journal. Le lien avec le voisin à qui
+	  l'annonce est destinée ne compte pas. « fpacrtd -t » affiche
+	  l'état de chaque lien de sortie.
 	* fpacrtd : nouveau démon, routes ROSE dynamiques
 	  (route/fpacrtd.c). Chaque nœud annonce à ses voisins directs les
 	  destinations qu'il sait joindre - adresses complètes de nœuds et

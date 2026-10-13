@@ -144,6 +144,14 @@ A node declaring `RouteOrigin = 5050` must itself have a route to
 that DNIC in `fpac.routes`. Otherwise `fpacrtd` reports it in the
 log and does not announce that DNIC.
 
+The DNIC is announced only while its exit link is open, that is
+while a neighbour of that route is "open" in `rose_neigh`. When the
+link closes the DNIC is withdrawn (`W`), and announced again when
+it reopens; the state is checked every minute and each change is
+written in the log. The link with the neighbour the announcement
+goes to does not count: a DNIC is never announced to a node on the
+strength of the link with that same node.
+
 ## 5. Exchanges
 
 The dialogue is plain text, one line per message, so that it stays
@@ -338,7 +346,7 @@ Decided (F6BVP, 2026-10-13):
   the kernel lets a call in transit leave only through an open
   neighbour (a closed one is tried for a local call only), so a
   DNIC announced over a closed exit leads nowhere. The kernel rule
-  is not changed. Not coded.
+  is not changed. Coded on 2026-10-13 (see 4), not yet in service.
 
 ## 15. Numbering
 
@@ -577,6 +585,14 @@ Un nœud qui déclare `RouteOrigin = 5050` doit avoir lui-même une
 route vers ce DNIC dans `fpac.routes`. Sinon, `fpacrtd` le signale
 dans le journal et n'annonce pas ce DNIC.
 
+Le DNIC n'est annoncé que tant que son lien de sortie est ouvert,
+c'est-à-dire tant qu'un voisin de cette route est « ouvert » dans
+`rose_neigh`. Quand le lien se ferme le DNIC est retiré (`W`), puis
+annoncé de nouveau quand il se rouvre ; l'état est contrôlé chaque
+minute et chaque changement est écrit au journal. Le lien avec le
+voisin à qui l'annonce est destinée ne compte pas : un DNIC n'est
+jamais annoncé à un nœud sur la foi du lien avec ce même nœud.
+
 ## 5. Échanges
 
 Le dialogue est en texte, une ligne par message, pour rester lisible
@@ -778,7 +794,8 @@ Décidé (F6BVP, 13/10/2026) :
   Raison : le noyau ne fait sortir un appel en transit que par un
   voisin ouvert (un voisin fermé n'est essayé que pour un appel
   local), donc un DNIC annoncé sur une sortie fermée ne mène nulle
-  part. La règle du noyau n'est pas changée. Pas codé.
+  part. La règle du noyau n'est pas changée. Codé le 13/10/2026
+  (voir 4), pas encore en service.
 
 ## 15. Numérotation
 
