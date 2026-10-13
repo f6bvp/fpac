@@ -3,12 +3,14 @@
 Specification, working draft of 2026-10-13 — F6BVP.
 Spécification, version de travail du 13/10/2026 — F6BVP.
 
-Three items: dynamic routes (sections 1 to 15), White Pages
-sessions closed when idle (section 16) and obsolete deleted records
-left out of the White Pages vectors (section 17).
-Trois chantiers : les routes dynamiques (sections 1 à 15), les
-sessions White Pages fermées au repos (section 16) et les fiches
-supprimées obsolètes sorties des vecteurs White Pages (section 17).
+Four items: dynamic routes (sections 1 to 15), White Pages
+sessions closed when idle (section 16), obsolete deleted records
+left out of the White Pages vectors (section 17) and the QSl
+command of the node (section 18).
+Quatre chantiers : les routes dynamiques (sections 1 à 15), les
+sessions White Pages fermées au repos (section 16), les fiches
+supprimées obsolètes sorties des vecteurs White Pages (section 17)
+et la commande QSl du nœud (section 18).
 
 English text first, French text below. Both say the same thing.
 Le texte anglais vient d'abord, le texte français ensuite. Les deux
@@ -357,7 +359,8 @@ configuration keywords: it justifies FPAC 4.2. Proposed order:
 
 1. release the stable 4.1.6 with the fixes of rc7;
 2. open 4.2-rc1 with `fpacrtd` and `WpIdle` (see 16), both
-   inactive by default, and the change to the vectors (see 17).
+   inactive by default, the change to the vectors (see 17) and the
+   `QSl` command (see 18).
 
 The code under test is public: branch `fpac-4.2` of
 <https://github.com/f6bvp/fpac>. It is experimental and not a
@@ -466,6 +469,51 @@ becomes obsolete in turn.
 Until then: use the same `wpmaint` delays on every node of a
 network. The difference is harmless - three vector rounds an hour
 at most since 4.1.6-rc7 - but it fills the log.
+
+## 18. Fourth item: the QSl command of the node
+
+Asked for on 2026-10-13: a QSL card confirming a connection to the
+node, in the manner of the card sent after a radio contact.
+
+A user types `QSl` (`QS` is enough). The node shows the card as
+text in the session: the heading "FPAC node <node> confirming
+connection with <user>", the callsign of the user, the date and time
+in UTC, the time the session began, then what the `Status` command
+shows down to the FPAC version.
+
+A session only carries text, so the image of the card cannot go
+through it. Decided (F6BVP, 2026-10-13): the node makes the image
+and gives a link to download it with a web browser; no e-mail. The
+image is one JPEG file, the picture of the node above (front side)
+and the text below (back side).
+
+This needs a web server on the node, so it is optional:
+
+| Keyword    | Value              | Effect                         |
+|------------|--------------------|--------------------------------|
+| `QslDir`   | directory          | where the cards are written    |
+| `QslUrl`   | web address        | the same directory on the web  |
+| `QslImage` | file               | picture of the front side      |
+| `QslKeep`  | days, 30 by default| how long a card is kept        |
+
+They are written in `fpac.conf`, or in a file `fpacqsl.conf` next to
+it. Without `QslDir` and `QslUrl` the node gives the text card only.
+The front picture is by default the file `QSL_fpac.jpg` placed next
+to `fpac.conf` by the sysop; without it the card has its text side
+only.
+
+The image is drawn by a separate program, `fpacqsl`, written in
+Python: the node itself gains no dependency. It needs the
+`python3-pil` package.
+
+Limits: the cards older than `QslKeep` days are erased; a user who
+asks again within 10 minutes is given the card already made; no
+image is made while the directory holds 500 cards. Each request is
+written in `fpac/qsl.log`.
+
+State on 2026-10-13: coded, and on trial on one node, which serves
+the cards under <http://f6bvp.org/qsl/>. The user guide is the file
+`doc/qsl.txt` of the sources.
 
 ---
 
@@ -822,7 +870,8 @@ mots-clés de configuration : elle justifie FPAC 4.2. Ordre proposé :
 
 1. sortir la 4.1.6 stable avec les correctifs de la rc7 ;
 2. ouvrir la 4.2-rc1 avec `fpacrtd` et `WpIdle` (voir 16), tous
-   deux inactifs par défaut, et le changement des vecteurs (voir 17).
+   deux inactifs par défaut, le changement des vecteurs (voir 17) et
+   la commande `QSl` (voir 18).
 
 Le code à l'essai est public : branche `fpac-4.2` de
 <https://github.com/f6bvp/fpac>. Il est expérimental, ce n'est pas
@@ -934,3 +983,49 @@ jusqu'à ce qu'elle devienne obsolète à son tour.
 D'ici là : régler les mêmes délais de `wpmaint` sur tous les nœuds
 d'un réseau. L'écart est sans gravité - trois tours de vecteurs par
 heure au plus depuis la 4.1.6-rc7 - mais il remplit le journal.
+
+## 18. Quatrième chantier : la commande QSl du nœud
+
+Demandée le 13/10/2026 : une carte QSL qui confirme une connexion au
+nœud, à la manière de la carte envoyée après un contact radio.
+
+Un utilisateur tape `QSl` (`QS` suffit). Le nœud affiche la carte en
+texte dans la session : le titre « FPAC node <nœud> confirming
+connection with <utilisateur> », l'indicatif de l'utilisateur, la
+date et l'heure en UTC, l'heure de début de la session, puis ce que
+montre la commande `Status` jusqu'à la version de FPAC.
+
+Une session ne transporte que du texte : l'image de la carte ne peut
+pas y passer. Décidé (F6BVP, 13/10/2026) : le nœud fabrique l'image
+et donne un lien pour la télécharger avec un navigateur ; pas de
+courriel. L'image est un seul fichier JPEG, l'image du nœud
+au-dessus (recto) et le texte en dessous (verso).
+
+Il faut pour cela un serveur web sur le nœud ; c'est donc
+facultatif :
+
+| Mot-clé    | Valeur              | Effet                          |
+|------------|---------------------|--------------------------------|
+| `QslDir`   | dossier             | où les cartes sont écrites     |
+| `QslUrl`   | adresse web         | le même dossier vu du web      |
+| `QslImage` | fichier             | image du recto                 |
+| `QslKeep`  | jours, 30 par défaut| durée de conservation          |
+
+Ils s'écrivent dans `fpac.conf`, ou dans un fichier `fpacqsl.conf`
+placé à côté. Sans `QslDir` et `QslUrl`, le nœud ne donne que la
+carte en texte. L'image du recto est par défaut le fichier
+`QSL_fpac.jpg` déposé par le sysop à côté de `fpac.conf` ; sans lui
+la carte n'a que sa face de texte.
+
+L'image est dessinée par un programme à part, `fpacqsl`, écrit en
+Python : le nœud lui-même ne gagne aucune dépendance. Il lui faut le
+paquet `python3-pil`.
+
+Limites : les cartes de plus de `QslKeep` jours sont effacées ; un
+utilisateur qui redemande dans les 10 minutes reçoit la carte déjà
+fabriquée ; aucune image n'est fabriquée tant que le dossier contient
+500 cartes. Chaque demande est inscrite dans `fpac/qsl.log`.
+
+État au 13/10/2026 : codé, et à l'essai sur un nœud, qui sert les
+cartes sous <http://f6bvp.org/qsl/>. Le mode d'emploi est le fichier
+`doc/qsl.txt` des sources.
