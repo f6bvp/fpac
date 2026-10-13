@@ -90,6 +90,7 @@ struct rt_dest {
 	char	addr[11];	/* 10 digits, padded with zeros */
 	int	mask;		/* 10 or 4 */
 	int	own;		/* This node is the origin */
+	int	exit_open;	/* Own DNIC: exit link open at the last check, -1 = not checked yet */
 	int	manual;		/* Same address and mask in fpac.routes */
 	int	cost[RT_MAX_NEIGH];	/* Our cost through each neighbour, 0 = none */
 	int	missed[RT_MAX_NEIGH];
@@ -326,7 +327,10 @@ static int config_load(void)
 			continue;
 		}
 		if ((d = dest_find(rt_origin[i], 4, 1)) != NULL)
+		{
 			d->own = 1;
+			d->exit_open = -1;
+		}
 	}
 	return 0;
 }
@@ -378,6 +382,42 @@ static int kernel_next_hop(const char *addr, int mask, char *call, size_t len)
 	free_proc_rs_nodes(nodes);
 	free_proc_rs_neigh(list);
 	return found;
+}
+
+/*
+ * Does the kernel route to addr/mask have a restarted ("open") neighbour
+ * other than this one? The kernel lets a call in transit leave only through
+ * an open neighbour (a closed one is tried for a call of this node only), so
+ * a DNIC whose exit link is closed leads nowhere for the other nodes.
+ * except may be NULL.
+ */
+static int kernel_exit_open(const char *addr, int mask, const char *except)
+{
+	struct proc_rs_nodes *nodes, *pn;
+	struct proc_rs_neigh *list, *pv;
+	int open = 0;
+
+	nodes = read_proc_rs_nodes();
+	list = read_proc_rs_neigh();
+	for (pn = nodes; pn != NULL && !open; pn = pn->next)
+	{
+		if (pn->mask != mask || strncmp(pn->address, addr, mask) != 0)
+			continue;
+		for (pv = list; pv != NULL && !open; pv = pv->next)
+		{
+			unsigned int a = (unsigned int)pv->addr;
+
+			if ((pn->n < 1 || a != pn->neigh1) && (pn->n < 2 || a != pn->neigh2)
+			    && (pn->n < 3 || a != pn->neigh3))
+				continue;
+			if (except && strcasecmp(pv->call, except) == 0)
+				continue;
+			open = (strcmp(pv->restart, "yes") == 0);
+		}
+	}
+	free_proc_rs_nodes(nodes);
+	free_proc_rs_neigh(list);
+	return open;
 }
 
 static int kernel_route(int add, const char *addr, int mask, const char *call, const char *dev)
@@ -615,6 +655,12 @@ static void neigh_announce(struct rt_neigh *v, int full)
 		if (cost >= 0 && (d->manual || (d->own && d->mask == 4))
 		    && kernel_next_hop(d->addr, d->mask, hop, sizeof(hop))
 		    && strcasecmp(hop, v->call) == 0)
+			cost = -1;
+		/* A DNIC this node is the exit of is announced only while its
+		 * exit link is open, and never on the strength of the link with
+		 * the neighbour it is announced to. */
+		if (cost >= 0 && d->own && d->mask == 4
+		    && !kernel_exit_open(d->addr, d->mask, v->call))
 			cost = -1;
 
 		if (cost >= 0)
@@ -915,6 +961,27 @@ static void timers(void)
 			}
 		}
 		table_update();
+
+		/* The exit link of a DNIC this node is the origin of opened or
+		 * closed: announce or withdraw the DNIC without waiting for the
+		 * next full table. */
+		for (i = 0; i < nb_dest; i++)
+		{
+			int open;
+
+			if (!dest[i].own || dest[i].mask != 4)
+				continue;
+			open = kernel_exit_open(dest[i].addr, dest[i].mask, NULL);
+			if (open == dest[i].exit_open)
+				continue;
+			rt_log(LOG_INFO, "exit link of %.*s/%d %s: DNIC %s", dest[i].mask, dest[i].addr,
+			       dest[i].mask, open ? "open" : "closed",
+			       !rt_announce ? "not announced (RouteAnnounce = no)"
+			       : open ? "announced" : "withdrawn");
+			dest[i].exit_open = open;
+			if (trigger_date == 0)
+				trigger_date = now + RT_TRIGGER_DELAY;
+		}
 	}
 
 	if (trigger_date && now >= trigger_date)
@@ -999,7 +1066,11 @@ static void show_config(void)
 		rt_log(LOG_INFO, "neighbour %-9s %s%s", neigh[i].call, neigh[i].addr,
 		       neigh[i].excluded ? " (not taking part)" : " (Route = yes)");
 	for (i = 0; i < nb_dest; i++)
-		if (dest[i].own)
+		if (dest[i].own && dest[i].mask == 4)
+			rt_log(LOG_INFO, "origin of %.*s/%d, exit link %s", dest[i].mask, dest[i].addr,
+			       dest[i].mask,
+			       kernel_exit_open(dest[i].addr, dest[i].mask, NULL) ? "open" : "closed");
+		else if (dest[i].own)
 			rt_log(LOG_INFO, "origin of %.*s/%d", dest[i].mask, dest[i].addr, dest[i].mask);
 }
 

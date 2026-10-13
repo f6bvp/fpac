@@ -1,5 +1,15 @@
 fpac (4.2-rc1)
 
+	* fpacrtd: a DNIC declared with RouteOrigin is announced only while
+	  its exit link is open, that is while a neighbour of its route in
+	  fpac.routes is restarted in the kernel (new kernel_exit_open()).
+	  The kernel lets a call in transit leave only through an open
+	  neighbour, so a DNIC announced over a closed exit led nowhere on
+	  the nodes that had learned it. The state is checked every minute;
+	  the DNIC is withdrawn when the link closes and announced again
+	  when it reopens, with a line in the log. The link with the
+	  neighbour the announcement goes to does not count. "fpacrtd -t"
+	  shows the state of each exit link.
 	* fpacrtd: new daemon, dynamic ROSE routes (route/fpacrtd.c). Each
 	  node announces to its direct neighbours the destinations it can
 	  reach - full node addresses and whole DNICs - learns the ones it
