@@ -1,4 +1,6 @@
 sbin_SCRIPTS = ax25parms versions myfpac.sh
+# Helper of the QSl command of fpacnode (Python, needs python3-pil)
+dist_sbin_SCRIPTS = fpacqsl
 
 fpacdir = $(AX25_LOCALSTATEDIR)fpac
 fpac_DATA = loggedin

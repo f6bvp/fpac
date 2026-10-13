@@ -182,6 +182,7 @@ extern void logout(char *reason);
 extern int do_alias(int argc, char **argv);
 extern int do_application(int argc, char **argv);
 extern int do_lang(int argc, char **argv);
+extern int do_qsl(int argc, char **argv);
 extern void lang_init(void);
 extern const char *T(const char *en);
 extern int UserLang;

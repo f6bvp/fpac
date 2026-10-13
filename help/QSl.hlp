@@ -1,0 +1,9 @@
+
+USAGE
+        QSl
+
+DESCRIPTION
+        Shows a QSL card confirming your connection to this node: your
+        callsign, the date and time (UTC) and the identity of the node.
+        When the sysop has set it up, the card is also made as an image
+        and the node gives the link to download it with a web browser.

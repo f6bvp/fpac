@@ -1,0 +1,131 @@
+#!/usr/bin/env python3
+# fpacqsl -- draws the QSL card of the QSl command of fpacnode as one JPEG:
+# the picture of the node on top (front side), the text below (back side).
+#
+#   fpacqsl TEXT_FILE FRONT_IMAGE OUTPUT.jpg
+#
+# TEXT_FILE: first line = heading, then the lines of the card, as fpacnode
+# shows them in the session. FRONT_IMAGE may be missing: the card then has
+# its text side only. Needs the Python imaging library (python3-pil).
+#
+# F6BVP 2026-10-13.
+import os
+import sys
+
+try:
+    from PIL import Image, ImageDraw, ImageFont
+except ImportError:
+    sys.stderr.write("fpacqsl: python3-pil is not installed\n")
+    sys.exit(2)
+
+WIDTH = 1400            # Pixels; a QSL card is 14 x 9 cm
+HEIGHT = 900
+MARGIN = 60
+PAPER = (252, 250, 242)
+INK = (20, 30, 60)
+RULE = (150, 40, 40)
+
+FONT_DIRS = ("/usr/share/fonts/truetype/dejavu", "/usr/share/fonts/dejavu",
+             "/usr/share/fonts/TTF", "/usr/share/fonts/truetype/liberation")
+
+
+def font(names, size):
+    for d in FONT_DIRS:
+        for n in names:
+            p = os.path.join(d, n)
+            if os.path.exists(p):
+                return ImageFont.truetype(p, size)
+    return ImageFont.load_default()
+
+
+def text_width(draw, text, f):
+    box = draw.textbbox((0, 0), text, font=f)
+    return box[2] - box[0]
+
+
+def front_side(path):
+    """The picture of the node, WIDTH pixels wide, or None."""
+    try:
+        im = Image.open(path)
+        im.load()
+    except Exception:
+        return None
+    if im.mode in ("RGBA", "LA", "P"):
+        im = im.convert("RGBA")
+        bg = Image.new("RGB", im.size, (255, 255, 255))
+        bg.paste(im, mask=im.split()[3])
+        im = bg
+    else:
+        im = im.convert("RGB")
+    h = max(1, round(im.height * WIDTH / im.width))
+    return im.resize((WIDTH, h), Image.LANCZOS)
+
+
+def back_side(heading, lines, height):
+    im = Image.new("RGB", (WIDTH, height), PAPER)
+    d = ImageDraw.Draw(im)
+    d.rectangle((18, 18, WIDTH - 19, height - 19), outline=RULE, width=4)
+    d.rectangle((28, 28, WIDTH - 29, height - 29), outline=RULE, width=1)
+
+    size = 44
+    while size > 20:
+        fh = font(("DejaVuSans-Bold.ttf", "LiberationSans-Bold.ttf"), size)
+        if text_width(d, heading, fh) <= WIDTH - 2 * MARGIN:
+            break
+        size -= 2
+    d.text((MARGIN, MARGIN - 6), "QSL", font=font(("DejaVuSans-Bold.ttf",), 64), fill=RULE)
+    y = MARGIN + 80
+    d.text((MARGIN, y), heading, font=fh, fill=INK)
+    y += size + 22
+    d.line((MARGIN, y, WIDTH - MARGIN, y), fill=RULE, width=3)
+    y += 22
+
+    longest = max([len(l) for l in lines] + [1])
+    room = height - y - MARGIN - 50
+    size = 34
+    while size > 12:
+        fm = font(("DejaVuSansMono.ttf", "LiberationMono-Regular.ttf"), size)
+        step = int(size * 1.32)
+        if (text_width(d, "M" * longest, fm) <= WIDTH - 2 * MARGIN
+                and step * len(lines) <= room):
+            break
+        size -= 1
+    for l in lines:
+        d.text((MARGIN, y), l, font=fm, fill=INK)
+        y += step
+    d.text((WIDTH - MARGIN - 110, height - MARGIN - 44), "73 !",
+           font=font(("DejaVuSans-Bold.ttf",), 40), fill=RULE)
+    return im
+
+
+def main():
+    if len(sys.argv) != 4:
+        sys.stderr.write("usage: fpacqsl TEXT_FILE FRONT_IMAGE OUTPUT.jpg\n")
+        return 2
+    with open(sys.argv[1], encoding="utf-8", errors="replace") as f:
+        text = [l.rstrip("\n") for l in f]
+    if not text:
+        return 1
+    heading, lines = text[0], text[1:]
+    while lines and not lines[-1].strip():
+        lines.pop()
+
+    front = front_side(sys.argv[2])
+    back = back_side(heading, lines, front.height if front and front.height >= 700 else HEIGHT)
+    if front:
+        card = Image.new("RGB", (WIDTH, front.height + 12 + back.height), (255, 255, 255))
+        card.paste(front, (0, 0))
+        card.paste(back, (0, front.height + 12))
+    else:
+        card = back
+
+    out = sys.argv[3]
+    tmp = out + ".tmp"
+    card.save(tmp, "JPEG", quality=88, optimize=True)
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, out)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

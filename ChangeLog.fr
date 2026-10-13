@@ -3,6 +3,26 @@ Les noms de fichiers, de fonctions et de variables sont conservés tels quels.
 
 fpac (4.2-rc1)
 
+	* fpacnode : nouvelle commande QSl (QS suffit), une carte QSL qui
+	  confirme la connexion de l'utilisateur au nœud (node/qsl.c). La
+	  carte est affichée en texte dans la session : indicatif de
+	  l'utilisateur, date et heure UTC, puis ce que montre Status
+	  jusqu'à la version de FPAC. Si QslDir et QslUrl sont réglés, le
+	  nouveau programme fpacqsl (Python, python3-pil) la dessine aussi
+	  en un seul JPEG - l'image du nœud au-dessus, le texte en dessous
+	  - dans un dossier servi par un serveur web, et l'utilisateur
+	  reçoit le lien. Les mots-clés QslDir, QslUrl, QslImage et QslKeep
+	  sont lus par fpacnode lui-même dans fpac.conf, puis dans
+	  fpacqsl.conf ; l'image du recto est QSL_fpac.jpg par défaut. Les
+	  cartes de plus de QslKeep jours (30) sont effacées, un
+	  utilisateur qui redemande dans les 10 minutes reçoit la même
+	  carte, et aucune image n'est fabriquée au-delà de 500 cartes.
+	  Les demandes sont inscrites dans fpac/qsl.log. ax25d lance
+	  fpacnode avec SIGCHLD ignoré : il est remis à sa valeur par
+	  défaut pendant que fpacqsl tourne, sinon waitpid() ne voyait
+	  jamais sa fin.
+	* Nouveau fichier d'aide QSl.hlp et mode d'emploi doc/qsl.txt
+	  (anglais et français).
 	* fpacwpd : les fiches supprimées plus anciennes que WP_OBSOLETE
 	  (14 jours) sont sorties des vecteurs (db_compute_vector(),
 	  wp/db.c). Elles ne sont ni envoyées ni acceptées entre nœuds,

@@ -18,6 +18,7 @@ doc_DATA = Alias.hlp \
 	Info.hlp \
 	NEtrom.hlp \
 	Nodes.hlp \
+	QSl.hlp \
 	Quit.hlp \
 	SYSop.hlp \
 	TRace.hlp \

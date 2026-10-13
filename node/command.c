@@ -107,6 +107,7 @@ add_internal_cmd(&Nodecmds, "LAng", 2, 1, do_lang);
 	add_internal_cmd(&Nodecmds, "Nodes", 1, 1, do_rose);
 	add_internal_cmd(&Nodecmds, "PIng", 2, 1, do_ping);
 	add_internal_cmd(&Nodecmds, "Ports", 1, 1, do_ports);
+	add_internal_cmd(&Nodecmds, "QSl", 2, 1, do_qsl);
 	add_internal_cmd(&Nodecmds, "Quit", 1, 1, do_bye);
 	add_internal_cmd(&Nodecmds, "Routes", 1, 1, do_routes);
 	add_internal_cmd(&Nodecmds, "Status", 1, 1, do_status);

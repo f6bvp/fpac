@@ -1,5 +1,22 @@
 fpac (4.2-rc1)
 
+	* fpacnode: new QSl command (QS is enough), a QSL card confirming
+	  the connection of the user to the node (node/qsl.c). The card is
+	  shown as text in the session: callsign of the user, date and
+	  time in UTC, then what Status shows down to the FPAC version.
+	  With QslDir and QslUrl set, the new helper fpacqsl (Python,
+	  python3-pil) also draws it as one JPEG - the picture of the node
+	  above, the text below - in a directory served by a web server,
+	  and the user is given the link. The keywords QslDir, QslUrl,
+	  QslImage and QslKeep are read by fpacnode itself in fpac.conf,
+	  then in fpacqsl.conf; the front picture is QSL_fpac.jpg by
+	  default. Cards older than QslKeep days (30) are erased, a user
+	  asking again within 10 minutes gets the same card, and no image
+	  is made beyond 500 cards. Requests are logged in fpac/qsl.log.
+	  ax25d starts fpacnode with SIGCHLD ignored: it is set back to
+	  its default while the helper runs, or waitpid() never saw it end.
+	* New help file QSl.hlp and user guide doc/qsl.txt (English and
+	  French).
 	* fpacwpd: the deleted records older than WP_OBSOLETE (14 days) are
 	  left out of the vectors (db_compute_vector(), wp/db.c). They are
 	  neither sent nor accepted between nodes, yet they counted in the
