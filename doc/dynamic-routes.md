@@ -3,14 +3,16 @@
 Specification, working draft of 2026-10-13 — F6BVP.
 Spécification, version de travail du 13/10/2026 — F6BVP.
 
-Four items: dynamic routes (sections 1 to 15), White Pages
+Five items: dynamic routes (sections 1 to 15), White Pages
 sessions closed when idle (section 16), obsolete deleted records
-left out of the White Pages vectors (section 17) and the QSl
-command of the node (section 18).
-Quatre chantiers : les routes dynamiques (sections 1 à 15), les
+left out of the White Pages vectors (section 17), the QSl command
+of the node (section 18) and the routes to the nodes drawn from the
+White Pages (section 19).
+Cinq chantiers : les routes dynamiques (sections 1 à 15), les
 sessions White Pages fermées au repos (section 16), les fiches
-supprimées obsolètes sorties des vecteurs White Pages (section 17)
-et la commande QSl du nœud (section 18).
+supprimées obsolètes sorties des vecteurs White Pages (section 17),
+la commande QSl du nœud (section 18) et les routes vers les nœuds
+tirées des White Pages (section 19).
 
 English text first, French text below. Both say the same thing.
 Le texte anglais vient d'abord, le texte français ensuite. Les deux
@@ -514,6 +516,66 @@ written in `fpac/qsl.log`.
 State on 2026-10-13: coded, and on trial on one node, which serves
 the cards under <http://f6bvp.org/qsl/>. The user guide is the file
 `doc/qsl.txt` of the sources.
+
+## 19. Fifth item: routes to the nodes drawn from the White Pages
+
+Asked for on 2026-10-15, after a call from f6bvp-8 to F5ZHO-8
+(2080 817501) that failed while the same call from F3KT went
+through. F5ZHO-8 is in the White Pages of every node, but only F3KT,
+its direct neighbour, has a route to it. f6bvp-8 had none: the
+`2080` route towards F3KT had been removed because of a loop, and
+the exchange of section 5 cannot help, since neither F3KT nor
+F5ZHO runs `fpacrtd`. The aim: the White Pages alone should be
+enough to reach a node, without a line in `fpac.routes`.
+
+What a record lacks: a node record gives the address of the node,
+not the neighbour to go through. But the records travel along the
+White Pages sessions, which are ROSE circuits between neighbours:
+the record of F5ZHO-8 reached f6bvp-8 from F3KT, which had it from
+F5ZHO. Noting that is enough.
+
+1. **Provenance (`fpacwpd`).** When a node record is taken from an
+   adjacent White Pages server (a newer version, `db_set()`
+   applied), `fpacwpd` writes the ROSE address of that adjacent in
+   the record, in its local part (`free[]`), like `del_date`. A
+   record entered on the node itself (local client, `wpedit`)
+   carries no provenance. Nothing changes on the air: the field is
+   never sent and is not part of the vector checksum.
+2. **Route (`fpacrtd`).** Every minute `fpacrtd` reads the White
+   Pages file. For each node record not deleted, dated less than 30
+   days ago, whose provenance is a neighbour of `fpac.nodes` open in
+   `rose_neigh`, it installs the route `address/10` through that
+   neighbour, unless one of these exists: an own address of the
+   node, the same route in `fpac.routes`, a route learned by the
+   exchange of section 5. These routes come last. They are removed
+   when the record goes, is deleted, changes provenance, or when the
+   neighbour closes.
+3. **No loop.** For a given version of a record, every node took it
+   from a server that had it before itself. Following the
+   provenances therefore always leads back towards the node that
+   issued the record, without going round. A neighbour that runs
+   4.1 still needs its own route onward: here F3KT, whose direct
+   neighbour is F5ZHO-9. Should a 4.1 neighbour send the call back,
+   the kernel clears it as a loop (cause 0D, diagnostic 120): no
+   storm.
+4. **Limits.** Node addresses only (mask 10); the DNICs remain the
+   business of `RouteOrigin`. These routes are not announced to the
+   neighbours: each node draws its own from its White Pages. A
+   record that came from a White Pages server which is not a direct
+   neighbour gives no route. The provenance is only known for the
+   records received after the new `fpacwpd` starts: a node record
+   is dated again when its node restarts, or every 7 days.
+
+One keyword in `fpac.conf`, inactive by default:
+
+| Keyword    | Values      | Effect                            |
+|------------|-------------|-----------------------------------|
+| `RouteWp`  | `no`, `yes` | routes drawn from the White Pages |
+
+`RouteWp = yes` alone is enough for `fpacrtd` to run, without
+`RouteAnnounce` or `RouteLearn`.
+
+Decided (F6BVP, 2026-10-15). First trial on f6bvp-8.
 
 ---
 
@@ -1029,3 +1091,66 @@ fabriquée ; aucune image n'est fabriquée tant que le dossier contient
 État au 13/10/2026 : codé, et à l'essai sur un nœud, qui sert les
 cartes sous <http://f6bvp.org/qsl/>. Le mode d'emploi est le fichier
 `doc/qsl.txt` des sources.
+
+## 19. Cinquième chantier : routes vers les nœuds tirées des White Pages
+
+Demandé le 15/10/2026, après un appel de f6bvp-8 vers F5ZHO-8
+(2080 817501) qui échouait alors que le même appel depuis F3KT
+aboutissait. F5ZHO-8 est dans les White Pages de tous les nœuds,
+mais seul F3KT, son voisin direct, a une route vers lui. f6bvp-8
+n'en avait aucune : la route `2080` vers F3KT avait été retirée à
+cause d'une boucle, et l'échange de la section 5 n'y peut rien,
+puisque ni F3KT ni F5ZHO ne font tourner `fpacrtd`. Le but : que les
+White Pages suffisent pour joindre un nœud, sans ligne dans
+`fpac.routes`.
+
+Ce qui manque à une fiche : une fiche de nœud donne l'adresse du
+nœud, pas le voisin par lequel passer. Mais les fiches voyagent par
+les sessions White Pages, qui sont des circuits ROSE entre voisins :
+la fiche de F5ZHO-8 est arrivée à f6bvp-8 par F3KT, qui la tenait de
+F5ZHO. Il suffit de le noter.
+
+1. **Provenance (`fpacwpd`).** Quand une fiche de nœud est prise
+   d'un serveur White Pages adjacent (version plus récente,
+   `db_set()` appliqué), `fpacwpd` inscrit l'adresse ROSE de cet
+   adjacent dans la fiche, dans sa partie locale (`free[]`), comme
+   `del_date`. Une fiche saisie sur le nœud lui-même (client local,
+   `wpedit`) n'a pas de provenance. Rien ne change sur l'air : le
+   champ n'est jamais transmis et n'entre pas dans la somme de
+   contrôle des vecteurs.
+2. **Route (`fpacrtd`).** Chaque minute, `fpacrtd` lit le fichier
+   des White Pages. Pour chaque fiche de nœud non supprimée, datée
+   de moins de 30 jours, dont la provenance est un voisin de
+   `fpac.nodes` ouvert dans `rose_neigh`, il installe la route
+   `adresse/10` par ce voisin, sauf s'il existe déjà : une adresse
+   propre du nœud, la même route dans `fpac.routes`, une route
+   apprise par l'échange de la section 5. Ces routes passent en
+   dernier. Elles sont retirées quand la fiche disparaît, est
+   supprimée, change de provenance, ou quand le voisin se ferme.
+3. **Pas de boucle.** Pour une même version d'une fiche, chaque nœud
+   l'a prise d'un serveur qui l'avait avant lui. En suivant les
+   provenances, on remonte donc toujours vers le nœud qui a émis la
+   fiche, sans tourner en rond. Un voisin resté en 4.1 doit tout de
+   même avoir sa propre route vers la suite : ici F3KT, dont F5ZHO-9
+   est le voisin direct. Si un voisin en 4.1 renvoyait l'appel, le
+   noyau le refuserait comme boucle (cause 0D, diagnostic 120) : pas
+   de tempête.
+4. **Limites.** Adresses de nœuds seulement (masque 10) ; les DNIC
+   restent l'affaire de `RouteOrigin`. Ces routes ne sont pas
+   annoncées aux voisins : chaque nœud tire les siennes de ses
+   White Pages. Une fiche venue d'un serveur White Pages qui n'est
+   pas un voisin direct ne donne pas de route. La provenance n'est
+   connue que pour les fiches reçues après le démarrage du nouveau
+   `fpacwpd` : une fiche de nœud est redatée quand son nœud
+   redémarre, ou tous les 7 jours.
+
+Un mot-clé dans `fpac.conf`, inactif par défaut :
+
+| Mot-clé    | Valeurs     | Effet                             |
+|------------|-------------|-----------------------------------|
+| `RouteWp`  | `no`, `yes` | routes tirées des White Pages     |
+
+`RouteWp = yes` suffit à faire tourner `fpacrtd`, sans
+`RouteAnnounce` ni `RouteLearn`.
+
+Décidé (F6BVP, 15/10/2026). Premier essai sur f6bvp-8.
