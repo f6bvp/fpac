@@ -1263,3 +1263,29 @@ void wp_set_del_date(wp_t *wp, time_t t)
 	wp->del_date[2] = (unsigned char)((v >> 16) & 0xff);
 	wp->del_date[3] = (unsigned char)((v >> 24) & 0xff);
 }
+
+/* F6BVP 2026-10-15: provenance of a record, for the routes drawn from
+ * the White Pages (fpacrtd, RouteWp). Local only, like del_date: libwp
+ * packs wp_t field by field on the wire and never sends free[], and the
+ * vector checksum covers date and address only. free[0] marks the
+ * field as set, free[1..5] hold the ROSE address of the adjacent. */
+#define WP_ORIGIN_MARK	'P'
+
+void wp_set_origin(wp_t *wp, const rose_address *addr)
+{
+	if (addr == NULL)
+	{
+		memset(wp->free, 0, 1 + sizeof(addr->rose_addr));
+		return;
+	}
+	wp->free[0] = WP_ORIGIN_MARK;
+	memcpy(&wp->free[1], addr->rose_addr, sizeof(addr->rose_addr));
+}
+
+int wp_get_origin(const wp_t *wp, rose_address *addr)
+{
+	if (wp->free[0] != WP_ORIGIN_MARK)
+		return 0;
+	memcpy(addr->rose_addr, &wp->free[1], sizeof(addr->rose_addr));
+	return 1;
+}

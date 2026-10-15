@@ -54,6 +54,9 @@ typedef struct {
 	 * depend on the local time_t width, which differs across the 32 and
 	 * 64-bit nodes on this network. */
 	unsigned char del_date[4];
+	/* F6BVP 2026-10-15: free[0..5] hold the provenance of the record --
+	 * LOCAL ONLY like del_date, never sent and not in the vector
+	 * checksum: see wp_get_origin() in libwp.c. */
 	char free[19];		/* For futur extension */
 } wp_t;
 
@@ -165,5 +168,10 @@ void wp_free_list(wp_t **wp);
  * above. wp_set_del_date(wp, 0) clears it back to "unknown". */
 time_t wp_get_del_date(const wp_t *wp);
 void wp_set_del_date(wp_t *wp, time_t t);
+/* Provenance: ROSE address of the adjacent White Pages server the record
+ * was taken from. wp_set_origin(wp, NULL) clears it. wp_get_origin()
+ * returns 1 and fills addr when it is known, 0 otherwise. */
+void wp_set_origin(wp_t *wp, const rose_address *addr);
+int wp_get_origin(const wp_t *wp, rose_address *addr);
 
 #endif /* __WP_H */

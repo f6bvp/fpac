@@ -39,6 +39,7 @@
 #include "config.h"
 #include "fpac.h"
 #include "pathnames.h"
+#include "wp.h"
 
 #define RT_VERSION		1
 /* ROSE service callsign. Not "ROUTE": fpacroute (the traceroute
@@ -52,6 +53,8 @@
 #define RT_MISSED_MAX		3		/* Tables without the route */
 #define RT_TRIGGER_DELAY	10		/* Groups triggered updates */
 #define RT_CHECK_PERIOD		60		/* Neighbours state check */
+
+#define RT_WP_MAX_AGE		(30 * 24 * 3600)	/* Node records older are not used */
 
 #define RT_MAX_NEIGH		32
 #define RT_MAX_DEST		512
@@ -96,6 +99,8 @@ struct rt_dest {
 	int	missed[RT_MAX_NEIGH];
 	int	seen[RT_MAX_NEIGH];
 	int	sent[RT_MAX_NEIGH];	/* Cost last announced + 1, 0 = none */
+	int	wp;		/* Neighbour the White Pages record came from, -1 = none */
+	int	wp_seen;	/* Record found by the last wp_scan() */
 	int	installed;	/* Neighbour index of the kernel route, -1 = none */
 	char	inst_call[10];
 	char	inst_dev[16];
@@ -109,6 +114,7 @@ static int nb_dest;
 
 static int rt_announce;			/* RouteAnnounce */
 static int rt_learn = LEARN_NO;		/* RouteLearn */
+static int rt_wp;			/* RouteWp */
 static char rt_origin[32][5];		/* RouteOrigin */
 static int nb_origin;
 
@@ -212,6 +218,8 @@ static void conf_scan(const char *file)
 			else
 				rt_learn = LEARN_NO;
 		}
+		else if (strcasecmp(key, "routewp") == 0)
+			rt_wp = conf_yes(val);
 		else if (strcasecmp(key, "routeorigin") == 0)
 		{
 			if (strlen(val) == 4 && strspn(val, "0123456789") == 4 && nb_origin < 32)
@@ -259,6 +267,7 @@ static struct rt_dest *dest_find(const char *addr, int mask, int create)
 	snprintf(dest[nb_dest].addr, sizeof(dest[0].addr), "%.*s%.*s",
 		 mask, addr, 10 - mask, "0000000000");
 	dest[nb_dest].mask = mask;
+	dest[nb_dest].wp = -1;
 	dest[nb_dest].installed = -1;
 	dest[nb_dest].manual = is_manual(addr, mask);
 	return &dest[nb_dest++];
@@ -536,6 +545,11 @@ static void dest_update(struct rt_dest *d)
 			want = best;
 	}
 
+	/* Last: the neighbour the White Pages record of the node came from */
+	if (want < 0 && rt_wp && !d->own && !d->manual && d->mask == 10 && d->wp >= 0
+	    && kernel_neigh_open(neigh[d->wp].call, dev, sizeof(dev)))
+		want = d->wp;
+
 	if (want == d->installed)
 		return;
 
@@ -551,6 +565,69 @@ static void dest_update(struct rt_dest *d)
 	state_save();
 	if (trigger_date == 0)
 		trigger_date = time(NULL) + RT_TRIGGER_DELAY;
+}
+
+/*
+ * Routes drawn from the White Pages (RouteWp, specification section 19).
+ * fpacwpd notes in each node record the adjacent server it took the record
+ * from (wp_get_origin()); that neighbour leads to the node, since it had
+ * the record before us. The file is read directly, as wpserv does: the
+ * provenance is in the local part of the record, which the White Pages
+ * protocol does not carry.
+ */
+static void wp_scan(void)
+{
+	FILE *fp;
+	wp_header wph;
+	wp_t wp;
+	rose_address origin;
+	struct rt_dest *d;
+	char addr[11], from[11];
+	time_t now = time(NULL);
+	int i, n, found;
+
+	if ((fp = fopen(FPACWP, "r")) == NULL)
+		return;		/* keep what we have: fpacwpd may be rewriting it */
+	if (fread(&wph, sizeof(wph), 1, fp) != 1
+	    || strncmp(wph.signature, FILE_SIGNATURE, sizeof(wph.signature)) != 0)
+	{
+		fclose(fp);
+		return;
+	}
+	for (i = 0; i < nb_dest; i++)
+		dest[i].wp_seen = 0;
+	for (n = 0; n < wph.nb_record && fread(&wp, sizeof(wp), 1, fp) == 1; n++)
+	{
+		if (!wp.is_node || wp.is_deleted || now - wp.date > RT_WP_MAX_AGE
+		    || !wp_get_origin(&wp, &origin))
+			continue;
+		snprintf(addr, sizeof(addr), "%s", rose_ntoa(&wp.address.srose_addr));
+		snprintf(from, sizeof(from), "%s", rose_ntoa(&origin));
+		if (strlen(addr) != 10 || strspn(addr, "0123456789") != 10)
+			continue;
+		for (found = -1, i = 0; i < nb_neigh; i++)
+			if (strcmp(neigh[i].addr, from) == 0)
+				found = i;
+		if (found < 0)
+			continue;	/* came from a server that is not a neighbour */
+		if ((d = dest_find(addr, 10, 1)) == NULL || d->own)
+			continue;
+		d->wp_seen = 1;
+		if (d->wp != found)
+		{
+			rt_log(LOG_INFO, "White Pages: %s %s/10 came from %s",
+			       ax25_ntoa(&wp.address.srose_call), addr, neigh[found].call);
+			d->wp = found;
+		}
+	}
+	fclose(fp);
+
+	for (i = 0; i < nb_dest; i++)
+		if (dest[i].wp >= 0 && !dest[i].wp_seen)
+		{
+			rt_log(LOG_INFO, "White Pages: %.10s/10 no longer usable", dest[i].addr);
+			dest[i].wp = -1;
+		}
 }
 
 static void table_update(void)
@@ -960,6 +1037,8 @@ static void timers(void)
 				dest[i].installed = -1;
 			}
 		}
+		if (rt_wp)
+			wp_scan();
 		table_update();
 
 		/* The exit link of a DNIC this node is the origin of opened or
@@ -1058,10 +1137,10 @@ static void show_config(void)
 {
 	int i;
 
-	rt_log(LOG_INFO, "node %s %s: announce %s, learn %s%s", cfg.callsign, cfg.fulladdr,
-	       rt_announce ? "yes" : "no",
+	rt_log(LOG_INFO, "node %s %s: announce %s, learn %s, White Pages %s%s", cfg.callsign,
+	       cfg.fulladdr, rt_announce ? "yes" : "no",
 	       rt_learn == LEARN_ALL ? "all" : rt_learn == LEARN_NODES ? "nodes" : "no",
-	       dry_run ? ", dry run" : "");
+	       rt_wp ? "yes" : "no", dry_run ? ", dry run" : "");
 	for (i = 0; i < nb_neigh; i++)
 		rt_log(LOG_INFO, "neighbour %-9s %s%s", neigh[i].call, neigh[i].addr,
 		       neigh[i].excluded ? " (not taking part)" : " (Route = yes)");
@@ -1161,9 +1240,9 @@ int main(int argc, char **argv)
 	if (check_only)
 		return 0;
 
-	if (!rt_announce && rt_learn == LEARN_NO)
+	if (!rt_announce && rt_learn == LEARN_NO && !rt_wp)
 	{
-		rt_log(LOG_INFO, "neither RouteAnnounce nor RouteLearn is set in fpac.conf: nothing to do");
+		rt_log(LOG_INFO, "none of RouteAnnounce, RouteLearn, RouteWp is set in fpac.conf: nothing to do");
 		return 0;
 	}
 

@@ -379,10 +379,23 @@ static void rose_read_handler(int s)
 		/* F6BVP 2026-10-08: tested on this client only. The former global
 		 * flag, set by the first WPEDIT connection and never cleared, gave
 		 * force = 1 to every client until fpacwpd was restarted. */
-		if (strncmp(ax25_ntoa(&context[s]->address.srose_call), "WPEDIT", 6) == 0)
+		/* F6BVP 2026-10-15: note which adjacent server the record comes
+		 * from (local part of the record, never sent); fpacrtd draws the
+		 * route to a node from it (RouteWp). A record entered here has
+		 * no provenance. */
+		if (strncmp(ax25_ntoa(&context[s]->address.srose_call), "WPEDIT", 6) == 0) {
+			wp_set_origin(&pdu.data.wp, NULL);
 			rc = db_set(&pdu.data.wp, 2);	/* sysop edit: always applied */
-		else
+		}
+		else {
+			/* Node records only: the local part takes part in the
+			 * whole-record comparisons of db_set(), so a user record
+			 * set again unchanged by a client would look modified and
+			 * be broadcast again. */
+			wp_set_origin(&pdu.data.wp, (context[s]->type != WP_USER && pdu.data.wp.is_node)
+				      ? &context[s]->address.srose_addr : NULL);
 			rc = db_set(&pdu.data.wp, context[s]->type != WP_USER);
+		}
 
 		if (rc == -2) {
 			  if (verbose) syslog(LOG_INFO, "Invalid received record %s from adjacent %s",
