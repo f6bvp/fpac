@@ -219,6 +219,36 @@ static char *wp_connect_call(wp_t *wpn, int nwp, const char *addr10)
 	return NULL;
 }
 
+/*
+ * When the WP do not know a node, its station at least is known if the
+ * address is that of an adjacent node of fpac.nodes: returns its
+ * callsign without the SSID, followed by "-?" (the SSID to connect to
+ * is unknown: fpac.nodes holds the L3 callsign of the neighbour).
+ * Returns NULL when addr10 is not the address of an adjacent node.
+ */
+static char *adjacent_station(const char *addr10)
+{
+	static char call[10];
+	node_t *n;
+	char full[11];
+	size_t len;
+
+	for (n = cfg.node; n != NULL; n = n->next)
+	{
+		/* no DNIC line in the Node block: the DNIC of this node */
+		snprintf(full, sizeof(full), "%.4s%.6s",
+			 *n->dnic ? n->dnic : cfg.dnic, n->addr);
+		if (strlen(full) != 10 || strncmp(full, addr10, 10) != 0)
+			continue;
+		len = strcspn(n->name, "-");
+		if (len == 0 || len > 6)
+			return NULL;
+		snprintf(call, sizeof(call), "%.*s-?", (int)len, n->name);
+		return call;
+	}
+	return NULL;
+}
+
 char *roseaddr(char *addr)
 {
 	static char buf[12];
@@ -2227,6 +2257,8 @@ int do_routes(int argc, char **argv)
 
 		/* Connect callsign: only an exact route designates one node */
 		ccall = (pn->mask == 10) ? wp_connect_call(wpn, nwp, pn->address) : NULL;
+		if (ccall == NULL && pn->mask == 10)
+			ccall = adjacent_station(pn->address);
 		tprintf("%s ", roseaddr(pn->address));
 		if (Colored)
 			tprintf("%s%-9s%s ", NodeColors.indicatif, ccall ? ccall : (pn->mask == 10 ? "?" : ""), ResetColor);

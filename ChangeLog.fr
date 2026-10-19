@@ -12,6 +12,12 @@ fpac (4.2-rc1)
 	  vers 2080444501 était affichée Closed alors que l'appel vers
 	  F3KT passait par la route DNIC 2080. Le voisin est trouvé par
 	  rose_predict_route(), comme pour « Routes <adresse> ».
+	* fpacnode : dans la colonne Connect de Routes, un nœud absent des
+	  White Pages est affiché par sa station suivie de « -? » (par
+	  exemple F5KTR-?) quand son adresse est celle d'un nœud voisin de
+	  fpac.nodes, au lieu d'un simple « ? ». Le SSID reste inconnu :
+	  fpac.nodes contient l'indicatif L3 du voisin, pas celui auquel
+	  un utilisateur se connecte.
 	* fpacnode : nouvelle commande QSl (QS suffit), une carte QSL qui
 	  confirme la connexion de l'utilisateur au nœud (node/qsl.c). La
 	  carte est affichée en texte dans la session : indicatif de

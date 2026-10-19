@@ -9,6 +9,12 @@ fpac (4.2-rc1)
 	  was shown Closed while the call to F3KT went through the DNIC
 	  route 2080. The neighbour is found by rose_predict_route(), as
 	  for "Routes <address>".
+	* fpacnode: in the Connect column of Routes, a node missing from
+	  the White Pages is shown as its station followed by "-?" (for
+	  example F5KTR-?) when its address is that of an adjacent node
+	  of fpac.nodes, instead of a bare "?". The SSID stays unknown:
+	  fpac.nodes holds the L3 callsign of the neighbour, not the one a
+	  user connects to.
 	* fpacnode: new QSl command (QS is enough), a QSL card confirming
 	  the connection of the user to the node (node/qsl.c). The card is
 	  shown as text in the session: callsign of the user, date and
