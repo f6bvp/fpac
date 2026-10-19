@@ -15,6 +15,17 @@ fpac (4.2-rc1)
 	  of fpac.nodes, instead of a bare "?". The SSID stays unknown:
 	  fpac.nodes holds the L3 callsign of the neighbour, not the one a
 	  user connects to.
+	* fpacnode: the Nodes command (N) tells which nodes can be called
+	  now. A node that no open neighbour leads to - no route covering
+	  its address has a restarted neighbour, the first pass of
+	  rose_get_neigh() - is shown in brackets, for example
+	  (VK7HDM-4): the call would most likely fail. With colours, the
+	  callsign is green or red on the normal background, set by the
+	  new section [noeuds] of fpacnode.colors (joignable, injoignable).
+	  The callsign field is 11 wide, so that the longest callsign in
+	  brackets keeps the columns (72 columns). From F6CNB, F6BVP-6
+	  (2090) and VK7HDM-4 (5050) came out in brackets: F6CNB has no
+	  route to these DNIC.
 	* fpacnode: new QSl command (QS is enough), a QSL card confirming
 	  the connection of the user to the node (node/qsl.c). The card is
 	  shown as text in the session: callsign of the user, date and

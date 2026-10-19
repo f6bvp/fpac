@@ -2734,6 +2734,37 @@ static int rose_sort(const void *a, const void *b)
 }
 */
 
+/*
+ * Can a call to addr10 go out now? Same first pass as rose_get_neigh()
+ * in the kernel: some route covering the address (most specific or
+ * not) has a neighbour whose link is restarted (Opened). The loopback
+ * route of this node counts as open.
+ */
+static int rose_reachable(const char *addr10, struct proc_rs_nodes *nodes,
+			  struct proc_rs_neigh *neighs)
+{
+	struct proc_rs_nodes *n;
+	struct proc_rs_neigh *ng;
+	unsigned int cand[3];
+	int ncand, i;
+
+	for (n = nodes; n != NULL; n = n->next)
+	{
+		if (n->address[0] == '*' || strncmp(n->address, addr10, n->mask) != 0)
+			continue;
+		ncand = 0;
+		if (n->neigh1) cand[ncand++] = n->neigh1;
+		if (n->neigh2) cand[ncand++] = n->neigh2;
+		if (n->neigh3) cand[ncand++] = n->neigh3;
+		for (i = 0; i < ncand; i++)
+			for (ng = neighs; ng != NULL; ng = ng->next)
+				if ((unsigned int)ng->addr == cand[i] &&
+				    strcmp(ng->restart, "yes") == 0)
+					return 1;
+	}
+	return 0;
+}
+
 int do_rose(int argc, char **argv)
 {
 /*	wp_t wpu, *wp = NULL;*/
@@ -2753,30 +2784,44 @@ int do_rose(int argc, char **argv)
 
 	if (argc == 1)
 	{
+		struct proc_rs_nodes *rnodes = read_proc_rs_nodes_ordered();
+		struct proc_rs_neigh *rneighs = read_proc_rs_neigh();
+
+		/*
+		 * A node no open neighbour leads to is shown in brackets
+		 * (and in red with colours): the call would most likely
+		 * fail. The callsign field is 11 wide so that the longest
+		 * callsign in brackets, (VK7HDM-15), keeps the columns.
+		 */
 		node_msg("FPAC Nodes - callsigns to connect to:");
 		if (Colored)
-			node_msg("%sConnect%s   %sDNIC addr%s    %sConnect%s   %sDNIC addr%s    %sConnect%s   %sDNIC addr%s",
+			node_msg("%sConnect%s     %sDNIC addr%s   %sConnect%s     %sDNIC addr%s   %sConnect%s     %sDNIC addr%s",
 					NodeColors.en_tete, ResetColor, NodeColors.en_tete, ResetColor,
 					NodeColors.en_tete, ResetColor, NodeColors.en_tete, ResetColor,
 					NodeColors.en_tete, ResetColor, NodeColors.en_tete, ResetColor);
 		else
-			tprintf ("Connect   DNIC addr    Connect   DNIC addr    Connect   DNIC addr\n");
+			tprintf ("Connect     DNIC addr   Connect     DNIC addr   Connect     DNIC addr\n");
 		if (wp_get_list(&wp, &nb, WP_NODE_FLAG, "*") != -1)
 		{
 			for (i = 0; i < nb; i++)
 			{
+				char text[14];
+				char *call = ax25_ntoa(&wp[i].address.srose_call);
+				/* routing tables unreadable: mark nothing */
+				int ok = (rnodes == NULL || rneighs == NULL) ||
+					rose_reachable(rose_ntoa(&wp[i].address.srose_addr),
+						       rnodes, rneighs);
+
+				snprintf(text, sizeof(text), ok ? "%.9s" : "(%.9s)", call);
+				tprintf("%*s", 11 - (int)strlen(text), "");
 				if (Colored)
-					tprintf("%s%9.9s%s %s %c",
-							NodeColors.indicatif,
-							ax25_ntoa(&wp[i].address.srose_call),
-							ResetColor,
-							fpac2asc(&wp[i].address.srose_addr),
-							((i + 1) % 3) ? ' ' : '\n');
+					tprintf("%s%s%s",
+						ok ? NodeColors.noeud_joignable : NodeColors.noeud_injoignable,
+						text, ResetColor);
 				else
-					tprintf("%9.9s %s %c",
-							ax25_ntoa(&wp[i].address.srose_call),
-							fpac2asc(&wp[i].address.srose_addr),
-							((i + 1) % 3) ? ' ' : '\n');
+					tprintf("%s", text);
+				tprintf(" %s%c", fpac2asc(&wp[i].address.srose_addr),
+					((i + 1) % 3) ? ' ' : '\n');
 			}
 			if ((i % 3) != 0)
 				tprintf("\n");
@@ -2784,6 +2829,10 @@ int do_rose(int argc, char **argv)
 		}
 
 		wp_free_list(&wp);
+		if (rnodes)
+			free_proc_rs_nodes(rnodes);
+		if (rneighs)
+			free_proc_rs_neigh(rneighs);
 	}
 	else if (strpbrk(argv[1], "*?&=#@"))
 	{

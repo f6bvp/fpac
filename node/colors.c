@@ -161,6 +161,10 @@ void colors_set_defaults(void)
     snprintf(NodeColors.netrom_connected,  COLOR_LEN, "%s%s", F_Black,  B_Green);
     snprintf(NodeColors.netrom_idle,       COLOR_LEN, "%s%s", F_Yellow, B_Magenta);
 
+    /* [noeuds] : fond normal */
+    snprintf(NodeColors.noeud_joignable,   COLOR_LEN, "%s", F_Green);
+    snprintf(NodeColors.noeud_injoignable, COLOR_LEN, "%s", F_Red);
+
     /* [qualite] */
     snprintf(NodeColors.qualite_bonne,     COLOR_LEN, "%s", F_Green);
     snprintf(NodeColors.qualite_moyenne,   COLOR_LEN, "%s", F_Yellow);
@@ -262,6 +266,9 @@ int read_colors(void)
         /* [netrom] */
         SET("netrom",      "connected",    netrom_connected);
         SET("netrom",      "idle",         netrom_idle);
+        /* [noeuds] */
+        SET("noeuds",      "joignable",    noeud_joignable);
+        SET("noeuds",      "injoignable",  noeud_injoignable);
         /* [qualite] */
         SET("qualite",     "bonne",        qualite_bonne);
         SET("qualite",     "moyenne",      qualite_moyenne);

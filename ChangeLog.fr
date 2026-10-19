@@ -18,6 +18,18 @@ fpac (4.2-rc1)
 	  fpac.nodes, au lieu d'un simple « ? ». Le SSID reste inconnu :
 	  fpac.nodes contient l'indicatif L3 du voisin, pas celui auquel
 	  un utilisateur se connecte.
+	* fpacnode : la commande Nodes (N) indique quels nœuds peuvent être
+	  appelés maintenant. Un nœud vers lequel aucun voisin ouvert ne
+	  mène - aucune route couvrant son adresse n'a de voisin redémarré,
+	  la première passe de rose_get_neigh() - est affiché entre
+	  parenthèses, par exemple (VK7HDM-4) : l'appel échouerait très
+	  probablement. En couleur, l'indicatif est vert ou rouge sur le
+	  fond normal, réglé par la nouvelle section [noeuds] de
+	  fpacnode.colors (joignable, injoignable). Le champ de l'indicatif
+	  fait 11 caractères, pour que le plus long indicatif entre
+	  parenthèses garde les colonnes (72 colonnes). Depuis F6CNB,
+	  F6BVP-6 (2090) et VK7HDM-4 (5050) sont sortis entre parenthèses :
+	  F6CNB n'a aucune route vers ces DNIC.
 	* fpacnode : nouvelle commande QSl (QS suffit), une carte QSL qui
 	  confirme la connexion de l'utilisateur au nœud (node/qsl.c). La
 	  carte est affichée en texte dans la session : indicatif de
