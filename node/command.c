@@ -2212,6 +2212,16 @@ int do_routes(int argc, char **argv)
 		 * adjacent nodes which were hidden before 4.1.6-rc3.
 		 */
 		{
+		/* Address to predict when every neighbour of this route is
+		 * closed: the route itself, digits beyond the mask set to 0 */
+		char paddr[11];
+		int nneigh = 0, nopen = 0;
+
+		strncpy(paddr, pn->address, 10);
+		paddr[10] = '\0';
+		for (i = pn->mask; i < 10; i++)
+			paddr[i] = '0';
+
 		for (i = pn->mask; i < 10; i++)
 			pn->address[i] = '.';
 
@@ -2226,11 +2236,13 @@ int do_routes(int argc, char **argv)
 		{
 			if (pn->neigh1 == (unsigned int)pv->addr)
 			{
-				if(Colored) 
+				nneigh++;
+				if(Colored)
 					tprintf("%s %-9s%s", NodeColors.indicatif, pv->call, ResetColor);
 				else
 					tprintf(" %-9s", pv->call);
 				if (!strcmp("yes",pv->restart)) {
+					nopen++;
 					if(Colored) 
 //						tprintf("%s%s Opened %s|",F_DarkRed,B_DarkGreen,ResetColor);
 						tprintf("%s Opened %s|", NodeColors.ind_oui, ResetColor);
@@ -2250,11 +2262,13 @@ int do_routes(int argc, char **argv)
 		{
 			if (pn->neigh2 == (unsigned int)pv->addr)
 			{
-				if(Colored) 
+				nneigh++;
+				if(Colored)
 					tprintf("%s %-9s%s", NodeColors.indicatif, pv->call, ResetColor);
 				else
 					tprintf(" %-9s", pv->call);
 				if (!strcmp("yes",pv->restart)) {
+					nopen++;
 					if(Colored)
 //						tprintf("%s%s Opened %s|",F_DarkRed,B_DarkGreen,ResetColor);
 						tprintf("%s Opened %s|", NodeColors.ind_oui, ResetColor);
@@ -2274,11 +2288,13 @@ int do_routes(int argc, char **argv)
 		{
 			if (pn->neigh3 == (unsigned int)pv->addr)
 			{
-				if(Colored) 
+				nneigh++;
+				if(Colored)
 					tprintf("%s %-9s%s", NodeColors.indicatif, pv->call, ResetColor);
 				else
 					tprintf(" %-9s", pv->call);
 				if (!strcmp("yes",pv->restart)) {
+					nopen++;
 					if(Colored) 
 //						tprintf("%s%s Closed %s|",F_DarkGreen,B_DarkRed,ResetColor);
 						tprintf("%s Opened %s|", NodeColors.ind_oui, ResetColor);
@@ -2295,6 +2311,28 @@ int do_routes(int argc, char **argv)
 			}
 		}
 		tprintf("\n");
+
+		/*
+		 * Every neighbour of this route is closed: the kernel falls
+		 * back on another neighbour or a less specific route (same
+		 * rule as rose_get_neigh()). Show which neighbour the call
+		 * will really go through, as rose_predict_route() finds it.
+		 */
+		if (nneigh > 0 && nopen == 0)
+		{
+			char entry[11], call[10];
+			int mask;
+
+			if (rose_predict_route(paddr, entry, &mask, call) != 0)
+				tprintf("            %s\n", T("-> no open route"));
+			else if (strncmp(call, "RSLOOP", 6) != 0)
+			{
+				if (Colored)
+					tprintf("            %s %s%s%s\n", T("-> via"), NodeColors.indicatif, call, ResetColor);
+				else
+					tprintf("            %s %s\n", T("-> via"), call);
+			}
+		}
 		}
 	}
 	free_proc_rs_neigh(listv);

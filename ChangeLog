@@ -1,5 +1,14 @@
 fpac (4.2-rc1)
 
+	* fpacnode: under a route whose neighbours are all Closed, the
+	  Routes command adds a line "-> via <neighbour>" naming the
+	  neighbour the call will really go through, or "-> no open route"
+	  when the kernel has none. A Closed route did not tell that the
+	  kernel falls back on another neighbour or on a less specific
+	  route (rose_get_neigh()): from F6CNB, the route to 2080444501
+	  was shown Closed while the call to F3KT went through the DNIC
+	  route 2080. The neighbour is found by rose_predict_route(), as
+	  for "Routes <address>".
 	* fpacnode: new QSl command (QS is enough), a QSL card confirming
 	  the connection of the user to the node (node/qsl.c). The card is
 	  shown as text in the session: callsign of the user, date and

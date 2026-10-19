@@ -3,6 +3,15 @@ Les noms de fichiers, de fonctions et de variables sont conservés tels quels.
 
 fpac (4.2-rc1)
 
+	* fpacnode : sous une route dont tous les voisins sont Closed, la
+	  commande Routes ajoute une ligne « -> via <voisin> » qui nomme le
+	  voisin par lequel l'appel passera réellement, ou « -> aucune
+	  route ouverte » si le noyau n'en a aucun. Une route Closed ne
+	  disait pas que le noyau se rabat sur un autre voisin ou sur une
+	  route moins précise (rose_get_neigh()) : depuis F6CNB, la route
+	  vers 2080444501 était affichée Closed alors que l'appel vers
+	  F3KT passait par la route DNIC 2080. Le voisin est trouvé par
+	  rose_predict_route(), comme pour « Routes <adresse> ».
 	* fpacnode : nouvelle commande QSl (QS suffit), une carte QSL qui
 	  confirme la connexion de l'utilisateur au nœud (node/qsl.c). La
 	  carte est affichée en texte dans la session : indicatif de
