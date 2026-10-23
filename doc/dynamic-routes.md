@@ -472,6 +472,20 @@ Until then: use the same `wpmaint` delays on every node of a
 network. The difference is harmless - three vector rounds an hour
 at most since 4.1.6-rc7 - but it fills the log.
 
+Extended on 2026-10-23 to the valid records. VK7HDM never purged
+its White Pages (`wpmaint` only at boot, without `-d`) and held 50
+valid records older than 30 days. The other nodes marked them deleted
+every night, keeping their old date; such a deletion is never sent, so
+VK7HDM kept them valid, and seven days later, once the others had
+erased them, it gave them back to the network, valid again. Decided
+(F6BVP, 2026-10-23): a record that is not deleted and is older than
+`WP_MAXAGE` (30 days, the delay of the nightly `wpmaint -d 30`) is
+neither sent nor accepted between servers, and is left out of the
+0x112 vectors on the same grounds as the obsolete deleted records.
+A node record is dated again at least every 7 days, so a node that
+runs keeps its record. A record entered with `wpedit` or by a local
+client is not concerned. Coded on 2026-10-23 in 4.2-rc1.
+
 ## 18. Fourth item: the QSl command of the node
 
 Asked for on 2026-10-13: a QSL card confirming a connection to the
@@ -1045,6 +1059,21 @@ jusqu'à ce qu'elle devienne obsolète à son tour.
 D'ici là : régler les mêmes délais de `wpmaint` sur tous les nœuds
 d'un réseau. L'écart est sans gravité - trois tours de vecteurs par
 heure au plus depuis la 4.1.6-rc7 - mais il remplit le journal.
+
+Étendu le 23/10/2026 aux fiches valides. VK7HDM ne purgeait jamais
+ses White Pages (`wpmaint` seulement au démarrage, sans `-d`) et
+gardait 50 fiches valides de plus de 30 jours. Les autres nœuds les
+marquaient supprimées chaque nuit, en gardant leur ancienne date ; une
+telle suppression n'est jamais envoyée, VK7HDM les gardait donc
+valides et, sept jours plus tard, une fois effacées ailleurs, il les
+rendait au réseau, de nouveau valides. Décidé (F6BVP, 23/10/2026) :
+une fiche non supprimée de plus de `WP_MAXAGE` jours (30, le délai du
+`wpmaint -d 30` nocturne) n'est ni envoyée ni acceptée entre serveurs,
+et sort des vecteurs 0x112 pour la même raison que les fiches
+supprimées obsolètes. Une fiche de nœud est redatée au moins tous les
+7 jours : un nœud en marche garde la sienne. Une fiche écrite avec
+`wpedit` ou par un client local n'est pas concernée. Codé le
+23/10/2026 dans la 4.2-rc1.
 
 ## 18. Quatrième chantier : la commande QSl du nœud
 
