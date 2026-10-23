@@ -57,6 +57,17 @@ fpac (4.2-rc1)
 	  (new fields old_vectors, vector_pending and old_probe_date of
 	  struct wp_adjacent). A vector 0x112 received from it switches
 	  back to the new version, which is also tried again once a week.
+	* fpacwpd: a record that is not deleted and is older than WP_MAXAGE
+	  (30 days, new in lib/wp.h) is neither sent to nor accepted from
+	  another White Pages server (new db_stale_live(), wp/db.c), and
+	  is left out of the 0x112 vectors like the obsolete deleted
+	  records. A node that never purges its White Pages gave back every
+	  night the records the other nodes had marked deleted, then erased
+	  seven days later: they came back valid with their old date, and
+	  the cycle started again (50 records held by VK7HDM, 2026-10-22).
+	  WP_MAXAGE is the delay of the nightly "wpmaint -d 30"; a node
+	  record is dated again at least every 7 days. A record set by
+	  wpedit or by a local client is not concerned.
 	* fpacrtd: a DNIC declared with RouteOrigin is announced only while
 	  its exit link is open, that is while a neighbour of its route in
 	  fpac.routes is restarted in the kernel (new kernel_exit_open()).

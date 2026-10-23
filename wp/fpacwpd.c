@@ -306,6 +306,12 @@ static void rose_write_handler(int s)
 			clear_dirty_context(dirty, s);
 			return;
 		}
+		/* F6BVP 2026-10-23: a valid record older than WP_MAXAGE days is
+		 * not sent either; the other servers refuse it. */
+		if (db_stale_live(&pdu.data.wp, time(NULL))) {
+			clear_dirty_context(dirty, s);
+			return;
+		}
 		rc = wp_send_pdu(s, &pdu);
 		if (rc) {
 			if (verbose) syslog(LOG_INFO, "sending dirty record to adjacent FAILED ! rc %d", rc); 		 
@@ -369,6 +375,18 @@ static void rose_read_handler(int s)
 		if (pdu.data.wp.is_deleted && ancien(&pdu)) {
 			if (verbose) syslog(LOG_INFO, "Ignoring obsolete deleted record %s from %s",
 				ax25_ntoa(&pdu.data.wp.address.srose_call),
+				rose_ntoa(&context[s]->address.srose_addr));
+			break;
+		}
+		/* F6BVP 2026-10-23: a valid record older than WP_MAXAGE days,
+		 * from another server, is ignored. A node that never purges its
+		 * White Pages gave back every night the records the others had
+		 * marked deleted and erased (VK7HDM, 2026-10-22). */
+		if (context[s]->type != WP_USER
+		    && strncmp(ax25_ntoa(&context[s]->address.srose_call), "WPEDIT", 6) != 0
+		    && db_stale_live(&pdu.data.wp, time(NULL))) {
+			if (verbose) syslog(LOG_INFO, "Ignoring valid record %s older than %d days from %s",
+				ax25_ntoa(&pdu.data.wp.address.srose_call), WP_MAXAGE,
 				rose_ntoa(&context[s]->address.srose_addr));
 			break;
 		}

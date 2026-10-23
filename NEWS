@@ -20,6 +20,12 @@ FPAC 4.2-rc1 — dynamic ROSE routes (release candidate, experimental)
     the link to download it. See doc/qsl.txt; the image needs the
     python3-pil package.
 
+  * White Pages: a valid record older than 30 days is no longer
+    exchanged between nodes. A node that never purged its White Pages
+    used to give back to the whole network, every week, the old
+    records the other nodes had deleted. Run the nightly
+    "wpmaint -d 30" on every node all the same.
+
 FPAC 4.1.6-rc11 — fpad survives a lost interface (release candidate)
 ====================================================================
 

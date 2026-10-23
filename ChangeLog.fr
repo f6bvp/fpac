@@ -66,6 +66,18 @@ fpac (4.2-rc1)
 	  old_vectors, vector_pending et old_probe_date de struct
 	  wp_adjacent). Un vecteur 0x112 reçu de lui fait revenir à la
 	  nouvelle version, qui est aussi réessayée une fois par semaine.
+	* fpacwpd : une fiche non supprimée de plus de WP_MAXAGE jours (30,
+	  nouveau dans lib/wp.h) n'est plus ni envoyée à un autre serveur
+	  White Pages ni acceptée de lui (nouvelle db_stale_live(),
+	  wp/db.c), et sort des vecteurs 0x112 comme les fiches supprimées
+	  obsolètes. Un nœud qui ne purge jamais ses White Pages rendait
+	  chaque nuit les fiches que les autres nœuds avaient marquées
+	  supprimées, puis effacées sept jours plus tard : elles revenaient
+	  valides avec leur ancienne date, et le cycle recommençait
+	  (50 fiches gardées par VK7HDM, 22/10/2026). WP_MAXAGE est le délai
+	  du « wpmaint -d 30 » nocturne ; une fiche de nœud est redatée au
+	  moins tous les 7 jours. Une fiche écrite par wpedit ou par un
+	  client local n'est pas concernée.
 	* fpacrtd : un DNIC déclaré par RouteOrigin n'est annoncé que tant
 	  que son lien de sortie est ouvert, c'est-à-dire tant qu'un voisin
 	  de sa route dans fpac.routes est redémarré dans le noyau

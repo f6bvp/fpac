@@ -658,10 +658,22 @@ static int date_comp(const void *a, const void *b)
  * exchange could ever settle it. A vector of an older version is computed
  * as before, for a neighbour that does not know the new rule.
  */
+/*
+ * F6BVP 2026-10-23: a record that is not deleted and is older than
+ * WP_MAXAGE days is neither sent nor accepted between servers either
+ * (fpacwpd.c). It is left out of the 0x112 vectors for the same reason.
+ */
+int db_stale_live(const wp_t * wp, time_t now)
+{
+	return (!wp->is_deleted && (now - wp->date) / 86400L > WP_MAXAGE);
+}
+
 static int vector_skips(const wp_t * wp, unsigned short version, time_t now)
 {
-	if (version < WP_VERSION || !wp->is_deleted)
+	if (version < WP_VERSION)
 		return 0;
+	if (!wp->is_deleted)
+		return db_stale_live(wp, now);
 	return ((now - wp->date) / 86400L > WP_OBSOLETE);
 }
 

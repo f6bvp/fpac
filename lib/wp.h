@@ -11,6 +11,13 @@
 #define WP_VECTOR_SIZE	16
 #define WP_API_TIMEOUT	30	/* Timeout for access to wp server */
 #define WP_OBSOLETE 14		/* Days after deleted record is not accepted */
+/* Days after which a record that is not deleted is neither sent nor
+ * accepted between White Pages servers (FPAC 4.2). Same delay as the
+ * nightly "wpmaint -d 30": a node that never purges its White Pages
+ * would otherwise give back to the network every record the others
+ * have marked deleted and then erased. A node record is dated again
+ * at least every 7 days, so a node that runs keeps its record. */
+#define WP_MAXAGE 30
 
 #define WP_NODE_FLAG		1
 #define WP_REVERSE_FLAG		2
