@@ -35,6 +35,15 @@ fpac (4.2-rc1)
 	  was shown Closed while the call to F3KT went through the DNIC
 	  route 2080. The neighbour is found by rose_predict_route(), as
 	  for "Routes <address>".
+	* fpacnode: Routes shows the neighbour of the "->" line in the
+	  Route column with its own state, Opened in green or Closed in
+	  red as for the neighbours above it, the arrow standing in the
+	  middle of the Connect column. The kernel may take a closed
+	  neighbour that is not in failure (it sends a RESTART first), so
+	  the state is read from the neighbour, not assumed. The line is
+	  left out when it would name one of the route's own neighbours,
+	  which the line above already shows (f6bvp-8: 9 such lines for
+	  22 routes).
 	* fpacnode: in the Connect column of Routes, a node missing from
 	  the White Pages is shown as its station followed by "-?" (for
 	  example F5KTR-?) when its address is that of an adjacent node

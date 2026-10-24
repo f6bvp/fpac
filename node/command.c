@@ -2068,6 +2068,19 @@ int do_manage_routes(int argc, char **argv)
 	return 1;
 }
 
+/* Same callsign, "-0" and no SSID being the same (the kernel writes
+ * F6ABC-0 in /proc/net/rose_neigh, ax25_ntoa() writes F6ABC) */
+static int same_call(const char *a, const char *b)
+{
+	size_t la = strlen(a), lb = strlen(b);
+
+	if (la > 2 && strcmp(a + la - 2, "-0") == 0)
+		la -= 2;
+	if (lb > 2 && strcmp(b + lb - 2, "-0") == 0)
+		lb -= 2;
+	return la == lb && strncmp(a, b, la) == 0;
+}
+
 int do_routes(int argc, char **argv)
 {
 	struct proc_rs_neigh *pv, *listv;
@@ -2245,6 +2258,7 @@ int do_routes(int argc, char **argv)
 		/* Address to predict when every neighbour of this route is
 		 * closed: the route itself, digits beyond the mask set to 0 */
 		char paddr[11];
+		char own[3][10];	/* this route's own neighbours */
 		int nneigh = 0, nopen = 0;
 
 		strncpy(paddr, pn->address, 10);
@@ -2268,6 +2282,8 @@ int do_routes(int argc, char **argv)
 		{
 			if (pn->neigh1 == (unsigned int)pv->addr)
 			{
+				if (nneigh < 3)
+					snprintf(own[nneigh], sizeof(own[0]), "%s", pv->call);
 				nneigh++;
 				if(Colored)
 					tprintf("%s %-9s%s", NodeColors.indicatif, pv->call, ResetColor);
@@ -2294,6 +2310,8 @@ int do_routes(int argc, char **argv)
 		{
 			if (pn->neigh2 == (unsigned int)pv->addr)
 			{
+				if (nneigh < 3)
+					snprintf(own[nneigh], sizeof(own[0]), "%s", pv->call);
 				nneigh++;
 				if(Colored)
 					tprintf("%s %-9s%s", NodeColors.indicatif, pv->call, ResetColor);
@@ -2320,6 +2338,8 @@ int do_routes(int argc, char **argv)
 		{
 			if (pn->neigh3 == (unsigned int)pv->addr)
 			{
+				if (nneigh < 3)
+					snprintf(own[nneigh], sizeof(own[0]), "%s", pv->call);
 				nneigh++;
 				if(Colored)
 					tprintf("%s %-9s%s", NodeColors.indicatif, pv->call, ResetColor);
@@ -2350,19 +2370,51 @@ int do_routes(int argc, char **argv)
 		 * rule as rose_get_neigh()). Show which neighbour the call
 		 * will really go through, as rose_predict_route() finds it.
 		 */
+		/*
+		 * The arrow sits in the middle of the Connect column and the
+		 * neighbour in the Route column, with its own state: the
+		 * kernel takes an open neighbour first, else a closed one that
+		 * is not in failure, to which it sends a RESTART first. When
+		 * that neighbour is one of this route's own, the line above
+		 * already says it all and nothing is added.
+		 */
 		if (nneigh > 0 && nopen == 0)
 		{
 			char entry[11], call[10];
 			int mask;
 
 			if (rose_predict_route(paddr, entry, &mask, call) != 0)
-				tprintf("            %s\n", T("-> no open route"));
-			else if (strncmp(call, "RSLOOP", 6) != 0)
+				tprintf("               %s\n", T("-> no open route"));
+			else if (strncmp(call, "RSLOOP", 6) != 0 &&
+				 !(same_call(call, own[0]) ||
+				   (nneigh > 1 && same_call(call, own[1])) ||
+				   (nneigh > 2 && same_call(call, own[2]))))
 			{
+				struct proc_rs_neigh *pc;
+
+				for (pc = listv; pc != NULL; pc = pc->next)
+					if (same_call(pc->call, call))
+						break;
 				if (Colored)
-					tprintf("            %s %s%s%s\n", T("-> via"), NodeColors.indicatif, call, ResetColor);
+					tprintf("               ->     %s %-9s%s", NodeColors.indicatif, call, ResetColor);
 				else
-					tprintf("            %s %s\n", T("-> via"), call);
+					tprintf("               ->      %-9s", call);
+				if (pc == NULL)
+					tprintf("\n");
+				else if (!strcmp("yes", pc->restart))
+				{
+					if (Colored)
+						tprintf("%s Opened %s|\n", NodeColors.ind_oui, ResetColor);
+					else
+						tprintf(" Opened |\n");
+				}
+				else
+				{
+					if (Colored)
+						tprintf("%s Closed %s|\n", NodeColors.ind_non, ResetColor);
+					else
+						tprintf(" Closed |\n");
+				}
 			}
 		}
 		}

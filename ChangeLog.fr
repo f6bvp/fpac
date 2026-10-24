@@ -40,6 +40,15 @@ fpac (4.2-rc1)
 	  vers 2080444501 était affichée Closed alors que l'appel vers
 	  F3KT passait par la route DNIC 2080. Le voisin est trouvé par
 	  rose_predict_route(), comme pour « Routes <adresse> ».
+	* fpacnode : Routes affiche le voisin de la ligne « -> » dans la
+	  colonne Route avec son propre état, Opened en vert ou Closed en
+	  rouge comme pour les voisins au-dessus, la flèche se plaçant au
+	  milieu de la colonne Connect. Le noyau peut prendre un voisin
+	  fermé qui n'est pas en échec (il lui envoie d'abord un RESTART),
+	  l'état est donc lu sur le voisin et non supposé. La ligne est
+	  omise quand elle nommerait l'un des voisins de la route, que la
+	  ligne au-dessus montre déjà (f6bvp-8 : 9 lignes de ce genre pour
+	  22 routes).
 	* fpacnode : dans la colonne Connect de Routes, un nœud absent des
 	  White Pages est affiché par sa station suivie de « -? » (par
 	  exemple F5KTR-?) quand son adresse est celle d'un nœud voisin de

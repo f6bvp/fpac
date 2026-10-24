@@ -86,8 +86,6 @@ static const struct msg_pair catalog[] =
 	  "Aucun voisin utilisable vers %s" },
 	{ "%s is this node",
 	  "%s est ce nœud" },
-	{ "-> via",
-	  "-> via" },
 	{ "-> no open route",
 	  "-> aucune route ouverte" },
 	{ "*** Aborted",
