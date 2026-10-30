@@ -28,6 +28,9 @@ FPAC 4.2-rc1 — routes ROSE dynamiques (version candidate, expérimentale)
     les autres nœuds avaient supprimées. Gardez quand même le
     « wpmaint -d 30 » nocturne sur chaque nœud.
 
+  * wpmaint efface une fiche supprimée la nuit où elle atteint le
+    délai de 7 jours, et non plus une nuit plus tard.
+
 FPAC 4.1.6-rc11 — fpad survit à la perte d'une interface (version candidate)
 ============================================================================
 

@@ -3,6 +3,14 @@ Les noms de fichiers, de fonctions et de variables sont conservés tels quels.
 
 fpac (4.2-rc1)
 
+	* wpmaint : une fiche marquée supprimée est effacée la nuit où elle
+	  atteint le délai d'effacement (-e, 7 jours), et non plus une nuit
+	  plus tard. wpmaint pose lui-même del_date quand le cron nocturne
+	  tourne, quelques secondes après l'heure ; 7 jours plus tard, la
+	  passe suivante démarre quelques secondes avant cette date et
+	  gardait la fiche un jour de plus (F3KT et F6CNB, 30/10/2026 : 38
+	  fiches). La limite d'effacement est maintenant avancée d'une
+	  heure (ERASEMARGIN).
 	* fpacwpd, wpmaint : un fichier des Pages Blanches écrit avec un
 	  time_t de 32 bits est converti au lieu d'être perdu. wp_t
 	  commence par un time_t, donc un système 32 bits qui passe à un

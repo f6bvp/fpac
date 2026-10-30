@@ -44,6 +44,12 @@ int cr = 0;
 #define CR() printf( (cr) ? "\r" : "\n"); 
 #define ERASETIME 7L 
 #define DELETETIME 180L 
+/* F6BVP 2026-10-30: wpmaint stamps del_date itself when the nightly cron
+ * runs, a few seconds after the hour. Exactly e_temps days later the next
+ * run starts a few seconds *before* that stamp, so the record was only
+ * erased one night late. Records deleted less than ERASEMARGIN seconds
+ * short of e_temps days are therefore erased too. */
+#define ERASEMARGIN 3600L
 
 void now_date(char *buf);
 
@@ -181,7 +187,7 @@ int main(int argc, char **argv)
 
 	temps = time(NULL);
 	delete_temps  = temps - (3600L * 24L * (long)d_temps);
-	erase_temps   = temps - (3600L * 24L * (long)e_temps);
+	erase_temps   = temps - (3600L * 24L * (long)e_temps) + ERASEMARGIN;
 	
 	strcpy(fpacwp_old, FPACWP);
 	strcat(fpacwp_old, ".old");
