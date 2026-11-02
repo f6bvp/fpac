@@ -136,6 +136,8 @@ static const struct msg_pair catalog[] =
 	  "%-16s   Route active invalide (%d sur %d) : le noyau ne transmet rien\n" },
 	{ "%s (Commands = ?) : ",
 	  "%s (Commandes = ?) : " },
+	{ "%s: not allowed in an AX.25, NetRom or ROSE session (the monitor would see its own output)",
+	  "%s : interdit dans une session AX.25, NetRom ou ROSE (le moniteur verrait sa propre sortie)" },
 	{ NULL, NULL }
 };
 

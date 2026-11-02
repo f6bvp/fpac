@@ -10,6 +10,12 @@ FPAC 4.2-rc1 — dynamic ROSE routes (release candidate, experimental)
     so the countries reached through routes learned by fpacrtd show
     up, not only those written in fpac.routes.
 
+  * LISten and MONitor (monitor, listen) are refused in a session that
+    comes in over AX.25, NetRom or ROSE: the monitor saw its own output
+    go out on the link it watched and made a storm without end (about
+    2000 frames/s between two nodes). The local console and telnet may
+    still run them.
+
   * Nothing changes on a node that does not ask for it: the feature
     is off until RouteAnnounce or RouteLearn is set in fpac.conf, and
     a neighbour takes part only with "Route = yes" in its Node block.

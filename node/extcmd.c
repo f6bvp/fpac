@@ -54,9 +54,33 @@ static int norm_extcmd(struct cmd *cmdp, char **argv)
 	return 0;
 }
 
+/*
+ * A monitor (monitor, listen) run from a session that comes in over
+ * AX.25, NetRom or ROSE sends what it sees over the links it
+ * watches: each frame shown makes a new frame, a storm without end
+ * (f6bvp-8, 2 November 2026, about 2000 frames/s). Such a session may
+ * not run it; the local console and telnet may.
+ */
+static int is_monitor(const char *prog)
+{
+	const char *base = strrchr(prog, '/');
+
+	base = (base != NULL) ? base + 1 : prog;
+	return (strcmp(base, "monitor") == 0) || (strcmp(base, "listen") == 0);
+}
+
 int extcmd(struct cmd *cmdp, char **argv)
 {
 	int ret;
+
+	if (is_monitor(argv[0]) &&
+	    ((User.ul_type == AF_AX25) || (User.ul_type == AF_NETROM) ||
+	     (User.ul_type == AF_ROSE)))
+	{
+		node_msg(T("%s: not allowed in an AX.25, NetRom or ROSE session (the monitor would see its own output)"),
+			 cmdp->name);
+		return 0;
+	}
 
 	User.state = STATE_EXTCMD;
 	User.dl_type = AF_UNSPEC;
