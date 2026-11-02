@@ -1,18 +1,20 @@
 # FPAC 4.2 — Dynamic ROSE routes / Routes ROSE dynamiques
 
-Specification, working draft of 2026-10-13 — F6BVP.
-Spécification, version de travail du 13/10/2026 — F6BVP.
+Specification, working draft of 2026-11-02 — F6BVP.
+Spécification, version de travail du 02/11/2026 — F6BVP.
 
-Five items: dynamic routes (sections 1 to 15), White Pages
+Six items: dynamic routes (sections 1 to 15), White Pages
 sessions closed when idle (section 16), obsolete deleted records
 left out of the White Pages vectors (section 17), the QSl command
-of the node (section 18) and the routes to the nodes drawn from the
-White Pages (section 19).
-Cinq chantiers : les routes dynamiques (sections 1 à 15), les
+of the node (section 18), the routes to the nodes drawn from the
+White Pages (section 19) and the routes in both directions
+(section 20).
+Six chantiers : les routes dynamiques (sections 1 à 15), les
 sessions White Pages fermées au repos (section 16), les fiches
 supprimées obsolètes sorties des vecteurs White Pages (section 17),
-la commande QSl du nœud (section 18) et les routes vers les nœuds
-tirées des White Pages (section 19).
+la commande QSl du nœud (section 18), les routes vers les nœuds
+tirées des White Pages (section 19) et les routes dans les deux sens
+(section 20).
 
 English text first, French text below. Both say the same thing.
 Le texte anglais vient d'abord, le texte français ensuite. Les deux
@@ -22,8 +24,11 @@ disent la même chose.
 
 # English
 
-The `fpacrtd` daemon is being tested on three nodes; its code is
-not released yet.
+The `fpacrtd` daemon runs on the eight nodes of our network (on
+F3KT from 3 November 2026): f6bvp-8 announces, the others learn.
+Its code is in the fpac-4.2 branch of the FPAC repository. The
+routes in both directions (section 20) are written, not yet in
+service.
 
 ## 1. Purpose
 
@@ -687,8 +692,11 @@ F5ZHO-8 without a fixed route.
 
 # Français
 
-Le démon `fpacrtd` est à l'essai sur trois nœuds ; son code n'est
-pas encore publié.
+Le démon `fpacrtd` tourne sur les huit nœuds de notre réseau (sur
+F3KT depuis le 3 novembre 2026) : f6bvp-8 annonce, les autres
+apprennent. Son code est dans la branche fpac-4.2 du dépôt FPAC. Les
+routes dans les deux sens (section 20) sont écrites, pas encore en
+service.
 
 ## 1. But
 
