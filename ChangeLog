@@ -1,5 +1,22 @@
 fpac (4.2-rc1)
 
+	* fpacrtd: routes in both directions (specification, section 20).
+	  Feasibility condition in dest_best(): a neighbour is used only
+	  when the cost it announces is strictly lower than the reference
+	  distance of the destination (best cost we had), forgotten
+	  RT_HOLD (60 s) after the destination has no usable route left
+	  (dest_feasible()); in a triangle of announcing nodes, a lost
+	  route no longer makes two nodes fall back on each other. A cost
+	  that changes through the neighbour in use is announced after
+	  RT_TRIGGER_DELAY instead of with the next full table, 30 minutes
+	  later. New keyword RouteNeighbours (default no): with
+	  RouteAnnounce, a node announces at cost 1 the address of a
+	  neighbour of fpac.nodes that the kernel routes through that
+	  neighbour while its link is open (adj_scan()), e.g. F3KT for
+	  F5ZHO-8. A learned route to the address of one of our own
+	  direct neighbours is not installed while that link is open.
+	  Checked first on a simulation of our eight nodes: no loop after
+	  five kinds of failure with a hold of 20 s or more.
 	* fpacrtd: RouteWp uses again a record relayed by a neighbour that
 	  learns from us when the node is in a block of addresses (same
 	  DNIC and first five digits, ROSE mask 9, RT_BLOCK_DIGITS) that

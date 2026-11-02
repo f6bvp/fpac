@@ -611,6 +611,78 @@ One keyword in `fpac.conf`, inactive by default:
 
 Decided (F6BVP, 2026-10-15). First trial on f6bvp-8.
 
+## 20. Sixth item: routes in both directions
+
+Asked for on 2026-11-02. The aim: a new FPAC node should need as
+little configuration as possible, with no fixed routes. In a meshed
+network that means every neighbour announces what it can reach and
+learns what the others can reach. Until then only f6bvp-8 announced.
+
+The protocol already allows it (`RouteAnnounce = yes` and
+`RouteLearn = all` on both sides, test plan step 2). Three changes
+make it safe and useful in our mesh, where triangles of nodes are
+everywhere (f6bvp-8 / f6bvp-12 / f6bvp-10, f6bvp-8 / F6CNB / F6KKR).
+
+1. **Feasibility condition.** Split horizon only stops loops between
+   two nodes. In a triangle, when a route is lost, the two other
+   nodes fell back on each other and counted up to the ceiling of 6,
+   for up to a minute; a ROSE call made then went round in circles.
+   Each destination now keeps a reference distance, the best cost
+   the node had for it. A neighbour is used only when the cost it
+   announces is strictly lower than that reference: it cannot be
+   routing through us. The reference is forgotten `RT_HOLD` (60 s)
+   after the destination has no usable route left. The price: when
+   a real backup exists with the same announced cost, the node waits
+   those 60 s before using it. The log says "route(s) left that
+   could loop through us, not used for 60 s".
+2. **Cost changes announced at once.** A cost that changed through
+   the neighbour already in use was only sent with the next full
+   table, 30 minutes later; it now leaves after about 10 seconds,
+   like any other change.
+3. **Direct neighbours announced** (`RouteNeighbours = yes`). A node
+   also announces, at cost 1, the address of a neighbour of
+   `fpac.nodes`, whether that neighbour runs `fpacrtd` or not, while
+   the kernel routes that address through that very neighbour and
+   its link is open. F3KT then announces F5ZHO-8 (`2080817501`),
+   which no other node could reach without a fixed route. This
+   relaxes the rule of section 4 ("a route of `fpac.routes` never
+   gives an announcement by itself"), only for direct neighbours
+   whose link is checked open (F6BVP, 2026-11-02: the trials will
+   tell). In return, a node never installs a learned route to the
+   address of one of its own direct neighbours while that link is
+   open: it reaches it directly.
+
+Simulation before any real trial (2026-11-02): a model of these
+rules on our eight nodes and the links declared on both sides, five
+failures (exit of 5050 closed, link to F5ZHO cut, `fpacrtd` of
+f6bvp-8 stopped, session f6bvp-8 / F6CNB cut, F3KT rebooting), 100
+random latencies of 0.3 to 3 s, then of 0.5 to 10 s:
+
+| Protection              | Loops after a failure        |
+|-------------------------|------------------------------|
+| none (code before)      | from 1.5 to 10 minutes       |
+| none, with change 2     | about 55 s                   |
+| "lower or equal"        | about 12 s                   |
+| strict, hold 5 or 10 s  | up to 44 s                   |
+| strict, hold 20 s or +  | none                         |
+
+With hold 60 s, a real backup is taken after 60 s at most.
+
+One more keyword in `fpac.conf`, inactive by default:
+
+| Keyword           | Values      | Effect                      |
+|-------------------|-------------|-----------------------------|
+| `RouteNeighbours` | `no`, `yes` | announces direct neighbours |
+
+It works only with `RouteAnnounce = yes`.
+
+Trial plan: the new `fpacrtd` on the eight nodes with the settings
+unchanged (no effect expected); then f6bvp-8 / f6bvp-12 in both
+directions; then the triangle with f6bvp-10 and a provoked loss
+(`fpacrtd` stopped on f6bvp-8, no loop in `rose-controle`); then all
+our nodes, F3KT with `RouteNeighbours = yes`: f6bvp-8 must reach
+F5ZHO-8 without a fixed route.
+
 ---
 
 # Français
@@ -1223,3 +1295,80 @@ Un mot-clé dans `fpac.conf`, inactif par défaut :
 `RouteAnnounce` ni `RouteLearn`.
 
 Décidé (F6BVP, 15/10/2026). Premier essai sur f6bvp-8.
+
+## 20. Sixième chantier : routes dans les deux sens
+
+Demandé le 02/11/2026. Le but : un nouveau nœud FPAC doit demander le
+moins de configuration possible, sans routes fixes. Dans un réseau
+maillé, cela veut dire que chaque voisin annonce ce qu'il sait
+joindre et apprend ce que les autres savent joindre. Jusque-là, seul
+f6bvp-8 annonçait.
+
+Le protocole le permet déjà (`RouteAnnounce = yes` et
+`RouteLearn = all` des deux côtés, étape 2 du plan d'essai). Trois
+changements le rendent sûr et utile dans notre maillage, où les
+triangles de nœuds sont partout (f6bvp-8 / f6bvp-12 / f6bvp-10,
+f6bvp-8 / F6CNB / F6KKR).
+
+1. **Condition de faisabilité.** L'horizon coupé n'arrête que les
+   boucles entre deux nœuds. Dans un triangle, à la perte d'une
+   route, les deux autres nœuds se rabattaient l'un sur l'autre et
+   comptaient jusqu'au plafond de 6, jusqu'à une minute ; un appel
+   ROSE lancé alors tournait en rond. Chaque destination garde
+   désormais une distance de référence, le meilleur coût que le nœud
+   a eu pour elle. Un voisin n'est utilisé que si le coût qu'il
+   annonce est strictement inférieur à cette référence : il ne peut
+   pas passer par nous. La référence est oubliée `RT_HOLD` (60 s)
+   après que la destination n'a plus de route utilisable. Le prix :
+   quand un vrai chemin de secours existe au même coût annoncé, le
+   nœud attend ces 60 s avant de le prendre. Le journal l'écrit
+   (« route(s) left that could loop through us, not used for
+   60 s »).
+2. **Changements de coût annoncés tout de suite.** Un coût qui
+   changeait par le voisin déjà utilisé ne partait qu'avec la table
+   complète suivante, 30 minutes plus tard ; il part maintenant
+   après une dizaine de secondes, comme tout autre changement.
+3. **Annonce des voisins directs** (`RouteNeighbours = yes`). Un nœud
+   annonce aussi, au coût 1, l'adresse d'un voisin de `fpac.nodes`,
+   qu'il fasse tourner `fpacrtd` ou non, tant que le noyau route
+   cette adresse par ce voisin même et que son lien est ouvert. F3KT
+   annonce alors F5ZHO-8 (`2080817501`), qu'aucun autre nœud ne
+   pouvait joindre sans route fixe. C'est un assouplissement de la
+   règle de la section 4 (« une route de `fpac.routes` ne donne
+   jamais lieu à une annonce »), limité aux voisins directs dont le
+   lien est vérifié ouvert (F6BVP, 02/11/2026 : les essais
+   valideront). En contrepartie, un nœud n'installe jamais de route
+   apprise vers l'adresse d'un de ses propres voisins directs tant
+   que ce lien est ouvert : il le joint directement.
+
+Simulation avant tout essai réel (02/11/2026) : un modèle de ces
+règles sur nos huit nœuds et les liens déclarés des deux côtés, cinq
+pannes (sortie de 5050 fermée, lien vers F5ZHO coupé, `fpacrtd` de
+f6bvp-8 arrêté, session f6bvp-8 / F6CNB coupée, F3KT qui redémarre),
+100 tirages de latences de 0,3 à 3 s, puis de 0,5 à 10 s :
+
+| Protection              | Boucles après une panne      |
+|-------------------------|------------------------------|
+| aucune (code d'avant)   | de 1,5 à 10 minutes          |
+| aucune, avec le point 2 | environ 55 s                 |
+| « inférieur ou égal »   | environ 12 s                 |
+| stricte, oubli 5 à 10 s | jusqu'à 44 s                 |
+| stricte, oubli ≥ 20 s   | aucune                       |
+
+Avec un oubli de 60 s, un vrai chemin de secours est pris au plus
+tard après 60 s.
+
+Un mot-clé de plus dans `fpac.conf`, inactif par défaut :
+
+| Mot-clé           | Valeurs     | Effet                       |
+|-------------------|-------------|-----------------------------|
+| `RouteNeighbours` | `no`, `yes` | annonce les voisins directs |
+
+Il ne joue qu'avec `RouteAnnounce = yes`.
+
+Plan d'essai : le nouveau `fpacrtd` sur les huit nœuds, réglages
+inchangés (aucun effet attendu) ; puis f6bvp-8 / f6bvp-12 dans les
+deux sens ; puis le triangle avec f6bvp-10 et une perte provoquée
+(`fpacrtd` arrêté sur f6bvp-8, aucune boucle dans `rose-controle`) ;
+puis tous nos nœuds, F3KT avec `RouteNeighbours = yes` : f6bvp-8 doit
+joindre F5ZHO-8 sans route fixe.

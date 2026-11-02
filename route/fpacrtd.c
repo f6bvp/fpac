@@ -53,6 +53,7 @@
 #define RT_MISSED_MAX		3		/* Tables without the route */
 #define RT_TRIGGER_DELAY	10		/* Groups triggered updates */
 #define RT_CHECK_PERIOD		60		/* Neighbours state check */
+#define RT_HOLD			60		/* Reference distance kept after a loss */
 
 #define RT_WP_MAX_AGE		(30 * 24 * 3600)	/* Node records older are not used */
 
@@ -106,6 +107,9 @@ struct rt_dest {
 	int	wp_seen;	/* Record found by the last wp_scan() */
 	int	wp_down;	/* Last provenance ignored (learns from us), -1 = none */
 	int	installed;	/* Neighbour index of the kernel route, -1 = none */
+	int	fd;		/* Reference distance: best cost we had, 0 = none */
+	time_t	lost;		/* No feasible route since, 0 = we have one */
+	int	adj;		/* Address of this direct neighbour, link open, -1 = no */
 	char	inst_call[10];
 	char	inst_dev[16];
 };
@@ -119,6 +123,7 @@ static int nb_dest;
 static int rt_announce;			/* RouteAnnounce */
 static int rt_learn = LEARN_NO;		/* RouteLearn */
 static int rt_wp;			/* RouteWp */
+static int rt_neighbours;		/* RouteNeighbours */
 static char rt_origin[32][5];		/* RouteOrigin */
 static int nb_origin;
 
@@ -224,6 +229,8 @@ static void conf_scan(const char *file)
 		}
 		else if (strcasecmp(key, "routewp") == 0)
 			rt_wp = conf_yes(val);
+		else if (strcasecmp(key, "routeneighbours") == 0)
+			rt_neighbours = conf_yes(val);
 		else if (strcasecmp(key, "routeorigin") == 0)
 		{
 			if (strlen(val) == 4 && strspn(val, "0123456789") == 4 && nb_origin < 32)
@@ -274,6 +281,7 @@ static struct rt_dest *dest_find(const char *addr, int mask, int create)
 	dest[nb_dest].wp = -1;
 	dest[nb_dest].wp_down = -1;
 	dest[nb_dest].installed = -1;
+	dest[nb_dest].adj = -1;
 	dest[nb_dest].manual = is_manual(addr, mask);
 	return &dest[nb_dest++];
 }
@@ -507,7 +515,19 @@ static int learn_allowed(int mask)
 	return 0;
 }
 
-/* Best neighbour for a destination, -1 when none */
+/*
+ * Best neighbour for a destination, -1 when none.
+ *
+ * Feasibility condition (as in EIGRP or Babel): a neighbour is used only
+ * when the cost it announces (our cost through it minus 1) is strictly
+ * lower than the reference distance, the best cost we had for this
+ * destination. Such a neighbour cannot be routing through us. Without it,
+ * in a triangle of nodes that all announce, the loss of a route made two
+ * nodes fall back on each other for up to a minute (counting to the
+ * ceiling of 6), and a ROSE call made then went round in circles. The
+ * reference is forgotten RT_HOLD seconds after the destination has no
+ * feasible route left, once the withdrawals have gone round.
+ */
 static int dest_best(struct rt_dest *d)
 {
 	int i, best = -1;
@@ -515,6 +535,8 @@ static int dest_best(struct rt_dest *d)
 	for (i = 0; i < nb_neigh; i++)
 	{
 		if (neigh[i].state != N_UP || d->cost[i] == 0)
+			continue;
+		if (d->fd && d->cost[i] - 1 >= d->fd)
 			continue;
 		if (best < 0 || d->cost[i] < d->cost[best]
 		    || (d->cost[i] == d->cost[best] && i == d->installed))
@@ -530,6 +552,8 @@ static int dest_cost(struct rt_dest *d)
 
 	if (d->own)
 		return 0;
+	if (d->adj >= 0)
+		return 1;
 	if ((best = dest_best(d)) < 0)
 		return -1;
 	if (d->installed < 0 && !d->manual)
@@ -537,11 +561,38 @@ static int dest_cost(struct rt_dest *d)
 	return d->cost[best];
 }
 
+/* Keep the reference distance of a destination up to date */
+static void dest_feasible(struct rt_dest *d)
+{
+	int i, best, held = 0;
+
+	if (d->own)
+		return;
+	if ((best = dest_best(d)) >= 0)
+	{
+		if (!d->fd || d->cost[best] < d->fd)
+			d->fd = d->cost[best];
+		d->lost = 0;
+		return;
+	}
+	if (!d->fd || d->lost)
+		return;
+	d->lost = time(NULL);
+	for (i = 0; i < nb_neigh; i++)
+		if (neigh[i].state == N_UP && d->cost[i])
+			held++;
+	if (held)
+		rt_log(LOG_INFO, "%.*s/%d: %d route(s) left that could loop through us, not used for %d s",
+		       d->mask, d->addr, d->mask, held, RT_HOLD);
+}
+
 static void dest_update(struct rt_dest *d)
 {
 	char dev[16] = "";
 	int want = -1;
 	int best;
+
+	dest_feasible(d);
 
 	if (!d->own && !d->manual && learn_allowed(d->mask))
 	{
@@ -554,6 +605,23 @@ static void dest_update(struct rt_dest *d)
 	if (want < 0 && rt_wp && !d->own && !d->manual && d->mask == 10 && d->wp >= 0
 	    && kernel_neigh_open(neigh[d->wp].call, dev, sizeof(dev)))
 		want = d->wp;
+
+	/* The address of one of our own direct neighbours, whose link is
+	 * open: the node reaches it directly, through whatever route its
+	 * sysop wrote. A learned /10 through another neighbour would go
+	 * before that route and send the calls round about. */
+	if (want >= 0 && d->mask == 10)
+	{
+		int j;
+
+		for (j = 0; j < nb_neigh; j++)
+			if (j != want && strcmp(neigh[j].addr, d->addr) == 0
+			    && kernel_neigh_open(neigh[j].call, NULL, 0))
+			{
+				want = -1;
+				break;
+			}
+	}
 
 	if (want == d->installed)
 		return;
@@ -678,6 +746,49 @@ static void wp_scan(void)
 		}
 }
 
+/*
+ * Direct neighbours announced at cost 1 (RouteNeighbours = yes,
+ * specification, section 20): a
+ * neighbour of fpac.nodes, whether it runs fpacrtd or not, whose address
+ * the kernel routes through that very neighbour (fpac.routes), while its
+ * link is open. F3KT announces F5ZHO-8 (2080817501) that way: F5ZHO does
+ * not run fpacrtd, and no other node could reach it without a fixed
+ * route. A route this daemon installed itself does not count.
+ */
+static void adj_scan(void)
+{
+	char hop[10];
+	struct rt_dest *d;
+	int i, ok;
+
+	if (!rt_announce || !rt_neighbours)
+		return;
+	for (i = 0; i < nb_neigh; i++)
+	{
+		ok = kernel_neigh_open(neigh[i].call, NULL, 0)
+		     && kernel_next_hop(neigh[i].addr, 10, hop, sizeof(hop))
+		     && strcasecmp(hop, neigh[i].call) == 0;
+		if ((d = dest_find(neigh[i].addr, 10, ok)) == NULL || d->own)
+			continue;
+		if (ok && d->installed == i)
+			ok = 0;
+		if (ok && d->adj < 0)
+		{
+			d->adj = i;
+			rt_log(LOG_INFO, "direct neighbour %s %s/10: link open, announced", neigh[i].call, d->addr);
+		}
+		else if (!ok && d->adj == i)
+		{
+			d->adj = -1;	/* another neighbour with this address may take over next time */
+			rt_log(LOG_INFO, "direct neighbour %s %s/10: no longer announced", neigh[i].call, d->addr);
+		}
+		else
+			continue;
+		if (trigger_date == 0)
+			trigger_date = time(NULL) + RT_TRIGGER_DELAY;
+	}
+}
+
 static void table_update(void)
 {
 	int i;
@@ -777,6 +888,8 @@ static void neigh_announce(struct rt_neigh *v, int full)
 			cost = -1;
 		if (cost >= 0 && !d->own && dest_best(d) == idx)
 			cost = -1;
+		if (cost >= 0 && d->adj == idx)
+			cost = -1;
 		if (cost >= 0 && (d->manual || (d->own && d->mask == 4))
 		    && kernel_next_hop(d->addr, d->mask, hop, sizeof(hop))
 		    && strcasecmp(hop, v->call) == 0)
@@ -856,10 +969,17 @@ static void neigh_line(struct rt_neigh *v, char *line)
 			break;
 		if ((d = dest_find(addr, mask, 1)) == NULL || d->own)
 			break;
+		n = d->cost[idx];
 		if (cost + 1 > RT_MAX_COST)
 			d->cost[idx] = 0;
 		else
 			d->cost[idx] = cost + 1;
+		/* A cost that changes through the neighbour already in use
+		 * changes ours without changing the installed route: announce
+		 * it too, or it waited for the next full table (30 minutes)
+		 * and a loop lasted that long (simulation of 2 Nov 2026). */
+		if (d->cost[idx] != n && trigger_date == 0)
+			trigger_date = time(NULL) + RT_TRIGGER_DELAY;
 		d->seen[idx] = 1;
 		d->missed[idx] = 0;
 		dest_update(d);
@@ -1064,6 +1184,18 @@ static void timers(void)
 			neigh_close(v, "no table received for too long");
 	}
 
+	/* Withdrawals have gone round: forget the reference distance of a
+	 * destination without a route, so it can come back. Checked at every
+	 * turn: below 20 s loops came back in the simulation, RT_HOLD keeps
+	 * a margin of 3. */
+	for (i = 0; i < nb_dest; i++)
+		if (dest[i].fd && dest[i].lost && now - dest[i].lost >= RT_HOLD)
+		{
+			dest[i].fd = 0;
+			dest[i].lost = 0;
+			dest_update(&dest[i]);
+		}
+
 	/* A neighbour that closed or reopened changes what is installed */
 	if (now >= next_check)
 	{
@@ -1087,6 +1219,7 @@ static void timers(void)
 		}
 		if (rt_wp)
 			wp_scan();
+		adj_scan();
 		table_update();
 
 		/* The exit link of a DNIC this node is the origin of opened or
@@ -1185,10 +1318,10 @@ static void show_config(void)
 {
 	int i;
 
-	rt_log(LOG_INFO, "node %s %s: announce %s, learn %s, White Pages %s%s", cfg.callsign,
-	       cfg.fulladdr, rt_announce ? "yes" : "no",
+	rt_log(LOG_INFO, "node %s %s: announce %s, learn %s, White Pages %s, direct neighbours %s%s",
+	       cfg.callsign, cfg.fulladdr, rt_announce ? "yes" : "no",
 	       rt_learn == LEARN_ALL ? "all" : rt_learn == LEARN_NODES ? "nodes" : "no",
-	       rt_wp ? "yes" : "no", dry_run ? ", dry run" : "");
+	       rt_wp ? "yes" : "no", rt_neighbours ? "yes" : "no", dry_run ? ", dry run" : "");
 	for (i = 0; i < nb_neigh; i++)
 		rt_log(LOG_INFO, "neighbour %-9s %s%s", neigh[i].call, neigh[i].addr,
 		       neigh[i].excluded ? " (not taking part)" : " (Route = yes)");

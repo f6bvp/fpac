@@ -3,6 +3,25 @@ Les noms de fichiers, de fonctions et de variables sont conservés tels quels.
 
 fpac (4.2-rc1)
 
+	* fpacrtd : routes dans les deux sens (spécification, section
+	  20). Condition de faisabilité dans dest_best() : un voisin
+	  n'est utilisé que si le coût qu'il annonce est strictement
+	  inférieur à la distance de référence de la destination (le
+	  meilleur coût obtenu), oubliée RT_HOLD (60 s) après que la
+	  destination n'a plus de route utilisable (dest_feasible()) ;
+	  dans un triangle de nœuds qui annoncent, une route perdue ne
+	  fait plus se rabattre deux nœuds l'un sur l'autre. Un coût qui
+	  change par le voisin utilisé est annoncé après RT_TRIGGER_DELAY
+	  au lieu de la table complète suivante, 30 minutes plus tard.
+	  Nouveau mot-clé RouteNeighbours (non par défaut) : avec
+	  RouteAnnounce, un nœud annonce au coût 1 l'adresse d'un voisin
+	  de fpac.nodes que le noyau route par ce voisin tant que son
+	  lien est ouvert (adj_scan()), par exemple F3KT pour F5ZHO-8.
+	  Une route apprise vers l'adresse d'un de nos propres voisins
+	  directs n'est pas installée tant que ce lien est ouvert.
+	  Vérifié d'abord sur une simulation de nos huit nœuds : aucune
+	  boucle après cinq sortes de pannes avec un oubli de 20 s ou
+	  plus.
 	* fpacrtd : RouteWp utilise de nouveau une fiche relayée par un
 	  voisin qui apprend de nous quand le nœud est dans un bloc
 	  d'adresses (même DNIC et mêmes cinq premiers chiffres, masque
