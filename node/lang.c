@@ -138,6 +138,12 @@ static const struct msg_pair catalog[] =
 	  "%s (Commandes = ?) : " },
 	{ "%s: not allowed in an AX.25, NetRom or ROSE session (the monitor would see its own output)",
 	  "%s : interdit dans une session AX.25, NetRom ou ROSE (le moniteur verrait sa propre sortie)" },
+	{ "%s: unknown port %s. Ports:",
+	  "%s : port %s inconnu. Ports :" },
+	{ "%s: no AX.25 port to watch",
+	  "%s : aucun port AX.25 à surveiller" },
+	{ "%s: watching port %s (default). Other ports: %s <port>, among:",
+	  "%s : surveillance du port %s (par défaut). Autre port : %s <port>, parmi :" },
 	{ NULL, NULL }
 };
 
