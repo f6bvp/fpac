@@ -672,13 +672,35 @@ static int dnic_cmp(const void *a, const void *b)
 	return strcmp((const char *)a, (const char *)b);
 }
 
+/*
+ * Adds the DNIC (first 4 digits) of addr to list if it is not there
+ * yet. Returns the new number of entries.
+ */
+static int dnic_add(char list[][5], int nb, const char *addr)
+{
+	int i;
+
+	if ((strlen(addr) < 4) || (strspn(addr, "0123456789") < 4))
+		return nb;
+	if (strncmp(addr, "0000", 4) == 0)
+		return nb;
+	for (i = 0; i < nb; i++)
+		if (strncmp(list[i], addr, 4) == 0)
+			return nb;
+	if (nb < 64)
+		snprintf(list[nb++], 5, "%.4s", addr);
+	return nb;
+}
+
 int do_dnic(int argc, char **argv)
 {
 	char list[64][5];
 	char country[128];
+	char line[256], addr[16];
 	int nb = 0;
-	int i;
+	int i, mask;
 	route_t *r;
+	FILE *fp;
 
 	if ((argc > 1) && (*argv[1] == '?'))
 	{
@@ -701,17 +723,22 @@ int do_dnic(int argc, char **argv)
 		return 0;
 	}
 
-	/* DNIC of the node, then the DNICs of the routes of fpac.routes */
-	snprintf(list[nb++], 5, "%s", cfg.dnic);
+	/*
+	 * DNIC of the node, then the DNICs of the routes of fpac.routes,
+	 * then those of the kernel routing table, which also holds the
+	 * routes learned by fpacrtd.
+	 */
+	nb = dnic_add(list, nb, cfg.dnic);
 	for (r = cfg.route; r != NULL; r = r->next)
+		nb = dnic_add(list, nb, r->addr);
+	if ((fp = fopen("/proc/net/rose_nodes", "r")) != NULL)
 	{
-		if ((strlen(r->addr) < 4) || (strspn(r->addr, "0123456789") < 4))
-			continue;
-		for (i = 0; i < nb; i++)
-			if (strncmp(list[i], r->addr, 4) == 0)
-				break;
-		if ((i == nb) && (nb < 64))
-			snprintf(list[nb++], 5, "%.4s", r->addr);
+		/* address mask ... : the DNIC is known when mask >= 4 */
+		while (fgets(line, sizeof(line), fp))
+			if ((sscanf(line, "%15s %d", addr, &mask) == 2) &&
+			    (mask >= 4))
+				nb = dnic_add(list, nb, addr);
+		fclose(fp);
 	}
 	qsort(list, nb, sizeof(list[0]), dnic_cmp);
 

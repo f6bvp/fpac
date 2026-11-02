@@ -6,6 +6,10 @@ FPAC 4.2-rc1 — dynamic ROSE routes (release candidate, experimental)
     fpac.routes. Node addresses and whole DNICs are exchanged; the
     routes of fpac.routes always keep the last word.
 
+  * "DNic" (DN) now also lists the DNICs of the kernel routing table,
+    so the countries reached through routes learned by fpacrtd show
+    up, not only those written in fpac.routes.
+
   * Nothing changes on a node that does not ask for it: the feature
     is off until RouteAnnounce or RouteLearn is set in fpac.conf, and
     a neighbour takes part only with "Route = yes" in its Node block.
