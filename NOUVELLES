@@ -15,6 +15,13 @@ FPAC 4.2-rc1 — routes ROSE dynamiques (version candidate, expérimentale)
 
   * Voir la page de manuel fpacrtd(1) et doc/dynamic-routes.md.
 
+  * Nouvelle commande NNetrom dans le nœud (NN suffit) : les voisins
+    NetRom, avec leur qualité et leurs échecs de liaison ; en couleur,
+    l'indicatif montre si la liaison vers le voisin est établie. Les sysops
+    peuvent retirer de fpac.conf les commandes externes NRNEigh et
+    NRNOdes (cat de /proc/net/nr_neigh et nr_nodes) : NNetrom et
+    NEtrom font le même travail.
+
   * Nouvelle commande QSl dans le nœud (QS suffit) : une carte QSL qui
     confirme votre connexion, affichée en texte dans la session. Un
     sysop qui a un serveur web peut aussi la faire fabriquer en image

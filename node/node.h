@@ -63,6 +63,7 @@
 #define F_DarkCyan    "\033[0;36m"
 #define F_Gray        "\033[0;37m"
 #define F_DarkGray    "\033[1;90m"
+#define F_LightYellow "\033[38;5;229m"	/* 256-colour palette */
 /*Background Colours */
 #define B_Default      "\033[49m"
 #define B_Black        "\033[40m"

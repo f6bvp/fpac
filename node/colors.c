@@ -45,6 +45,7 @@ static const ansi_entry_t fg_table[] = {
     { "rouge",          "\033[1;91m" },
     { "vert",           "\033[1;92m" },
     { "jaune",          "\033[1;93m" },
+    { "jaune_clair",    "\033[38;5;229m" },
     { "bleu",           "\033[1;94m" },
     { "magenta",        "\033[1;95m" },
     { "cyan",           "\033[1;96m" },
@@ -160,6 +161,7 @@ void colors_set_defaults(void)
     /* [netrom] */
     snprintf(NodeColors.netrom_connected,  COLOR_LEN, "%s%s", F_Black,  B_Green);
     snprintf(NodeColors.netrom_idle,       COLOR_LEN, "%s%s", F_Yellow, B_Magenta);
+    snprintf(NodeColors.netrom_neigh_idle, COLOR_LEN, "%s", F_LightYellow);
 
     /* [noeuds] : fond normal */
     snprintf(NodeColors.noeud_joignable,   COLOR_LEN, "%s", F_Green);
@@ -266,6 +268,7 @@ int read_colors(void)
         /* [netrom] */
         SET("netrom",      "connected",    netrom_connected);
         SET("netrom",      "idle",         netrom_idle);
+        SET("netrom",      "neigh_idle",   netrom_neigh_idle);
         /* [noeuds] */
         SET("noeuds",      "joignable",    noeud_joignable);
         SET("noeuds",      "injoignable",  noeud_injoignable);

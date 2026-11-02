@@ -1,0 +1,15 @@
+
+USAGE
+	NNetrom
+
+DESCRIPTION
+	Lists the NetRom neighbours of this node (/proc/net/nr_neigh):
+	number, callsign, device, quality, lock, count of routes using
+	the neighbour, failed links and digipeaters.
+	In colour, the callsign is shown with the "connected" colour
+	of Links when the AX.25 link to the neighbour is up, in light
+	yellow when there is none (NetRom opens the link when
+	needed and closes it when idle).
+	A neighbour whose AX.25 link is awaiting connection is marked
+	"SABM n/N" (retries done / allowed).
+	NN is enough.

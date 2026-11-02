@@ -17,6 +17,7 @@ doc_DATA = Alias.hlp \
 	Help.hlp \
 	Info.hlp \
 	NEtrom.hlp \
+	NNetrom.hlp \
 	Nodes.hlp \
 	QSl.hlp \
 	Quit.hlp \

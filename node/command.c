@@ -81,6 +81,42 @@ int do_rose_ckt(int argc, char **argv);
 int do_stat_heure(int argc, char **argv);
 int do_stat_jour(int argc, char **argv);
 int do_dnic(int argc, char **argv);
+/*
+ * State of the AX.25 link carrying NetRom to neighbour <call>, read in
+ * /proc/net/ax25 (source = callsign of a NetRom port): 0 if none,
+ * otherwise the AX.25 state (1 awaiting connection, 2 awaiting release,
+ * 3 connected, 4 timer recovery).
+ */
+static char *nr_port_by_call(const char *call);
+
+static int nr_neigh_link_state(const char *call)
+{
+	FILE *fp;
+	char line[512], ptr[24], dev[16], src[16], dst[16];
+	int st, best = 0;
+
+	if ((fp = fopen("/proc/net/ax25", "r")) == NULL)
+		return 0;
+	while (fgets(line, sizeof(line), fp) != NULL)
+	{
+		if (sscanf(line, "%23s %15s %15s %15s %d",
+			   ptr, dev, src, dst, &st) != 5)
+			continue;
+		if (strcasecmp(dst, call) != 0 || nr_port_by_call(src) == NULL)
+			continue;
+		if (st == 3 || st == 4)
+		{
+			best = st;
+			break;
+		}
+		if (st > best)
+			best = st;
+	}
+	fclose(fp);
+	return best;
+}
+
+int do_nnetrom(int argc, char **argv);
 
 void init_nodecmds(void)
 {
@@ -101,6 +137,7 @@ add_internal_cmd(&Nodecmds, "LAng", 2, 1, do_lang);
 	add_internal_cmd(&Nodecmds, "HRD", 3, 1, do_hrd);
 	add_internal_cmd(&Nodecmds, "Mheard", 1, 1, do_mheard);
 	add_internal_cmd(&Nodecmds, "NEtrom", 2, 1, do_netrom);
+	add_internal_cmd(&Nodecmds, "NNetrom", 2, 1, do_nnetrom);
 	add_internal_cmd(&Nodecmds, "ROse",    2, 1, do_rose_ckt);
 	add_internal_cmd(&Nodecmds, "RS_NEigh", 4, 1, do_rs_neigh);
 	add_internal_cmd(&Nodecmds, "RS_NOdes", 4, 1, do_rs_nodes);
@@ -3353,6 +3390,103 @@ int do_netrom(int argc, char **argv)
 			node_msg("No such node %s", argv[i]);
 		}
 	}
+	return 0;
+}
+
+/*
+ * F6BVP 2026-11-02: NNetrom (NN), the NetRom neighbours of this node, as
+ * listed by /proc/net/nr_neigh. Replaces the external commands NRNEigh
+ * (cat /proc/net/nr_neigh) that sysops had in fpac.conf. Same columns as
+ * the kernel file; in colour, the quality follows the rule of NEtrom
+ * (nr_qcolor()) and the "failed" count is red once it reaches
+ * link_fails_count. The callsign shows the AX.25 link under the
+ * neighbour: colour "netrom connected" when it is up, colour "netrom
+ * neigh_idle" (light yellow) when there is none (NetRom opens it on
+ * demand and closes it when idle). A
+ * neighbour whose link is awaiting connection (unanswered SABM) is marked
+ * "SABM n/N".
+ */
+int do_nnetrom(int argc, char **argv)
+{
+	FILE *fp;
+	char line[256], call[16], dev[16];
+	int addr, qual, lock, count, failed, pos;
+	int n2count, n2, pending, limit, n = 0;
+
+	if ((argc > 1) && (*argv[1] == '?'))
+	{
+		node_msg("usage : nn");
+		return 0;
+	}
+
+	if ((fp = fopen("/proc/net/nr_neigh", "r")) == NULL)
+	{
+		node_msg("No NetRom neighbour - NetRom is probably not configured on this system");
+		return 0;
+	}
+
+	if (fgets(line, sizeof(line), fp) == NULL)	/* header */
+	{
+		fclose(fp);
+		node_msg("No NetRom neighbour");
+		return 0;
+	}
+
+	limit = nr_fails_limit();
+	node_msg("NetRom Neighbours:");
+	if (Colored)
+		tprintf("%saddr  callsign  dev  qual lock count failed digipeaters%s\n",
+				NodeColors.en_tete, ResetColor);
+	else
+		tprintf("addr  callsign  dev  qual lock count failed digipeaters\n");
+
+	while (fgets(line, sizeof(line), fp) != NULL)
+	{
+		line[strcspn(line, "\n")] = '\0';
+		pos = 0;
+		if (sscanf(line, "%d %15s %15s %d %d %d %d%n",
+			   &addr, call, dev, &qual, &lock, &count, &failed, &pos) != 7)
+		{
+			tprintf("%s\n", line);
+			continue;
+		}
+		n++;
+		pending = nr_link_pending(call, &n2count, &n2);
+		if (Colored)
+		{
+			int st = nr_neigh_link_state(call);
+			const char *ccol = (st == 3 || st == 4)
+				? NodeColors.netrom_connected
+				: pending ? NodeColors.qualite_nulle
+				: NodeColors.netrom_neigh_idle;
+			const char *fcol = (failed >= limit)
+				? NodeColors.qualite_nulle
+				: (failed > 0) ? NodeColors.qualite_moyenne : "";
+			tprintf("%05d %s%-9s%s %-4s  %s%3d%s    %d   %3d    %s%3d%s%s",
+					addr,
+					ccol, call, ResetColor,
+					dev,
+					nr_qcolor(qual, pending ? 999 : failed, limit, 0), qual, ResetColor,
+					lock, count,
+					fcol, failed, ResetColor,
+					line + pos);
+			if (pending)
+				tprintf("  %sSABM %d/%d%s", NodeColors.qualite_nulle,
+						n2count, n2, ResetColor);
+		}
+		else
+		{
+			tprintf("%05d %-9s %-4s  %3d    %d   %3d    %3d%s",
+					addr, call, dev, qual, lock, count, failed, line + pos);
+			if (pending)
+				tprintf("  SABM %d/%d", n2count, n2);
+		}
+		tprintf("\n");
+	}
+	fclose(fp);
+
+	if (n == 0)
+		node_msg("No NetRom neighbour");
 	return 0;
 }
 

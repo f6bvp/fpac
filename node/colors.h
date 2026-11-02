@@ -47,6 +47,7 @@ typedef struct {
     /* [netrom] */
     char netrom_connected[COLOR_LEN]; /* voisin NET-ROM joignable       */
     char netrom_idle[COLOR_LEN];      /* voisin non joignable (-----)   */
+    char netrom_neigh_idle[COLOR_LEN];/* NNetrom : voisin sans liaison  */
 
     /* [noeuds] liste de la commande Nodes */
     char noeud_joignable[COLOR_LEN];  /* un voisin ouvert y mene        */

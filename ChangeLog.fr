@@ -3,6 +3,21 @@ Les noms de fichiers, de fonctions et de variables sont conservés tels quels.
 
 fpac (4.2-rc1)
 
+	* fpacnode : nouvelle commande NNetrom (NN suffit), les voisins
+	  NetRom de /proc/net/nr_neigh (do_nnetrom(), node/command.c).
+	  Mêmes colonnes que le fichier du noyau ; en couleur, la qualité
+	  suit la règle de NEtrom, le nombre d'échecs passe au rouge dès
+	  qu'il atteint link_fails_count, l'indicatif prend la couleur
+	  « netrom connected » quand la liaison AX.25 vers le voisin est
+	  établie et la nouvelle couleur « neigh_idle » de [netrom] dans
+	  fpacnode.colors quand il n'y en a pas (jaune clair par défaut,
+	  nouveau nom de couleur jaune_clair, palette à 256 couleurs) (/proc/net/ax25,
+	  nr_neigh_link_state()), et un voisin dont la liaison
+	  AX.25 attend la connexion est marqué « SABM n/N ». Elle remplace
+	  les commandes externes NRNEigh / NR_NEigh (cat /proc/net/nr_neigh)
+	  de fpac.conf, que l'on peut retirer, comme NRNOdes / NR_NOdes :
+	  NEtrom liste déjà /proc/net/nr_nodes. Nouveau fichier d'aide
+	  NNetrom.hlp.
 	* wpmaint : une fiche marquée supprimée est effacée la nuit où elle
 	  atteint le délai d'effacement (-e, 7 jours), et non plus une nuit
 	  plus tard. wpmaint pose lui-même del_date quand le cron nocturne

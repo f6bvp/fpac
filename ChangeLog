@@ -1,5 +1,19 @@
 fpac (4.2-rc1)
 
+	* fpacnode: new NNetrom command (NN is enough), the NetRom
+	  neighbours of /proc/net/nr_neigh (do_nnetrom(), node/command.c).
+	  Same columns as the kernel file; in colour, the quality follows
+	  the rule of NEtrom, the failed count turns red once it reaches
+	  link_fails_count, the callsign takes the "netrom connected"
+	  colour when the AX.25 link to the neighbour is up and the new
+	  "neigh_idle" colour of [netrom] in fpacnode.colors (default
+	  light yellow, new colour name jaune_clair, 256-colour palette)
+	  when there is none (/proc/net/ax25, nr_neigh_link_state()),
+	  and a neighbour whose AX.25 link is awaiting
+	  connection is marked "SABM n/N". It replaces the external
+	  commands NRNEigh / NR_NEigh (cat /proc/net/nr_neigh) of
+	  fpac.conf, which can be removed, as NRNOdes / NR_NOdes: NEtrom
+	  already lists /proc/net/nr_nodes. New help file NNetrom.hlp.
 	* wpmaint: a record marked deleted is erased on the night it reaches
 	  the erase delay (-e, 7 days), no longer one night later. wpmaint
 	  stamps del_date itself when the nightly cron runs, a few seconds
