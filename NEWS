@@ -20,6 +20,11 @@ FPAC 4.2-rc1 — dynamic ROSE routes (release candidate, experimental)
     says so, with the list of the ports; a port that axports does not
     know is refused with the same list.
 
+  * fpacwpd sends at once every White Pages message to its neighbours.
+    The last message of a vector exchange could stay in a send cache
+    until any other client came, sometimes for a long time: a local
+    "S" in fpacnode was enough to make it leave.
+
   * Nothing changes on a node that does not ask for it: the feature
     is off until RouteAnnounce or RouteLearn is set in fpac.conf, and
     a neighbour takes part only with "Route = yes" in its Node block.

@@ -1194,6 +1194,12 @@ int main(int argc, char *argv[])
 		else {
 			poll_adjacents();
 		}
+		/* F6BVP 2026-11-02: wp_send_pdu() keeps the last messages in
+		 * a cache that is only sent when writing to another socket.
+		 * The last message of a vector exchange stayed there until
+		 * any other client came (a local "S" in fpacnode sent it to
+		 * F4KLO 13 s late). Send it before waiting again. */
+		wp_flush_pdu();
 	}
 return 0;
 }
