@@ -584,6 +584,14 @@ F5ZHO. Noting that is enough.
    used: the route stays on the provenance seen before (for example
    the direct neighbour), or no route is made, and the log says
    "came from X, which learns its routes from us: not used".
+   Exception: a node in a block of addresses (same DNIC and same
+   first five digits, ROSE mask 9) that belongs to that neighbour
+   alone - shared neither with this node nor with another neighbour -
+   stands behind that neighbour, which does not learn it from us; its
+   record is used. Example: F3KT-6 (`2080444503`) relayed by F3KT-11
+   (`2080444501`) when F3KT learns its routes from f6bvp-8. A shared
+   block such as `2080 17552x` (f6bvp-8, F6BVP-5, F6BVP-11) gives no
+   such certainty.
 4. **Limits.** Node addresses only (mask 10); the DNICs remain the
    business of `RouteOrigin`. These routes are not announced to the
    neighbours: each node draws its own from its White Pages. A
@@ -1188,6 +1196,14 @@ F5ZHO. Il suffit de le noter.
    reste sur la provenance vue avant (par exemple le voisin direct),
    ou aucune route n'est faite, et le journal l'indique (« came from
    X, which learns its routes from us: not used »).
+   Exception : un nœud d'un bloc d'adresses (même DNIC et mêmes cinq
+   premiers chiffres, masque ROSE 9) qui n'appartient qu'à ce voisin
+   - ni à ce nœud ni à un autre voisin - se trouve derrière ce
+   voisin, qui ne l'apprend pas de nous ; sa fiche est utilisée.
+   Exemple : F3KT-6 (`2080444503`) relayé par F3KT-11 (`2080444501`)
+   quand F3KT apprend ses routes de f6bvp-8. Un bloc partagé comme
+   `2080 17552x` (f6bvp-8, F6BVP-5, F6BVP-11) ne donne pas cette
+   certitude.
 4. **Limites.** Adresses de nœuds seulement (masque 10) ; les DNIC
    restent l'affaire de `RouteOrigin`. Ces routes ne sont pas
    annoncées aux voisins : chaque nœud tire les siennes de ses

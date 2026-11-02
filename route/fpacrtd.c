@@ -71,6 +71,9 @@
 #define N_CONNECTING	1
 #define N_UP		2
 
+/* Digits of a ROSE address (DNIC included) that make a neighbour's block */
+#define RT_BLOCK_DIGITS	9
+
 struct rt_neigh {
 	char	name[20];
 	char	call[10];	/* L3 callsign of the neighbour */
@@ -570,6 +573,27 @@ static void dest_update(struct rt_dest *d)
 }
 
 /*
+ * Is <addr> in the block of addresses of neighbour <i> alone (same DNIC
+ * and first five digits, ROSE mask 9), shared neither with this node nor
+ * with another neighbour? Such a node stands behind that neighbour, which
+ * does not learn it from us: F3KT-6 2080444503 behind F3KT-11 2080444501.
+ * A block we share (2080 17552x: f6bvp-8, F6BVP-5, F6BVP-11) gives no
+ * such certainty.
+ */
+static int in_neigh_block(const char *addr, int i)
+{
+	int j;
+
+	if (strncmp(addr, neigh[i].addr, RT_BLOCK_DIGITS) != 0
+	    || strncmp(addr, cfg.fulladdr, RT_BLOCK_DIGITS) == 0)
+		return 0;
+	for (j = 0; j < nb_neigh; j++)
+		if (j != i && strncmp(addr, neigh[j].addr, RT_BLOCK_DIGITS) == 0)
+			return 0;
+	return 1;
+}
+
+/*
  * Routes drawn from the White Pages (RouteWp, specification section 19).
  * fpacwpd notes in each node record the adjacent server it took the record
  * from (wp_get_origin()); that neighbour leads to the node, since it had
@@ -618,9 +642,12 @@ static void wp_scan(void)
 		 * A neighbour we announce our routes to takes its routes from
 		 * us: that it relayed the record does not show it leads to the
 		 * node, and it may route the node back through us (loop).
-		 * Keep the provenance we had, if any.
+		 * Keep the provenance we had, if any. Except for a node in a
+		 * block of addresses that belongs to that neighbour alone, see
+		 * in_neigh_block().
 		 */
-		if (rt_announce && !neigh[found].excluded)
+		if (rt_announce && !neigh[found].excluded
+		    && !in_neigh_block(addr, found))
 		{
 			if (d->wp_down != found)
 			{

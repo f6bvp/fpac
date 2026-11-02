@@ -3,6 +3,15 @@ Les noms de fichiers, de fonctions et de variables sont conservés tels quels.
 
 fpac (4.2-rc1)
 
+	* fpacrtd : RouteWp utilise de nouveau une fiche relayée par un
+	  voisin qui apprend de nous quand le nœud est dans un bloc
+	  d'adresses (même DNIC et mêmes cinq premiers chiffres, masque
+	  ROSE 9, RT_BLOCK_DIGITS) qui n'appartient qu'à ce voisin, ni à
+	  ce nœud ni à un autre voisin (in_neigh_block()) : un tel nœud se
+	  trouve derrière le voisin, qui ne l'apprend pas de nous. Sans
+	  cela, déclarer F3KT apprenant aurait fait perdre à f6bvp-8 sa
+	  route vers F3KT-6 (2080444503 via F3KT-11 2080444501). Les
+	  boucles du 02/11/2026 restent bloquées.
 	* fpacnode : nouvelle commande NNetrom (NN suffit), les voisins
 	  NetRom de /proc/net/nr_neigh (do_nnetrom(), node/command.c).
 	  Mêmes colonnes que le fichier du noyau ; en couleur, la qualité

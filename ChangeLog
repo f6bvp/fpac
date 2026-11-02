@@ -1,5 +1,13 @@
 fpac (4.2-rc1)
 
+	* fpacrtd: RouteWp uses again a record relayed by a neighbour that
+	  learns from us when the node is in a block of addresses (same
+	  DNIC and first five digits, ROSE mask 9, RT_BLOCK_DIGITS) that
+	  belongs to that neighbour alone, shared neither with this node
+	  nor with another neighbour (in_neigh_block()): such a node stands
+	  behind the neighbour, which does not learn it from us. Without it, declaring F3KT as a
+	  learner would have cost f6bvp-8 its route to F3KT-6 (2080444503
+	  via F3KT-11 2080444501). The loops of 2 Nov 2026 stay blocked.
 	* fpacnode: new NNetrom command (NN is enough), the NetRom
 	  neighbours of /proc/net/nr_neigh (do_nnetrom(), node/command.c).
 	  Same columns as the kernel file; in colour, the quality follows
