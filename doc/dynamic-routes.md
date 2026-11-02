@@ -572,6 +572,18 @@ F5ZHO. Noting that is enough.
    neighbour is F5ZHO-9. Should a 4.1 neighbour send the call back,
    the kernel clears it as a loop (cause 0D, diagnostic 120): no
    storm.
+   **Correction (2026-11-02).** The provenance tells where the
+   record came from, not where the neighbour sends a call: the
+   neighbour routes with its own tables. A neighbour we announce our
+   routes to (`RouteAnnounce = yes` and `Route = yes` in its `Node`
+   block) takes its routes from us, often through a whole DNIC
+   (`2080/4` towards us): a record it relayed would send the call
+   back to us. Seen on 2026-11-02: f6bvp-8 routed F3KT-6 through
+   f6bvp-12 (03:00-09:15) and F5ZHO-8 through f6bvp-10, both of which
+   route `2080` through f6bvp-8. Such a provenance is therefore not
+   used: the route stays on the provenance seen before (for example
+   the direct neighbour), or no route is made, and the log says
+   "came from X, which learns its routes from us: not used".
 4. **Limits.** Node addresses only (mask 10); the DNICs remain the
    business of `RouteOrigin`. These routes are not announced to the
    neighbours: each node draws its own from its White Pages. A
@@ -1164,6 +1176,18 @@ F5ZHO. Il suffit de le noter.
    est le voisin direct. Si un voisin en 4.1 renvoyait l'appel, le
    noyau le refuserait comme boucle (cause 0D, diagnostic 120) : pas
    de tempête.
+   **Correction (02/11/2026).** La provenance dit d'où vient la
+   fiche, pas où le voisin envoie un appel : le voisin route avec ses
+   propres tables. Un voisin à qui nous annonçons nos routes
+   (`RouteAnnounce = yes` et `Route = yes` dans son bloc `Node`) prend
+   ses routes chez nous, souvent par tout un DNIC (`2080/4` vers
+   nous) : une fiche qu'il a relayée renverrait l'appel chez nous. Vu
+   le 02/11/2026 : f6bvp-8 routait F3KT-6 par f6bvp-12 (03:00-09:15)
+   et F5ZHO-8 par f6bvp-10, qui routent tous deux `2080` par
+   f6bvp-8. Une telle provenance n'est donc pas utilisée : la route
+   reste sur la provenance vue avant (par exemple le voisin direct),
+   ou aucune route n'est faite, et le journal l'indique (« came from
+   X, which learns its routes from us: not used »).
 4. **Limites.** Adresses de nœuds seulement (masque 10) ; les DNIC
    restent l'affaire de `RouteOrigin`. Ces routes ne sont pas
    annoncées aux voisins : chaque nœud tire les siennes de ses

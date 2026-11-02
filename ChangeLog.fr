@@ -18,6 +18,13 @@ fpac (4.2-rc1)
 	  de fpac.conf, que l'on peut retirer, comme NRNOdes / NR_NOdes :
 	  NEtrom liste déjà /proc/net/nr_nodes. Nouveau fichier d'aide
 	  NNetrom.hlp.
+	* fpacrtd : RouteWp n'utilise plus une fiche White Pages relayée par
+	  un voisin à qui nous annonçons nos routes. Un tel voisin prend ses
+	  routes chez nous et peut renvoyer l'appel : le 02/11/2026,
+	  f6bvp-8 routait F3KT-6 par f6bvp-12 et F5ZHO-8 par f6bvp-10, qui
+	  routent tous deux 2080 par f6bvp-8 (boucle). La provenance vue
+	  avant est gardée, ou aucune route n'est faite, et le journal
+	  l'indique (spécification, section 19, point 3).
 	* wpmaint : une fiche marquée supprimée est effacée la nuit où elle
 	  atteint le délai d'effacement (-e, 7 jours), et non plus une nuit
 	  plus tard. wpmaint pose lui-même del_date quand le cron nocturne

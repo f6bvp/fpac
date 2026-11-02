@@ -14,6 +14,13 @@ fpac (4.2-rc1)
 	  commands NRNEigh / NR_NEigh (cat /proc/net/nr_neigh) of
 	  fpac.conf, which can be removed, as NRNOdes / NR_NOdes: NEtrom
 	  already lists /proc/net/nr_nodes. New help file NNetrom.hlp.
+	* fpacrtd: RouteWp no longer uses a White Pages record relayed by a
+	  neighbour we announce our routes to. Such a neighbour takes its
+	  routes from us and may send the call back: on 2 Nov 2026 f6bvp-8
+	  routed F3KT-6 through f6bvp-12 and F5ZHO-8 through f6bvp-10,
+	  which both route 2080 through f6bvp-8 (loop). The provenance
+	  seen before is kept, or no route is made, and the log says so
+	  (specification, section 19, point 3).
 	* wpmaint: a record marked deleted is erased on the night it reaches
 	  the erase delay (-e, 7 days), no longer one night later. wpmaint
 	  stamps del_date itself when the nightly cron runs, a few seconds

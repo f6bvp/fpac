@@ -101,6 +101,7 @@ struct rt_dest {
 	int	sent[RT_MAX_NEIGH];	/* Cost last announced + 1, 0 = none */
 	int	wp;		/* Neighbour the White Pages record came from, -1 = none */
 	int	wp_seen;	/* Record found by the last wp_scan() */
+	int	wp_down;	/* Last provenance ignored (learns from us), -1 = none */
 	int	installed;	/* Neighbour index of the kernel route, -1 = none */
 	char	inst_call[10];
 	char	inst_dev[16];
@@ -268,6 +269,7 @@ static struct rt_dest *dest_find(const char *addr, int mask, int create)
 		 mask, addr, 10 - mask, "0000000000");
 	dest[nb_dest].mask = mask;
 	dest[nb_dest].wp = -1;
+	dest[nb_dest].wp_down = -1;
 	dest[nb_dest].installed = -1;
 	dest[nb_dest].manual = is_manual(addr, mask);
 	return &dest[nb_dest++];
@@ -612,6 +614,25 @@ static void wp_scan(void)
 			continue;	/* came from a server that is not a neighbour */
 		if ((d = dest_find(addr, 10, 1)) == NULL || d->own)
 			continue;
+		/*
+		 * A neighbour we announce our routes to takes its routes from
+		 * us: that it relayed the record does not show it leads to the
+		 * node, and it may route the node back through us (loop).
+		 * Keep the provenance we had, if any.
+		 */
+		if (rt_announce && !neigh[found].excluded)
+		{
+			if (d->wp_down != found)
+			{
+				rt_log(LOG_INFO, "White Pages: %s %s/10 came from %s, which learns its routes from us: not used",
+				       ax25_ntoa(&wp.address.srose_call), addr, neigh[found].call);
+				d->wp_down = found;
+			}
+			if (d->wp >= 0)
+				d->wp_seen = 1;
+			continue;
+		}
+		d->wp_down = -1;
 		d->wp_seen = 1;
 		if (d->wp != found)
 		{
