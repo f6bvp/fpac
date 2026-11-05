@@ -1056,15 +1056,12 @@ FSA*/
 								ax25_ntoa(&facilities.fail_call),
 								fpac2asc(&facilities.fail_addr));
 					}
-					else
-	/*				node_msg("facilities error %d %s\n", errno, strerror(errno));*/
 					node_msg(T("*** Failure with %s%s"), User.dl_name, origin);
 					node_msg("*** %s", cp);
 					free(cp);
 					if (out_cause)
 						*out_cause = rose_cause;
 
-/*				node_msg("fail call : %s at adresse %s\n", ax25_ntoa(&facilities.fail_call), fpac2asc(&facilities.fail_addr)); 					*/
 				}
 				close(fd);
 				return -1;
@@ -1823,7 +1820,6 @@ rose_retry:
 					ax25_ntoa(&facilities.fail_call),
 					fpac2asc(&facilities.fail_addr));
 		}
-		else
 
 		if (*origin)
 			node_msg(T("*** Disconnected%s"), origin);

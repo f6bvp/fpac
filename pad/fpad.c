@@ -1011,16 +1011,6 @@ syslog(LOG_INFO,"new connection on AF_INET (%d)\n", fd_tcp);
 					ioctl(u->fd, SIOCRSGCAUSE, &rose_cause); 
 
 					buffer[0] = 0xf0;
-					if ((i = ioctl(u->fd, SIOCRSGFACILITIES, &facilities)) == ENOIOCTLCMD) {
-						syslog(LOG_INFO,"\nNo system facilities available\n");
-						fprintf(stderr, "\nNo system facilities available\n");
-						syslog(LOG_ERR, "\nNo system facilities available\n");
-					}
-					else {
-						syslog(LOG_INFO,"\nSystem facilities returned %d\n", i);
-						fprintf(stderr, "\nSystem facilities returned %d\n", i);
-						syslog(LOG_ERR, "\nSystem facilities returned %d\n", i);
-					}
 				if (u->state == CONNECTED)
 					{
 						origin[0] = '\0';
@@ -1042,8 +1032,6 @@ syslog(LOG_INFO,"new connection on AF_INET (%d)\n", fd_tcp);
 					}
 					else
 					{
-			syslog(LOG_INFO,"facilities error %d : %s\n", errno, strerror(errno));
-			syslog(LOG_INFO, "%s\n", buffer); 						
 						sprintf(buffer+1, "*** No answer from %s\r*** %02X%02X - %s\r",
 							u->user,
 							rose_cause.cause, 
