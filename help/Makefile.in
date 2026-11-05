@@ -296,6 +296,9 @@ doc_DATA = Alias.hlp \
 	CLuster.hlp \
 	Destinations.hlp \
 	DNic.hlp \
+	DOc.hlp \
+	_doc.en \
+	_doc.fr \
 	Help.hlp \
 	Info.hlp \
 	NEtrom.hlp \

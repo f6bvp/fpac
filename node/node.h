@@ -186,6 +186,8 @@ extern int do_lang(int argc, char **argv);
 extern int do_qsl(int argc, char **argv);
 extern void lang_init(void);
 extern const char *T(const char *en);
+#define LANG_EN 0
+#define LANG_FR 1
 extern int UserLang;
 extern int do_bye(int argc, char **argv);
 extern int do_color(int argc, char **argv);

@@ -1,5 +1,22 @@
 fpac (4.2-rc1)
 
+	* fpacnode: new command DOc (do_doc() in node/command.c) showing
+	  help/_doc.fr or help/_doc.en after UserLang, installed in
+	  FPAC_HELP_DIR; the names start with '_' so that "Help <cmd>"
+	  never picks them. New help file DOc.hlp. LANG_EN and LANG_FR
+	  move from node/lang.c to node/node.h.
+	* gateway.c: the "*** Failure with" and "*** Disconnected at"
+	  messages were the body of an else left over from a commented
+	  out debugging line; fpad.c: the "System facilities returned"
+	  messages are removed (SIOCRSGFACILITIES is not implemented by
+	  the kernel).
+	* The "DEBUG F6BVP" debugging leftovers are removed from fpad,
+	  fpacconf, fpacnode, gateway, fpacwpd, db, sockevent, libwp,
+	  listen and fpacroute. In new_l2_connection() the debugging
+	  syslog() had become the only statement under the if that keeps
+	  out of the White Pages a user reached through another node:
+	  wp_update_addr() is conditional again.
+
 	* fpacrtd: routes in both directions (specification, section 20).
 	  Feasibility condition in dest_best(): a neighbour is used only
 	  when the cost it announces is strictly lower than the reference

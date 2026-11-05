@@ -75,6 +75,7 @@ int wpcheck(void)
 
 /* prototypes anticipés */
 int do_hrd(int argc, char **argv);
+int do_doc(int argc, char **argv);
 int do_rs_neigh(int argc, char **argv);
 int do_rs_nodes(int argc, char **argv);
 int do_rose_ckt(int argc, char **argv);
@@ -128,6 +129,7 @@ void init_nodecmds(void)
 	add_internal_cmd(&Nodecmds, "Connect", 1, 1, do_connect);
 	add_internal_cmd(&Nodecmds, "Dest", 1, 1, do_dest);
 	add_internal_cmd(&Nodecmds, "DNic", 2, 1, do_dnic);
+	add_internal_cmd(&Nodecmds, "DOc", 2, 1, do_doc);
 	add_internal_cmd(&Nodecmds, "Finger", 1, 1, do_finger);
 	add_internal_cmd(&Nodecmds, "Help", 1, 1, do_help);
 	add_internal_cmd(&Nodecmds, "HOst", 2, 1, do_host);
@@ -1305,6 +1307,33 @@ int do_help(int argc, char **argv)
 	while (fgets(line, 256, fp) != NULL)
 		tputs(line);
 	tputs("\n");
+	fclose(fp);
+	return 0;
+}
+
+/*
+ * DOc: a short description of what the node offers, with examples, in
+ * the language of the user: _doc.fr or _doc.en in the help directory,
+ * which the sysop may adapt. English when there is no French text. The
+ * names start with '_' so that "Help <cmd>" never picks them.
+ */
+int do_doc(int argc, char **argv)
+{
+	FILE *fp = NULL;
+	char line[256];
+	(void)argc; (void)argv;
+
+	if (UserLang == LANG_FR)
+		fp = fopen(FPAC_HELP_DIR "_doc.fr", "r");
+	if (fp == NULL)
+		fp = fopen(FPAC_HELP_DIR "_doc.en", "r");
+	if (fp == NULL)
+	{
+		node_msg("No documentation on this node");
+		return 0;
+	}
+	while (fgets(line, sizeof(line), fp) != NULL)
+		tputs(line);
 	fclose(fp);
 	return 0;
 }

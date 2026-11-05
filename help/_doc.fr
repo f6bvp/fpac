@@ -1,0 +1,31 @@
+Ce que vous offre ce nœud FPAC
+------------------------------
+FPAC est un nœud du réseau ROSE. ROSE achemine votre connexion de
+nœud en nœud à travers le réseau, comme un central téléphonique.
+
+Trouver une station par son indicatif
+  Wp VK7HDM      indique le nœud où se trouve la station, son adresse
+                 ROSE et la date où elle a été vue.
+
+Se connecter à une station par son seul indicatif
+  C VK7HDM-4     le nœud trouve l'adresse dans les Pages Blanches et
+                 achemine l'appel : ni adresse ni chemin à taper.
+                 Celui-ci mène au nœud de Danny à Hobart, en Tasmanie.
+
+Se connecter à une adresse ROSE
+  C F6BVP-8 2080175520
+                 une adresse ROSE se lit comme un numéro de téléphone :
+                 un DNIC de 4 chiffres pour le pays (2080 France,
+                 5050 Australie, 3100 États-Unis), puis 6 chiffres
+                 pour le nœud.
+  DNic           liste les pays et leur DNIC.
+
+En quittant un nœud distant, vous revenez sur celui-ci.
+
+Autres commandes
+  QSl            une carte QSL qui confirme votre connexion, aussi en
+                 image à télécharger
+  Routes         les routes ROSE connues de ce nœud
+  Nodes          les nœuds ROSE ; NEtrom, les nœuds NetRom
+  BBs            la BBS de ce nœud
+  Help <cmd>     l'aide d'une commande ; ? pour la liste

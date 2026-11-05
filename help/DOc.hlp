@@ -1,0 +1,11 @@
+USAGE
+        DOc
+
+DESCRIPTION
+        Shows a short description of what the FPAC node offers,
+        with examples: finding a station in the White Pages,
+        connecting by callsign alone or to a ROSE address, and the
+        main commands. The text is in French or in English, after
+        the language chosen with LAng.
+        The sysop can adapt it: the files are _doc.en and _doc.fr
+        in the help directory of FPAC.

@@ -23,9 +23,6 @@
 
 #include "node.h"
 
-#define LANG_EN 0
-#define LANG_FR 1
-
 int UserLang = LANG_EN;
 
 struct msg_pair

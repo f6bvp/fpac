@@ -3,6 +3,24 @@ Les noms de fichiers, de fonctions et de variables sont conservés tels quels.
 
 fpac (4.2-rc1)
 
+	* fpacnode : nouvelle commande DOc (do_doc() dans
+	  node/command.c) qui affiche help/_doc.fr ou help/_doc.en selon
+	  UserLang, installés dans FPAC_HELP_DIR ; les noms commencent
+	  par « _ » pour que « Help <cmd> » ne les prenne jamais. Nouveau
+	  fichier d'aide DOc.hlp. LANG_EN et LANG_FR passent de
+	  node/lang.c à node/node.h.
+	* gateway.c : les messages « *** Failure with » et
+	  « *** Disconnected at » étaient le corps d'un else resté d'une
+	  ligne de débogage mise en commentaire ; fpad.c : les messages
+	  « System facilities returned » sont retirés
+	  (SIOCRSGFACILITIES n'est pas implémenté par le noyau).
+	* Les restes de débogage « DEBUG F6BVP » sont retirés de fpad,
+	  fpacconf, fpacnode, gateway, fpacwpd, db, sockevent, libwp,
+	  listen et fpacroute. Dans new_l2_connection(), le syslog() de
+	  débogage était devenu la seule instruction sous le if qui
+	  laisse hors des Pages Blanches un utilisateur arrivé par un
+	  autre nœud : wp_update_addr() est de nouveau conditionnel.
+
 	* fpacrtd : routes dans les deux sens (spécification, section
 	  20). Condition de faisabilité dans dest_best() : un voisin
 	  n'est utilisé que si le coût qu'il annonce est strictement

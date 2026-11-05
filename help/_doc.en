@@ -1,0 +1,30 @@
+What this FPAC node offers
+--------------------------
+FPAC is a ROSE network node. ROSE carries your connection from node
+to node across the network, the way a telephone exchange does.
+
+Find a station by its callsign
+  Wp VK7HDM      shows the node where the station lives, its ROSE
+                 address and when it was last seen.
+
+Connect to a station by its callsign alone
+  C VK7HDM-4     the node finds the address in the White Pages and
+                 routes the call for you: no address, no path to type.
+                 This one reaches Danny's node in Hobart, Tasmania.
+
+Connect to a ROSE address
+  C F6BVP-8 2080175520
+                 a ROSE address works like a phone number: a 4-digit
+                 DNIC for the country (2080 France, 5050 Australia,
+                 3100 USA), then a 6-digit node number.
+  DNic           lists the countries and their DNIC.
+
+When you leave a remote node, you come back to this one.
+
+More commands
+  QSl            a QSL card confirming your connection, also as a
+                 picture to download
+  Routes         the ROSE routes known by this node
+  Nodes          the ROSE nodes; NEtrom, the NetRom nodes
+  BBs            the BBS of this node
+  Help <cmd>     help on a command; ? for the list of commands

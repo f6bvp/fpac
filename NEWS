@@ -1,6 +1,19 @@
 FPAC 4.2-rc1 — dynamic ROSE routes (release candidate, experimental)
 ====================================================================
 
+  * New command "DOc" (DO) in fpacnode: a short description of what
+    the node offers, with examples (finding a station in the White
+    Pages, connecting by callsign alone or to a ROSE address, the main
+    commands), in English or French after LAng. The texts, _doc.en and
+    _doc.fr, are installed in the help directory; the sysop may adapt
+    them.
+
+  * fpad again leaves out of the White Pages a user who reached the
+    node through another node, as FPAC 3.27 did: a debugging line had
+    made the update unconditional. The debugging leftovers marked
+    "DEBUG F6BVP" are removed, with the messages fpad logged on every
+    connection and disconnection.
+
   * New daemon fpacrtd: a node can learn ROSE routes from its direct
     neighbours instead of having every one of them written by hand in
     fpac.routes. Node addresses and whole DNICs are exchanged; the
