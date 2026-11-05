@@ -179,7 +179,7 @@ int main(int argc, char **argv)
 			/* keyboard hit */
 			break;
 		}
-/* DEBUG F6BVP : wash out buffer */
+		/* Clear the buffer */
 		for (i=0; i < BUFSIZE; i++)
 			buffer[i] = 0;
 		
@@ -235,7 +235,7 @@ int main(int argc, char **argv)
 			fflush(stdout);
 	}
 	{ ssize_t r = read(STDIN_FILENO, buffer, BUFSIZE); (void)r; }
-/* DEBUG F6BVP : wash out buffer */
+		/* Clear the buffer */
 		for (i=0; i < BUFSIZE; i++)
 			buffer[i] = 0;
 	close(s);

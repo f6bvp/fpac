@@ -214,8 +214,6 @@ char *get_address(int fd, char *address)
 	struct route *f = NULL;
 	static char retaddr[11];
 /*	node_t *n;*/
-/* DEBUG F6BVP
-	char text[256]; */
 
 	/* read the routing table */
 	read_routes();
@@ -236,10 +234,6 @@ char *get_address(int fd, char *address)
 			{
 		node_t * n = cfg.node;
 
-/* DEBUG F6BVP
- * sprintf(text, "n->call '%s' f->addr %s mask %d\n", n->call, f->addr, mask);
- * write (fd, text, strlen(text));		
-*/
 		/* Search the address of the node in the configuration file */
 			while (n)
 			{
@@ -248,25 +242,13 @@ char *get_address(int fd, char *address)
 				strtok(n->call, " \t,;");
 				if (strcasecmp(f->node[nroute], n->call) == 0)
 				{
-/* DEBUG F6BVP
-	sprintf(text,"route [%d] node '%s' mask '%d' dest '%s' ", nroute, f->node[nroute], mask, n->call);
-	write (fd,text, strlen(text));
-*/
 		/* Only return address of a connected neighbour */ 
 				if (node_is_connected(n->call))
 					{	
-/* DEBUG F6BVP
-	sprintf(text, " CONNECTED\n");
-	write (fd, text, strlen(text));	
-*/
 					strcpy(retaddr, n->dnic);
 					strcat(retaddr, n->addr);
 					return retaddr;
 					}
-/* DEBUG F6BVP
-	sprintf (text, "NOT CONNECTED\n");				
-	write (fd, text, strlen(text));
-*/
 				}
 				}
 				n = n->next;

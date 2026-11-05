@@ -464,13 +464,8 @@ int db_open(char *file, wp_t * wpnode)
 
 		/* Check database */
 		db_check();
-/* DEBUG F6BVP node record is systematicaly updated */
-		/* Update 1st record if necessary */
-/*		if (memcmp
-			((char *) wpnode + sizeof(time_t),
-			 (char *) &db_records[0] + sizeof(time_t),
-			 sizeof(wp_t) - sizeof(time_t)) != 0)
-*/		{
+		/* Our own node is the 1st record, always updated */
+		{
 			syslog(LOG_INFO, "Node information updated\n");
 			db_records[0] = *wpnode;
 		}
@@ -785,7 +780,6 @@ void db_compute_vector(int dirty, vector_t * vector)
 	treshold = vector->interval;
 	dirty_first = 0;
 
-/* DEBUG F6BVP */
 	if (verbose) syslog(LOG_INFO,"FPACWPD: compute_vector() threshold = %d", treshold) ;
 
 	for (i = 0; i <= nb_record; i++)
@@ -799,8 +793,6 @@ void db_compute_vector(int dirty, vector_t * vector)
 				((vector->date_base > db_records[sorted_list[i]].date)
 				 && (vector->date_base - db_records[sorted_list[i]].date >=
 					 treshold));
-/* DEBUG F6BVP 
-			if (verbose) syslog(LOG_INFO,"out_timeslot =%d", out_timeslot);*/
 		}
 
 		if (last_done || out_timeslot)
@@ -824,14 +816,10 @@ void db_compute_vector(int dirty, vector_t * vector)
 			dirty_first = i;
 			mycrc[vec_index] = crc;
 			vec_index++;
-/* DEBUG F6BVP 
-		if (verbose) syslog(LOG_INFO,"vec_index =%d ", vec_index)*/;
 			if (vec_index == (WP_VECTOR_SIZE - 1)) 
 				treshold = 0xFFFFFFFF;
 			else
 				treshold = treshold * 2;
-/* DEBUG F6BVP 
-		if (verbose) syslog(LOG_INFO,"i:%d Index = %d / %d threshold = %u / %u", i, vec_index, WP_VECTOR_SIZE, treshold, 0xFFFFFFFF);*/
 			
 			crc16_cumul(NULL, 0);
 			*(unsigned short *) crc_buf = htons(vector->seed);

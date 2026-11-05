@@ -772,14 +772,11 @@ int wp_listen(void)
 	int fd;
 	char *rs_addr;
 
-//DEBUG F6BVP
 	memset(&rose, 0x00, sizeof(struct full_sockaddr_rose));
-//
 	rose.srose_family = AF_ROSE;
 	rose.srose_ndigis = 0;
 	ax25_aton_entry("WP", rose.srose_call.ax25_call);
 	if (!wp_debug) rs_addr = rs_get_addr(NULL);
-// Was rose1. Bug ? F6BVP
 	else rs_addr = rs_get_addr("rose0");
 
 	if (!rs_addr) return -1;

@@ -948,14 +948,9 @@ syslog(LOG_INFO,"new connection on AF_INET (%d)\n", fd_tcp);
 			if ((u->fd != -1) && (FD_ISSET(u->fd, &fdread)))
 			{
 				len = read(u->fd, buffer+2, sizeof(buffer)-2);
-/* DEBUG F6BVP */
-				if (len <= 0)
-/* DEBUG F6BVP */
-/* DEBUG F6BVP */
 				if (len == 0) {
 					fprintf (stderr, "FPAD : CONNECTED read 0 length data\n");
 				}
-/* DEBUG F6BVP */
 				if (len < 0)
 				{
 					connection_done = 0;
@@ -970,9 +965,6 @@ syslog(LOG_INFO,"new connection on AF_INET (%d)\n", fd_tcp);
 					addrlen = sizeof(struct full_sockaddr_rose);
 					if (getpeername(u->fd, (struct sockaddr *)&wp, &addrlen) != -1) 
 					{
-//DEBUG F6BVP
-	syslog(LOG_INFO,"FPAD : connection_done update wp\n");
-//
 						wp_update_addr(&wp);
 					}
 
@@ -1470,9 +1462,7 @@ static int new_l2_connection(int fd, int verbose)
 			
 	strcpy(rsaddr, cfg.fulladdr);
 
-//DEBUG F6BVP
 	if (verbose) syslog(LOG_INFO,"new_L2_connection ndigi %d\n", ndigi);
-//
 	ask_wp = TRUE;
 
 	if (ndigi > 0)
@@ -1535,9 +1525,6 @@ static int new_l2_connection(int fd, int verbose)
 		wpu.srose_digis[n] = exp.fsa_digipeater[exp.fsa_ax25.sax25_ndigis - n - 1];
 
 	if ((wpu.srose_ndigis == 0) || (!wp_is_node(ax25_ntoa(&wpu.srose_digis[wpu.srose_ndigis-1]))))
-//DEBUG F6BVP
-	syslog(LOG_INFO,"new_L2_connection Add the local callsign to the WP");
-//
 		wp_update_addr(&wpu);
 	
 	roseconnect.srose_family = rosebind.srose_family = AF_ROSE;
@@ -1789,12 +1776,6 @@ static int new_l3_connection(int fd, char *port, int verbose)
 
 	/* Add requester in the WP */
 
-//DEBUG F6BVP
-	syslog(LOG_INFO,"FPAD : new_L3_connection Add requester in the WP\n");
-//
-//DEBUG F6BVP
-	syslog(LOG_INFO,"FPAD : new_L3_connection Add requester in the WP\n");
-//
 	if (wp_update_addr(&rsexp) != 0) 
 		syslog(LOG_ERR, "FPAD : new_l3_connection() cannot create/update wprecord\n");
 

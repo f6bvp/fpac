@@ -507,7 +507,7 @@ static void rose_read_handler(int s)
 		  else {
 			  if (verbose) syslog(LOG_INFO, "Receiving vector request from %s", rose_ntoa(&context[s]->address.srose_addr));
 			  db_compute_vector(s, &pdu.data.vector);
-/*DEBUG F6BVP */  if (verbose) debug_pdu(&pdu);
+			  if (verbose) debug_pdu(&pdu);
 			  pdu.type = wp_type_vector_response;
 			  if (verbose) syslog(LOG_INFO, "Sending vector response to %s", rose_ntoa(&context[s]->address.srose_addr));
 			  rc = wp_send_pdu(s, &pdu);
@@ -523,7 +523,7 @@ static void rose_read_handler(int s)
 		  else {
 			  if (verbose) syslog(LOG_INFO, "Receiving vector response from %s", rose_ntoa(&context[s]->address.srose_addr));
 			  db_compute_vector(s, &pdu.data.vector);
-/*DEBUG F6BVP */  if (verbose) debug_pdu(&pdu);
+			  if (verbose) debug_pdu(&pdu);
 		  }
 		  break;
 	  case wp_type_end_transaction:
@@ -537,7 +537,6 @@ static void rose_read_handler(int s)
 	  default:
 		  pdu.type = wp_type_response;
 		  pdu.data.status = WP_INVALID_COMMAND;
-/* DEBUG F6BVP 		  rc = wp_send_pdu(s, &pdu); */
 		  break;
 	  }
 	} while (again);
@@ -574,7 +573,6 @@ static void listening_handler(int s)
 	
 	if (init_client(new_client, &address)) return;
 
-/*DEBUG F6BVP */
 	if (!context[new_client]) {
 		if (verbose) syslog(LOG_INFO, "New client context[] empty !");
 		close_client(new_client, 1);
@@ -644,7 +642,6 @@ static void listening_handler(int s)
 				 * to be "???", which told nothing in the log. */
 				snprintf(node->name, sizeof(node->name), "%s", fulladdr);
 				strcpy(node->call, "???");
-// DEBUG F6BVP
 				if (verbose) syslog(LOG_INFO, "listening_handler New client fulladdr %s node %s %s", fulladdr, node->dnic, node->addr);
 //
 				context[new_client]->adjacent = wpa;
@@ -780,8 +777,7 @@ static void vector_request(struct wp_adjacent *wpa)
 	vector.seed = random();
 	db_compute_vector(-1, &vector);
 	pdu.data.vector = vector;
-/*DEBUG F6BVP */
-      	if (verbose) debug_pdu(&pdu);
+	if (verbose) debug_pdu(&pdu);
 	rc = wp_send_pdu(s, &pdu);
 	if (rc < 0) {
 		if (verbose) syslog(LOG_INFO, "Sending vector request FAILED !");
@@ -1030,14 +1026,6 @@ static void debug_pdu(wp_pdu *pdu)
 			strcat(str, " ");
 	}
 	syslog(LOG_INFO, "%s", str);
-*/
-// DEBUG F6BVP
-//	syslog(LOG_INFO, "ROSE Call %s ROSE address %s", pdu->data.wp.address.srose_call, pdu->data.wp.address.srose_addr);
-/*			
-	for (i = 0 ; i < ax25_ntoa(&context[client]->address.srose_ndigis) ; i++)
-		syslog(LOG_INFO,"%-9s ", ax25_ntoa(&context[client]->address.srose_digis[i]));
-	syslog(LOG_INFO,"%s %s %s", ax25_ntoa(&context[client]->name, &context[client]->city, &context[client]->locator));
-	syslog(LOG_INFO," ");
 */
 }
 

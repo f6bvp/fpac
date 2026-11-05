@@ -205,7 +205,6 @@ static int l3_conf(int verbose)
 	/* Add routes to adjacents */
 	r = cfg.route;
 
-	/* DEBUG F6BVP */
 	if ((r->nodes == NULL) || (r->addr == NULL)) 
 			fprintf(stderr, "FPAD WARNING : no node or routed address configured !\n");
 	else

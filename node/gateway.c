@@ -681,8 +681,6 @@ static int connect_to(char *address[], int family, int escape, char *source,
 			++pos;
 			addrlen = strlen(address[pos]);
 		}
-// DEBUG F6BVP
-//		node_msg(T("ROSE address DNIC : %s , %s - %d digits"), path, address[pos], addrlen);
 
 		if ((addrlen != 6) && (addrlen != 10))
 		{
@@ -752,10 +750,6 @@ static int connect_to(char *address[], int family, int escape, char *source,
 		
 		addrlen = sizeof(struct full_sockaddr_rose);
 		
-// DEBUG F6BVP
-//		node_msg(T("ROSE address : %s via : %s"), path, address[pos]);
-//		node_msg("Connnect_to() digi %s", ax25_ntoa(&sockaddr.rose.srose_digis[0].ax25_call));
-//				
 		paclen = rs_config_get_paclen(NULL); 
 		eol = ROSE_EOL;
 		break;
@@ -1049,11 +1043,6 @@ FSA*/
 				}
 				else
 				{
-/* DEBUG F6BVP 			i = ioctl(fd, SIOCRSGFACILITIES, &facilities); 
-					syslog(LOG_INFO,"\nSystem facilities returned %d\n", i);
-					fprintf(stderr, "\nSystem facilities returned %d\n", i);
-					syslog(LOG_ERR, "\nSystem facilities returned %d\n", i);
-*/				
 					/* Get the cause and diag */
 					rose_cause.cause = ROSE_LOCAL_PROCEDURE;
 					rose_cause.diagnostic = 0;

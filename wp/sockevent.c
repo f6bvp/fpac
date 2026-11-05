@@ -46,9 +46,6 @@ int WaitEvent(int MilliSecTimeout)
 	for (i=0; i<3; i++) FdSet[i] = ActiveSet[i];
 
 	rc = select(FD_SETSIZE, &FdSet[0], &FdSet[1], &FdSet[2], &Timeout);
-/* DEBUG F6BVP
-	if (rc == -1) perror("WaitEvent : select");
-	if (rc == 0) wp_flush_pdu();*/
 	if (rc < 0 && errno == EBADF) {
 		/*
 		 * F6BVP 2026-09-29: a registered fd was closed without being
