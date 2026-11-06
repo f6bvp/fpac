@@ -3,6 +3,10 @@ Les noms de fichiers, de fonctions et de variables sont conservés tels quels.
 
 fpac (4.2-rc1)
 
+	* gateway.c : les causes de libération ROSE données par reason()
+	  (« No Route Opened for address specified »...) sont affichées
+	  par T(), avec leur traduction française dans node/lang.c ;
+	  fpaclog garde le texte anglais.
 	* fpacnode : nouvelle commande DOc (do_doc() dans
 	  node/command.c) qui affiche help/_doc.fr ou help/_doc.en selon
 	  UserLang, installés dans FPAC_HELP_DIR ; les noms commencent

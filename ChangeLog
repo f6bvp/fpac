@@ -1,5 +1,9 @@
 fpac (4.2-rc1)
 
+	* gateway.c: the ROSE clear causes given by reason() ("No Route
+	  Opened for address specified"...) are shown through T(), with
+	  their French translations in node/lang.c; fpaclog keeps the
+	  English text.
 	* fpacnode: new command DOc (do_doc() in node/command.c) showing
 	  help/_doc.fr or help/_doc.en after UserLang, installed in
 	  FPAC_HELP_DIR; the names start with '_' so that "Help <cmd>"

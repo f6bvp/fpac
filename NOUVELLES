@@ -1,6 +1,10 @@
 FPAC 4.2-rc1 — routes ROSE dynamiques (version candidate, expérimentale)
 ========================================================================
 
+  * En français, la cause d'un appel ROSE en échec est traduite elle
+    aussi (« Aucune route ouverte vers l'adresse demandée » au lieu de
+    « No Route Opened for address specified », et les autres causes).
+
   * Nouvelle commande « DOc » (DO) dans fpacnode : un court descriptif
     de ce qu'offre le nœud, avec des exemples (trouver une station dans
     les Pages Blanches, se connecter par le seul indicatif ou à une

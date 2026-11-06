@@ -204,6 +204,8 @@ char *get_address(int fd, char *address)
 }
 
 
+/* Texts kept in English here (they also go to fpaclog); translated with
+ * T() only where they are shown to the user. */
 static char *reason(unsigned char cause)
 {
 	static char *desc;
@@ -989,7 +991,7 @@ FSA*/
 				break;
 			}
 			node_msg(T("*** Failure with %s"), User.dl_name);
-			node_msg("*** %s", reason(rose_cause.cause));
+			node_msg("*** %s", T(reason(rose_cause.cause)));
 			if (out_cause)
 				*out_cause = rose_cause;
 		}
@@ -1057,7 +1059,7 @@ FSA*/
 								fpac2asc(&facilities.fail_addr));
 					}
 					node_msg(T("*** Failure with %s%s"), User.dl_name, origin);
-					node_msg("*** %s", cp);
+					node_msg("*** %s", T(cp));
 					free(cp);
 					if (out_cause)
 						*out_cause = rose_cause;
@@ -1837,7 +1839,7 @@ rose_retry:
 		}
 
 		node_msg("*** %02X%02X - %s", rose_cause.cause,
-				 rose_cause.diagnostic, reason(rose_cause.cause));
+				 rose_cause.diagnostic, T(reason(rose_cause.cause)));
 
 	}
 
