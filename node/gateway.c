@@ -667,13 +667,24 @@ static int connect_to(char *address[], int family, int escape, char *source,
 
 		addrlen = strlen(address[pos]);
 
+		/* F6BVP 2026-11-13: "c CALL 208 175520" (no such country) copied
+		 * from the NULL of des2dnic(), and "c CALL 2080" or "c CALL FRA"
+		 * (no address after them) took strlen(NULL): fpacnode died. */
 		if (addrlen == 3)
 		{
 			/* Country designator, given as its own argument */
-			memcpy(path, des2dnic(address[pos]), 4);
+			char *dn = des2dnic(address[pos]);
+
+			if (dn == NULL)
+			{
+				node_msg(T("Unknown country designator : %s"), address[pos]);
+				close(fd);
+				return (-1);
+			}
+			memcpy(path, dn, 4);
 			explicit_dnic = 1;
 			++pos;
-			addrlen = strlen(address[pos]);
+			addrlen = address[pos] ? strlen(address[pos]) : 0;
 		}
 		else if (addrlen == 4)
 		{
@@ -681,12 +692,20 @@ static int connect_to(char *address[], int family, int escape, char *source,
 			memcpy(path, address[pos], 4);
 			explicit_dnic = 1;
 			++pos;
-			addrlen = strlen(address[pos]);
+			addrlen = address[pos] ? strlen(address[pos]) : 0;
+		}
+
+		if (address[pos] == NULL)
+		{
+			node_msg(T("ROSE address missing after %s"), address[pos - 1]);
+			close(fd);
+			return (-1);
 		}
 
 		if ((addrlen != 6) && (addrlen != 10))
 		{
 			node_msg(T("Invalid ROSE address DNIC : %s , %s - %d digits"), path, address[pos], addrlen);
+			close(fd);
 			return (-1);
 		}
 
@@ -711,14 +730,19 @@ static int connect_to(char *address[], int family, int escape, char *source,
 		if (!explicit_dnic && addrlen == 6)
 			node_msg(T("*** No DNIC given, assuming the local DNIC : %s @ %s -- give the full address if the correspondent is on another network"), strupr(address[0]), roseaddr(path));
 
-		sprintf(User.dl_name, "%s @ %s", strupr(address[0]), roseaddr(path));
+		/* F6BVP 2026-11-13: dl_name holds 31 characters. A connection
+		 * through two or three digipeaters with an SSID went past its
+		 * end and the C library stopped fpacnode ("buffer overflow
+		 * detected"). The name shown is cut instead. */
+		snprintf(User.dl_name, sizeof(User.dl_name), "%s @ %s", strupr(address[0]), roseaddr(path));
 
 		++pos;
 
 		for (i = pos; address[i]; i++)
 		{
-			strcat(User.dl_name, " ");
-			strcat(User.dl_name, strupr(address[i]));
+			size_t used = strlen(User.dl_name);
+
+			snprintf(User.dl_name + used, sizeof(User.dl_name) - used, " %s", strupr(address[i]));
 		}
 		sockaddr.rose.srose_family = AF_ROSE;
 		sockaddr.rose.srose_ndigis = 0;
@@ -871,8 +895,9 @@ FSA*/
 		sockaddr.ax25.fsa_digipeater[0].ax25_call[6] |= AX25_HBIT;
 		++sockaddr.ax25.fsa_ax25.sax25_ndigis;
 
-		if(address[1] != NULL)	strcpy(User.dl_name, strupr(address[1]));
-		strcpy(User.dl_port, strupr(address[0]));
+		/* F6BVP 2026-11-13: what the user typed, cut to the field */
+		if(address[1] != NULL)	snprintf(User.dl_name, sizeof(User.dl_name), "%s", strupr(address[1]));
+		snprintf(User.dl_port, sizeof(User.dl_port), "%s", strupr(address[0]));
 		sockaddr.ax25.fsa_ax25.sax25_family = AF_AX25;
 		addrlen = sizeof(struct full_sockaddr_ax25);
 		paclen = ax25_config_get_paclen(address[0]);
@@ -1325,6 +1350,7 @@ int do_connect(int argc, char **argv)
 	char destaddr[11];
 	char origin[80];
 	char rsaddr[11];
+	char country_dnic[5];
 	char *source;
 	wp_t wpt;
 	ax25_address ax25;
@@ -1350,10 +1376,14 @@ int do_connect(int argc, char **argv)
 	int argc_before_via = 0;
 	int eff_argc;
 
+	/* F6BVP 2026-11-13: the three buffers held 10 bytes and the word the
+	 * user typed was copied into argvp[2] whatever its length (heap
+	 * overflow). They are now ARGVP_LEN long and filled by snprintf(). */
+#define ARGVP_LEN	64
 	argvp = calloc(10, sizeof(*argvp));
 	argvp_base = argvp;
 	for (n=0 ; n< 3; n++)
-		argvp[n] = calloc(10, sizeof(**argvp));
+		argvp[n] = calloc(ARGVP_LEN, sizeof(**argvp));
 	source = NULL;
 
 	/* Delete the "v" or "via" */
@@ -1489,8 +1519,13 @@ int do_connect(int argc, char **argv)
 		{
 			if ((strlen(argv[2]) == 3) && (des2dnic(argv[2]) != NULL))
 			{
-				/* Digi is a country designator */
-				strcpy(argv[2], des2dnic(argv[2]));
+				/* Digi is a country designator. F6BVP 2026-11-13: its
+				 * DNIC (4 digits) was written over the 3 letters in the
+				 * command line, and its terminating zero erased the first
+				 * character of the next word: "c CALL FRA 175520" lost
+				 * the address. It goes into a buffer of its own. */
+				snprintf(country_dnic, sizeof(country_dnic), "%s", des2dnic(argv[2]));
+				argv[2] = country_dnic;
 				family = AF_ROSE;
 				strncpy(explicit_rose_call, argv[1], sizeof(explicit_rose_call) - 1);
 			}
@@ -1584,9 +1619,9 @@ int do_connect(int argc, char **argv)
 			/* Fallback : connexion via le port par défaut de la configuration */
 			if (eff_argc == 2)
 				netrom_near_help(argv[1]);
-			strcpy(argvp[0], argv[0]);
-			strcpy(argvp[1], cfg.def_port);
-			strcpy(argvp[2], argv[1]);
+			snprintf(argvp[0], ARGVP_LEN, "%s", argv[0]);
+			snprintf(argvp[1], ARGVP_LEN, "%s", cfg.def_port);
+			snprintf(argvp[2], ARGVP_LEN, "%s", argv[1]);
 
 			/* F6BVP 2026-09-16: carry over any explicit "via DIGI..."
 			 * digipeaters instead of silently dropping them -- see
