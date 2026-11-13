@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <syslog.h>
+#include <errno.h>
 #include <ctype.h>
 #include <time.h>
 #include <sys/file.h>
@@ -590,7 +591,17 @@ static void listening_handler(int s)
 				close_client(new_client, 1);
 				break;
 			case WPA_CONNECTING:
-				assert(!getsockname(listening_socket, (struct sockaddr *)&l_address, &l_addrlen));
+				/* F6BVP 2026-11-13: getsockname() was the argument of an
+				 * assert(), which NDEBUG (top of this file) removes: it was
+				 * never called and l_address was compared uninitialized, so
+				 * each side of a crossed call could keep a different
+				 * session and both were lost for WPA_RETRY_CONNECT. If our
+				 * address cannot be read, keep the session we opened. */
+				if (getsockname(listening_socket, (struct sockaddr *)&l_address, &l_addrlen) != 0) {
+					syslog(LOG_WARNING, "listening_handler: getsockname: %s", strerror(errno));
+					close_client(new_client, 1);
+					break;
+				}
 				/* Crossed connection requests : higher calling address win */
 				if (memcmp(&l_address.srose_addr, &address.srose_addr, sizeof(address.srose_addr)) > 0) {
 					if (verbose) syslog(LOG_INFO, "Already connecting to adjacent %s", wpa->node->name);
