@@ -1472,18 +1472,23 @@ static int new_l2_connection(int fd, int verbose)
 		{
 			memcpy(dnic, pdig, 4);
 
-			--ndigi;
-			ptr = ax25_ntoa(&exp.fsa_digipeater[ndigi-1]);
-			len = rose_add(ptr);
+			/* F6BVP 2026-11-13: no digipeater left reads index -1 */
+			if (--ndigi > 0)
+			{
+				ptr = ax25_ntoa(&exp.fsa_digipeater[ndigi-1]);
+				len = rose_add(ptr);
+			}
 		}
 		else if ((len == 4) && (ndigi > 0))
 		{
-			/* Check if dnic */			
+			/* Check if dnic */
 			memcpy(dnic, ptr, 4);
 
-			--ndigi;
-			ptr = ax25_ntoa(&exp.fsa_digipeater[ndigi-1]);
-			len = rose_add(ptr);
+			if (--ndigi > 0)
+			{
+				ptr = ax25_ntoa(&exp.fsa_digipeater[ndigi-1]);
+				len = rose_add(ptr);
+			}
 		}
 
 		/* Check if it the dest digi is a node callsign from wp */
@@ -1501,6 +1506,20 @@ static int new_l2_connection(int fd, int verbose)
 			ask_wp = FALSE;
 			--ndigi;
 		}
+	}
+
+	/* F6BVP 2026-11-13: an AX.25 path has up to 8 digipeaters, a ROSE
+	 * address 6. Copied as they were, 7 of them went past the end of
+	 * srose_digis[] in wpu, rosebind or roseconnect. */
+	if (exp.fsa_ax25.sax25_ndigis - npos - 1 > ROSE_MAX_DIGIS || ndigi > ROSE_MAX_DIGIS)
+	{
+		syslog(LOG_WARNING, "new_l2_connection: %s, too many digipeaters for ROSE", pl2->user);
+		text[0] = 0xf0;
+		snprintf(text+1, sizeof(text)-1, "*** Too many digipeaters (ROSE: %d at most)\r", ROSE_MAX_DIGIS);
+		if (write(new, text, strlen(text)) < 0)
+			perror("FPAC write error:");
+		end(pl2);
+		return(-1);
 	}
 
 	/* Add the local callsign to the WP */
@@ -1821,6 +1840,8 @@ static int new_l3_connection(int fd, char *port, int verbose)
 	/* The path at the far end has a digi in it. */
 	for (n = 0 ; n < rsexp.srose_ndigis ; n++) 
 	{
+		if (ndigi >= AX25_MAX_DIGIS)
+			goto too_many;
 		axconnect.fsa_digipeater[ndigi] = rsexp.srose_digis[n];
 
 
@@ -1843,6 +1864,8 @@ static int new_l3_connection(int fd, char *port, int verbose)
 			
 			memcpy(dnic, addr, 4);
 			dnic[4] = '\0';
+			if (ndigi >= AX25_MAX_DIGIS)
+				goto too_many;
 			if (ax25_aton_entry(dnic, axconnect.fsa_digipeater[ndigi].ax25_call) == -1) 							{
 				syslog(LOG_ERR, "new_l3_connection() invalid dnic - %s\n", dnic);
 				return(-1);
@@ -1854,6 +1877,8 @@ static int new_l3_connection(int fd, char *port, int verbose)
 	
 		/* Put the remote address sans DNIC into the digi chain. */
 		addr = rose_ntoa(&rsexp.srose_addr);
+		if (ndigi >= AX25_MAX_DIGIS)
+			goto too_many;
 		if (ax25_aton_entry(addr + 4, axconnect.fsa_digipeater[ndigi].ax25_call) == -1)
 		{
 			syslog(LOG_ERR, "new_l3_connection() invalid callsign - %s\n", addr + 4);
@@ -1865,6 +1890,8 @@ static int new_l3_connection(int fd, char *port, int verbose)
 	
 
 	/* And my local ROSE callsign. */
+	if (ndigi >= AX25_MAX_DIGIS)
+		goto too_many;
 	if (ax25_aton_entry(cfg.alt_callsign, axconnect.fsa_digipeater[ndigi].ax25_call) == -1)
 	{
 		syslog(LOG_ERR, "new_l3_connexion() invalid callsign - %s\n", cfg.alt_callsign);
@@ -1878,6 +1905,8 @@ static int new_l3_connection(int fd, char *port, int verbose)
 	/* A digi has been specified for this end. */
 	for (n = 0 ; n < rsrec.srose_ndigis ; n++) 
 	{
+		if (ndigi >= AX25_MAX_DIGIS)
+			goto too_many;
 		axconnect.fsa_digipeater[ndigi] = rsrec.srose_digis[n];
 		axconnect.fsa_digipeater[ndigi].ax25_call[6] &= ~AX25_HBIT;
 		ndigi++;
@@ -1983,6 +2012,16 @@ static int new_l3_connection(int fd, char *port, int verbose)
 	pl3->peer = pl2;
 
 	return(new);
+
+too_many:
+	/* F6BVP 2026-11-13: the digipeaters of the caller, the DNIC, the
+	 * address, this node and the digipeaters asked for at this end went
+	 * into the 8 of an AX.25 path without a check: up to 15, written past
+	 * the end of axconnect. The call is refused. */
+	syslog(LOG_WARNING, "new_l3_connection: call from %s @ %s, too many digipeaters for AX.25",
+	       ax25_ntoa(&rsexp.srose_call), rose_ntoa(&rsexp.srose_addr));
+	end(pl3);
+	return(-1);
 }
 
 static int new_alias_connection(alias_t *a, int verbose)
@@ -2060,14 +2099,19 @@ static int new_alias_connection(alias_t *a, int verbose)
 			
 		wp.srose_family = AF_ROSE;
 		wp.srose_ndigis = exp.fsa_ax25.sax25_ndigis - npos - 1;
-		
-		rose_aton (get_rose_addr(&rec), wp.srose_addr.rose_addr);
-		wp.srose_call = exp.fsa_ax25.sax25_call;
-		for ( n = 0 ; n < wp.srose_ndigis ; n++)
-			wp.srose_digis[n] = exp.fsa_digipeater[exp.fsa_ax25.sax25_ndigis - n - 1];
 
-		if ((wp.srose_ndigis == 0) || (!wp_is_node(ax25_ntoa(&wp.srose_digis[wp.srose_ndigis-1]))))
-			wp_update_addr(&wp);
+		/* F6BVP 2026-11-13: an AX.25 path has up to 8 digipeaters, a
+		 * ROSE address 6: a longer path is not recorded */
+		if (wp.srose_ndigis <= ROSE_MAX_DIGIS)
+		{
+			rose_aton (get_rose_addr(&rec), wp.srose_addr.rose_addr);
+			wp.srose_call = exp.fsa_ax25.sax25_call;
+			for ( n = 0 ; n < wp.srose_ndigis ; n++)
+				wp.srose_digis[n] = exp.fsa_digipeater[exp.fsa_ax25.sax25_ndigis - n - 1];
+
+			if ((wp.srose_ndigis == 0) || (!wp_is_node(ax25_ntoa(&wp.srose_digis[wp.srose_ndigis-1]))))
+				wp_update_addr(&wp);
+		}
 	}
 	
 	pl2 = calloc(sizeof(user_t), 1);
@@ -2518,14 +2562,19 @@ static int new_appli_connection(int fd, int accepted, char *appli)
 
 		wp.srose_family = AF_ROSE;
 		wp.srose_ndigis = exp.fsa_ax25.sax25_ndigis - npos - 1;
-	
-		rose_aton (get_rose_addr(&rec), wp.srose_addr.rose_addr);
-		wp.srose_call = exp.fsa_ax25.sax25_call;
-		for ( n = 0 ; n < wp.srose_ndigis ; n++)
-			wp.srose_digis[n] = exp.fsa_digipeater[exp.fsa_ax25.sax25_ndigis - n - 1];
 
-		if ((wp.srose_ndigis == 0) || (!wp_is_node(ax25_ntoa(&wp.srose_digis[wp.srose_ndigis-1]))))
-			wp_update_addr(&wp);
+		/* F6BVP 2026-11-13: an AX.25 path has up to 8 digipeaters, a
+		 * ROSE address 6: a longer path is not recorded */
+		if (wp.srose_ndigis <= ROSE_MAX_DIGIS)
+		{
+			rose_aton (get_rose_addr(&rec), wp.srose_addr.rose_addr);
+			wp.srose_call = exp.fsa_ax25.sax25_call;
+			for ( n = 0 ; n < wp.srose_ndigis ; n++)
+				wp.srose_digis[n] = exp.fsa_digipeater[exp.fsa_ax25.sax25_ndigis - n - 1];
+
+			if ((wp.srose_ndigis == 0) || (!wp_is_node(ax25_ntoa(&wp.srose_digis[wp.srose_ndigis-1]))))
+				wp_update_addr(&wp);
+		}
 	}
 
 	pid = fork();
