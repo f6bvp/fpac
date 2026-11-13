@@ -1,3 +1,37 @@
+fpac (4.2-rc2)
+
+	* fpacnode, gateway.c: the Connect command no longer overflows or
+	  stops on what the user types. do_connect(): the three argvp
+	  buffers of the default port fallback held 10 bytes and the word
+	  typed was copied into argvp[2] whatever its length (heap
+	  overflow); they are now ARGVP_LEN (64) long, filled by
+	  snprintf(). The DNIC of a country designator ("c CALL FRA
+	  175520") goes into country_dnic instead of being written over
+	  the 3 letters, which erased the first character of the address.
+	  connect_to(): a 3-digit argument that is no country ("c CALL 208
+	  175520") copied from the NULL of des2dnic(), and a DNIC or a
+	  country with no address after it ("c CALL 2080") took strlen()
+	  of NULL: both killed fpacnode; new messages "Unknown country
+	  designator" and "ROSE address missing after", translated in
+	  node/lang.c. User.dl_name and User.dl_port are filled by
+	  snprintf(): a ROSE connection through two or three digipeaters
+	  with an SSID went past the 32 bytes of dl_name and the C library
+	  stopped fpacnode ("buffer overflow detected").
+	* fpad: new_l3_connection() put the digipeaters of the caller, the
+	  DNIC, the address, this node and the digipeaters asked for at
+	  this end into the 8 of axconnect without a check (up to 15); the
+	  call is now refused and logged. new_l2_connection() refuses a
+	  path whose ROSE part has more than ROSE_MAX_DIGIS (6)
+	  digipeaters, and no longer reads index -1 of the path after a
+	  DNIC or a country given last. new_alias_connection() and
+	  new_appli_connection() no longer record in the White Pages a path
+	  of 7 or 8 digipeaters, which overflowed srose_digis[].
+	* fpacwpd: listening_handler() called getsockname() as the argument
+	  of an assert(), compiled out by NDEBUG: crossed connection
+	  requests were settled on an uninitialized address, and both
+	  sessions could be lost until the next try (30 minutes).
+	* configure.ac: version 4.2-rc2.
+
 fpac (4.2-rc1)
 
 	* gateway.c: the ROSE clear causes given by reason() ("No Route

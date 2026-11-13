@@ -1,3 +1,20 @@
+FPAC 4.2-rc2 — dynamic ROSE routes (release candidate, experimental)
+====================================================================
+
+  * fpacnode: the Connect command no longer stops the session on what
+    is typed: a very long callsign, a 3-digit "country" that does not
+    exist ("c CALL 208 175520"), a DNIC or a country with no address
+    after it ("c CALL 2080"), or a ROSE connection through two or three
+    digipeaters with an SSID. "c CALL FRA 175520" keeps its address.
+
+  * fpad: a call carrying more digipeaters than an AX.25 path (8) or a
+    ROSE address (6) can hold is refused, instead of being copied past
+    the end of the address.
+
+  * fpacwpd: two nodes calling each other at the same time (at 03:00,
+    when every node restarts fpacwpd) keep one session, chosen on their
+    real addresses; both could be lost for 30 minutes.
+
 FPAC 4.2-rc1 — dynamic ROSE routes (release candidate, experimental)
 ====================================================================
 

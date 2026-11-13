@@ -1,6 +1,42 @@
 Traduction française du ChangeLog de FPAC. Original en anglais dans le fichier ChangeLog.
 Les noms de fichiers, de fonctions et de variables sont conservés tels quels.
 
+fpac (4.2-rc2)
+
+	* fpacnode, gateway.c : la commande Connect ne déborde plus et ne
+	  s'arrête plus sur ce que tape l'utilisateur. do_connect() : les
+	  trois tampons argvp du repli sur le port par défaut faisaient 10
+	  octets et le mot tapé était copié dans argvp[2] quelle que soit
+	  sa longueur (débordement sur le tas) ; ils font maintenant
+	  ARGVP_LEN (64) octets et sont remplis par snprintf(). Le DNIC
+	  d'un désignateur de pays (« c CALL FRA 175520 ») va dans
+	  country_dnic au lieu d'être écrit sur les 3 lettres, ce qui
+	  effaçait le premier caractère de l'adresse. connect_to() : un
+	  argument de 3 chiffres qui n'est pas un pays (« c CALL 208
+	  175520 ») était copié depuis le NULL de des2dnic(), et un DNIC ou
+	  un pays sans adresse derrière (« c CALL 2080 ») prenait strlen()
+	  de NULL : les deux arrêtaient fpacnode ; nouveaux messages
+	  « Désignateur de pays inconnu » et « Adresse ROSE manquante
+	  après », traduits dans node/lang.c. User.dl_name et User.dl_port
+	  sont remplis par snprintf() : une connexion ROSE par deux ou
+	  trois digipeaters avec SSID dépassait les 32 octets de dl_name et
+	  la bibliothèque C arrêtait fpacnode (« buffer overflow
+	  detected »).
+	* fpad : new_l3_connection() mettait sans contrôle les digipeaters
+	  de l'appelant, le DNIC, l'adresse, ce nœud et les digipeaters
+	  demandés de ce côté dans les 8 de axconnect (jusqu'à 15) ; l'appel
+	  est maintenant refusé et journalisé. new_l2_connection() refuse
+	  un chemin dont la partie ROSE compte plus de ROSE_MAX_DIGIS (6)
+	  digipeaters, et ne lit plus l'indice -1 du chemin après un DNIC
+	  ou un pays donné en dernier. new_alias_connection() et
+	  new_appli_connection() n'inscrivent plus dans les Pages Blanches
+	  un chemin de 7 ou 8 digipeaters, qui débordait de srose_digis[].
+	* fpacwpd : listening_handler() appelait getsockname() en argument
+	  d'un assert(), supprimé par NDEBUG : les appels croisés étaient
+	  tranchés sur une adresse non initialisée, et les deux sessions
+	  pouvaient être perdues jusqu'au nouvel essai (30 minutes).
+	* configure.ac : version 4.2-rc2.
+
 fpac (4.2-rc1)
 
 	* gateway.c : les causes de libération ROSE données par reason()
