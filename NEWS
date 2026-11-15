@@ -1,3 +1,27 @@
+FPAC 4.2-rc3 — dynamic ROSE routes (release candidate, experimental)
+====================================================================
+
+  * A new node needs no fixed route: fpacrtd sets the kernel route to
+    each neighbour marked "Route = yes" in fpac.nodes. Before, a line in
+    fpac.routes was still needed for each neighbour, or fpacrtd could
+    not call it and the kernel ignored its ROSE frames.
+
+  * New script fpac-node-setup: it asks for the callsigns, the ROSE
+    address, the IP address and UDP port, the locator and the direct
+    neighbours, and writes the whole configuration of a new node, the
+    start and stop scripts and a systemd service. It also writes the
+    lines each neighbour must add to its own configuration.
+
+  * fpad no longer stops at boot when fpacwpd is a little late. On a
+    Raspberry Pi, which has no battery clock, the clock jumps forward
+    when it is set from the network, and fpad gave up waiting for the
+    White Pages: the node stayed down. fpad now goes on and connects to
+    the White Pages a few seconds later.
+
+  * fpacnode: "Connect CALL via DIGI" uses the digipeaters typed, even
+    for a callsign found in the White Pages, and the connection
+    messages show the whole ROSE path.
+
 FPAC 4.2-rc2 — dynamic ROSE routes (release candidate, experimental)
 ====================================================================
 

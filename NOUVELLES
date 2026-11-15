@@ -1,3 +1,30 @@
+FPAC 4.2-rc3 — routes ROSE dynamiques (version candidate, expérimentale)
+========================================================================
+
+  * Un nouveau nœud n'a besoin d'aucune route fixe : fpacrtd pose la
+    route noyau vers chaque voisin marqué « Route = yes » dans
+    fpac.nodes. Avant, il fallait encore une ligne dans fpac.routes par
+    voisin, sinon fpacrtd ne pouvait pas l'appeler et le noyau ignorait
+    ses trames ROSE.
+
+  * Nouveau script fpac-node-setup : il demande les indicatifs,
+    l'adresse ROSE, l'adresse IP et le port UDP, le locator et les
+    voisins directs, puis écrit toute la configuration d'un nouveau
+    nœud, les scripts de démarrage et d'arrêt et un service systemd. Il
+    écrit aussi les lignes que chaque voisin doit ajouter à sa propre
+    configuration.
+
+  * fpad ne s'arrête plus au démarrage quand fpacwpd est un peu en
+    retard. Sur un Raspberry Pi, qui n'a pas d'horloge sauvegardée,
+    l'heure fait un saut en avant quand elle est réglée par le réseau,
+    et fpad renonçait à attendre les pages blanches : le nœud restait
+    hors service. fpad continue maintenant et se connecte aux pages
+    blanches quelques secondes plus tard.
+
+  * fpacnode : « Connect CALL via DIGI » utilise les digipeaters tapés,
+    même pour un indicatif trouvé dans les pages blanches, et les
+    messages de connexion montrent tout le chemin ROSE.
+
 FPAC 4.2-rc2 — routes ROSE dynamiques (version candidate, expérimentale)
 ========================================================================
 

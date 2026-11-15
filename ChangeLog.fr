@@ -1,7 +1,7 @@
 Traduction française du ChangeLog de FPAC. Original en anglais dans le fichier ChangeLog.
 Les noms de fichiers, de fonctions et de variables sont conservés tels quels.
 
-fpac (4.2-rc3, en préparation)
+fpac (4.2-rc3)
 
 	* fpac-node-setup (nouveau script, installé dans /usr/local/sbin) :
 	  écrit la configuration minimale d'un nouveau nœud à partir de

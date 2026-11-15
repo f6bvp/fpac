@@ -1,4 +1,4 @@
-fpac (4.2-rc3, in preparation)
+fpac (4.2-rc3)
 
 	* fpac-node-setup (new script, installed in /usr/local/sbin): writes
 	  the minimal configuration of a new node from a few answers
