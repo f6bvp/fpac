@@ -3,6 +3,19 @@ Les noms de fichiers, de fonctions et de variables sont conservés tels quels.
 
 fpac (4.2-rc3, en préparation)
 
+	* fpacnode : « Connect INDICATIF via DIGI » pour un indicatif des
+	  pages blanches passe maintenant par DIGI. La branche des pages
+	  blanches mettait l'adresse et les digis de la fiche à la place
+	  des mots tapés après « via », et DIGI disparaissait sans un mot
+	  (la demande d'appel ROSE partait avec le digi de la fiche, ou
+	  sans digi). Les digis tapés passent maintenant en premier (6 au
+	  plus), et fpacnode le signale quand la fiche avait son propre
+	  digi ; sans « via », ou sans rien après, les digis de la fiche
+	  sont pris comme avant. Les deux branches des pages blanches
+	  (fiche de nœud et d'utilisateur) partagent wp_route_args().
+	  Vérifié sur le nœud de banc F4KLO-12 (15/11/2026) : « c F6BVP-12
+	  via F6BVP-9 » envoie la demande d'appel « to F6BVP-12
+	  @2080,835201 via F6BVP-9 » (listen), sans le digi auparavant.
 	* fpad, libwp.c : fpad n'abandonne plus au démarrage quand fpacwpd
 	  n'est pas prêt. wait_for_local_wp() mesurait ses 6 s avec time() :
 	  un Raspberry Pi n'a pas d'horloge sauvegardée, repart de l'heure

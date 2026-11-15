@@ -1,5 +1,17 @@
 fpac (4.2-rc3, in preparation)
 
+	* fpacnode: "Connect CALL via DIGI" for a callsign of the White
+	  Pages now goes through DIGI. The White Pages branch put the
+	  address and the digis of the record in place of the words typed
+	  after "via", and DIGI was dropped without a word (the ROSE call
+	  request went with the digi of the record, or none). The digis
+	  typed come first now (6 at most), and fpacnode says so when the
+	  record had a digi of its own; without "via", or with nothing
+	  after it, the digis of the record are used as before. Both White
+	  Pages branches (node and user record) share wp_route_args().
+	  Checked on the test node F4KLO-12 (2026-11-15): "c F6BVP-12 via
+	  F6BVP-9" sends the call request "to F6BVP-12 @2080,835201 via
+	  F6BVP-9" (listen), without the digi before.
 	* fpad, libwp.c: fpad no longer gives up at start when fpacwpd is
 	  not ready. wait_for_local_wp() measured its 6 s with time(): a
 	  Raspberry Pi has no battery clock, starts from the time it was

@@ -1325,6 +1325,63 @@ static int is_wp_node(char *callsign, struct full_sockaddr_rose *wpaddr)
 	return 0;
 }
 
+/*
+ * F6BVP 2026-11-15: argv[] for a callsign found in the White Pages:
+ * the ROSE address of the record in argv[2], then the digis. The digis
+ * typed by the user after "via" come first: "c CALL via DIGI" used to
+ * take the digis of the record and drop DIGI without a word. Without
+ * "via" (or with nothing after it) the digis of the record are used.
+ * Returns the new argc, -1 when too many digis were typed.
+ */
+static int wp_route_args(char **argv, int argc, int via_used,
+			 struct full_sockaddr_rose *wpaddr, char *roseroute,
+			 char rosedigi[][10])
+{
+	int n, nd;
+
+	strcpy(roseroute, rose_ntoa(&wpaddr->srose_addr));
+
+	if (via_used && argc > 2)
+	{
+		/* after "via" was removed: argv = c CALL DIGI... */
+		nd = argc - 2;
+		if (nd > ROSE_MAX_DIGIS)
+		{
+			node_msg(T("Too many digis (%d), %d at most"), nd, ROSE_MAX_DIGIS);
+			return -1;
+		}
+		for (n = 0; n < nd; n++)
+		{
+			if (strlen(argv[2 + n]) >= 10)
+			{
+				node_msg(T("Invalid digi %s"), argv[2 + n]);
+				return -1;
+			}
+			strcpy(rosedigi[n], argv[2 + n]);
+		}
+		argv[2] = roseroute;
+		for (n = 0; n < nd; n++)
+			argv[3 + n] = rosedigi[n];
+		argc = 3 + nd;
+		if (wpaddr->srose_ndigis > 0)
+			node_msg(T("*** %s: digi %s given, White Pages digi %s not used"),
+				 strupr(argv[1]), strupr(rosedigi[0]),
+				 ax25_ntoa(&wpaddr->srose_digis[wpaddr->srose_ndigis - 1]));
+	}
+	else
+	{
+		argv[2] = roseroute;
+		argc = 3;
+		for (n = wpaddr->srose_ndigis - 1; n >= 0; n--)
+		{
+			strcpy(rosedigi[n], ax25_ntoa(&wpaddr->srose_digis[n]));
+			argv[argc++] = rosedigi[n];
+		}
+	}
+	argv[argc] = NULL;
+	return argc;
+}
+
 /* Initiate a connexion to destination 
  * via optional port specification
  * using protocol according to callsign SSID
@@ -1471,16 +1528,8 @@ int do_connect(int argc, char **argv)
 		 */
 		else if ((eff_argc == 2) && (is_wp_node(argv[1], &wpaddr)))
 		{
-			strcpy(roseroute, rose_ntoa(&wpaddr.srose_addr));
-
-			argv[2] = roseroute;
-			argc = 3;
-			for (n = wpaddr.srose_ndigis - 1; n >= 0; n--)
-			{
-				strcpy(rosedigi[n], ax25_ntoa(&wpaddr.srose_digis[n]));
-				argv[argc++] = rosedigi[n];
-			}
-			argv[argc] = NULL;
+			if ((argc = wp_route_args(argv, argc, via_used, &wpaddr, roseroute, rosedigi)) < 0)
+				goto done;
 			family = AF_ROSE;
 			source = "(fpac wp) ";
 		}
@@ -1500,16 +1549,8 @@ int do_connect(int argc, char **argv)
 		/* Check if in FPAC WP */
 		else if ((eff_argc == 2) && (is_wp(argv[1], &wpaddr)))
 		{
-			strcpy(roseroute, rose_ntoa(&wpaddr.srose_addr));
-
-			argv[2] = roseroute;
-			argc = 3;
-			for (n = wpaddr.srose_ndigis - 1; n >= 0; n--)
-			{
-				strcpy(rosedigi[n], ax25_ntoa(&wpaddr.srose_digis[n]));
-				argv[argc++] = rosedigi[n];
-			}
-			argv[argc] = NULL;
+			if ((argc = wp_route_args(argv, argc, via_used, &wpaddr, roseroute, rosedigi)) < 0)
+				goto done;
 			family = AF_ROSE;
 			source = "(fpac wp) ";
 		}

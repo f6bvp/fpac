@@ -168,6 +168,12 @@ static const struct msg_pair catalog[] =
 	  "La station distante ne répond pas" },
 	{ "Unknown",
 	  "Cause inconnue" },
+	{ "Too many digis (%d), %d at most",
+	  "Trop de digis (%d), %d au plus" },
+	{ "Invalid digi %s",
+	  "Digi invalide %s" },
+	{ "*** %s: digi %s given, White Pages digi %s not used",
+	  "*** %s : digi %s demandé, celui des pages blanches (%s) n'est pas pris" },
 	{ NULL, NULL }
 };
 
