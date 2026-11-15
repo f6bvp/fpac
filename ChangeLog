@@ -1,3 +1,19 @@
+fpac (4.2-rc3, in preparation)
+
+	* fpacrtd: a neighbour of fpac.nodes marked "Route = yes" gets a
+	  kernel route to its own address (mask 10) when fpacrtd starts,
+	  so that a new node needs no line in fpac.routes. Without it,
+	  fpacrtd could not call the neighbour, and the kernel ignored the
+	  ROSE frames of a neighbour that no route used, as it was not in
+	  rose_neigh (found on the test node F4KLO-12, 2026-11-15). A route
+	  of fpac.routes, or one through another neighbour, is left alone;
+	  a Node whose Path goes through digipeaters gets none (logged).
+	  The route is kept when fpacrtd stops and taken over when it
+	  starts again: removing it would take the neighbour out of the
+	  kernel, with every circuit through it. dest_update() no longer
+	  learns a second route to the neighbour's own address from the
+	  neighbour itself.
+
 fpac (4.2-rc2)
 
 	* fpacnode, gateway.c: the Connect command no longer overflows or

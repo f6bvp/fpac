@@ -1,6 +1,22 @@
 Traduction française du ChangeLog de FPAC. Original en anglais dans le fichier ChangeLog.
 Les noms de fichiers, de fonctions et de variables sont conservés tels quels.
 
+fpac (4.2-rc3, en préparation)
+
+	* fpacrtd : un voisin de fpac.nodes marqué « Route = yes » reçoit
+	  une route noyau vers sa propre adresse (masque 10) au démarrage
+	  de fpacrtd, si bien qu'un nouveau nœud n'a besoin d'aucune ligne
+	  dans fpac.routes. Sans elle, fpacrtd ne pouvait pas appeler le
+	  voisin, et le noyau ignorait les trames ROSE d'un voisin
+	  qu'aucune route n'utilisait, car il n'était pas dans rose_neigh
+	  (constaté sur le nœud d'essai F4KLO-12, 15/11/2026). Une route de
+	  fpac.routes, ou une route par un autre voisin, n'est pas touchée ;
+	  un Node dont le Path passe par des digipeaters n'en reçoit pas
+	  (journalisé). La route est gardée à l'arrêt de fpacrtd et reprise
+	  à son redémarrage : la retirer sortirait le voisin du noyau, avec
+	  tous les circuits qui passent par lui. dest_update() n'apprend
+	  plus du voisin lui-même une seconde route vers sa propre adresse.
+
 fpac (4.2-rc2)
 
 	* fpacnode, gateway.c : la commande Connect ne déborde plus et ne

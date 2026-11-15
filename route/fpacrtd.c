@@ -34,6 +34,7 @@
 #include <netax25/ax25.h>
 #include <netrose/rose.h>
 #include <netax25/axlib.h>
+#include <netax25/axconfig.h>
 #include <netax25/procutils.h>
 
 #include "config.h"
@@ -79,7 +80,10 @@ struct rt_neigh {
 	char	name[20];
 	char	call[10];	/* L3 callsign of the neighbour */
 	char	addr[11];	/* Full ROSE address */
+	char	port[10];	/* AX.25 port of its Node block */
+	int	digis;		/* Path of its Node block goes through digipeaters */
 	int	excluded;	/* No "Route = yes" in its Node block */
+	char	nr_dev[16];	/* Device of the route set to its address, "" = none */
 	int	fd;
 	int	state;
 	int	incoming;	/* Session opened by the neighbour */
@@ -311,6 +315,8 @@ static int config_load(void)
 		snprintf(v->call, sizeof(v->call), "%s", n->call);
 		if ((p = strpbrk(v->call, " ,\t")) != NULL)
 			*p = '\0';
+		v->digis = (p = strpbrk(n->call, " ,\t")) != NULL && p[strspn(p, " ,\t")] != '\0';
+		snprintf(v->port, sizeof(v->port), "%s", n->port);
 		for (p = v->call; *p; p++)
 			*p = toupper((unsigned char)*p);
 		snprintf(v->addr, sizeof(v->addr), "%s%s", n->dnic, n->addr);
@@ -487,6 +493,62 @@ static void state_save(void)
 	fclose(fp);
 }
 
+/*
+ * A neighbour of fpac.nodes marked "Route = yes" gets a kernel route to its
+ * own address, so that a new node needs no line in fpac.routes: without it,
+ * this daemon cannot call the neighbour, and the kernel ignores the ROSE
+ * frames of a neighbour that no route uses (it is not in rose_neigh).
+ * A route of fpac.routes, or one through another neighbour, is left alone.
+ *
+ * The route is part of the configuration, like a line of fpac.routes: it is
+ * kept when this daemon stops, and taken over when it starts again. Removing
+ * it would remove the neighbour from the kernel, with every circuit through
+ * it, at each restart of fpacrtd. A restart of fpad clears it with the rest.
+ */
+static void neigh_routes_set(void)
+{
+	char call[16];
+	char *dev;
+	int i, ports;
+
+	ports = ax25_config_load_ports();
+	for (i = 0; i < nb_neigh; i++)
+	{
+		struct rt_neigh *v = &neigh[i];
+
+		if (v->excluded || v->nr_dev[0])
+			continue;
+		if (is_manual(v->addr, 10))
+			continue;
+		dev = (ports > 0) ? ax25_config_get_dev(v->port[0] ? v->port : NULL) : NULL;
+		if (kernel_next_hop(v->addr, 10, call, sizeof(call)))
+		{
+			if (strcasecmp(call, v->call) == 0 && dev != NULL)
+			{
+				rt_log(LOG_INFO, "neighbour %s %s: route kept", v->call, v->addr);
+				snprintf(v->nr_dev, sizeof(v->nr_dev), "%s", dev);
+			}
+			else
+				rt_log(LOG_INFO, "neighbour %s %s: kernel route via %s already there", v->call, v->addr, call);
+			continue;
+		}
+		if (v->digis)
+		{
+			rt_log(LOG_WARNING, "neighbour %s %s: path through digipeaters, no route set (write it in fpac.routes)",
+			       v->call, v->addr);
+			continue;
+		}
+		if (dev == NULL)
+		{
+			rt_log(LOG_WARNING, "neighbour %s %s: unknown AX.25 port \"%s\", no route set",
+			       v->call, v->addr, v->port);
+			continue;
+		}
+		if (kernel_route(1, v->addr, 10, v->call, dev) == 0)
+			snprintf(v->nr_dev, sizeof(v->nr_dev), "%s", dev);
+	}
+}
+
 static void state_purge(void)
 {
 	FILE *fp;
@@ -621,6 +683,10 @@ static void dest_update(struct rt_dest *d)
 				want = -1;
 				break;
 			}
+		/* The neighbour itself, which announces its own address: the
+		 * route neigh_routes_set() gave it is already there */
+		if (want >= 0 && strcmp(neigh[want].addr, d->addr) == 0 && neigh[want].nr_dev[0])
+			want = -1;
 	}
 
 	if (want == d->installed)
@@ -1445,6 +1511,7 @@ int main(int argc, char **argv)
 	signal(SIGPIPE, SIG_IGN);
 
 	state_purge();
+	neigh_routes_set();
 
 	if ((listen_fd = listen_open()) < 0)
 	{
