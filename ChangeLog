@@ -1,5 +1,18 @@
 fpac (4.2-rc3, in preparation)
 
+	* fpad, libwp.c: fpad no longer gives up at start when fpacwpd is
+	  not ready. wait_for_local_wp() measured its 6 s with time(): a
+	  Raspberry Pi has no battery clock, starts from the time it was
+	  stopped, and NTP moves the clock forward at boot. On F6BVP-10
+	  (2026-11-15, after a power cut) the clock jumped 4.5 min while
+	  fpad waited, fpad gave up 1 s after fpacwpd started ("Cannot open
+	  WP service", "FPAD aborting") and the node stayed down for an
+	  hour. The wait now uses CLOCK_MONOTONIC (new wp_monotonic(),
+	  wp.h), and no longer loops without sleeping when /proc/net/rose
+	  cannot be read. If the White Pages still cannot be opened, fpad
+	  goes on without them and tries again in 10 s, then every 60 s;
+	  select() wakes up every 5 s while they are closed, and the retry
+	  also uses the monotonic clock.
 	* fpacrtd: a neighbour of fpac.nodes marked "Route = yes" gets a
 	  kernel route to its own address (mask 10) when fpacrtd starts,
 	  so that a new node needs no line in fpac.routes. Without it,

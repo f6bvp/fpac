@@ -3,6 +3,20 @@ Les noms de fichiers, de fonctions et de variables sont conservés tels quels.
 
 fpac (4.2-rc3, en préparation)
 
+	* fpad, libwp.c : fpad n'abandonne plus au démarrage quand fpacwpd
+	  n'est pas prêt. wait_for_local_wp() mesurait ses 6 s avec time() :
+	  un Raspberry Pi n'a pas d'horloge sauvegardée, repart de l'heure
+	  de son arrêt, et NTP avance l'horloge au démarrage. Sur F6BVP-10
+	  (15/11/2026, après une coupure de courant), l'horloge a sauté de
+	  4 min 30 pendant l'attente de fpad, qui a abandonné 1 s après le
+	  démarrage de fpacwpd (« Cannot open WP service », « FPAD
+	  aborting ») : le nœud est resté hors service une heure. L'attente
+	  utilise maintenant CLOCK_MONOTONIC (nouvelle wp_monotonic(),
+	  wp.h), et ne tourne plus sans pause quand /proc/net/rose ne peut
+	  pas être lu. Si les pages blanches ne s'ouvrent toujours pas, fpad
+	  continue sans elles et réessaie au bout de 10 s, puis toutes les
+	  60 s ; select() se réveille toutes les 5 s tant qu'elles sont
+	  fermées, et la reprise utilise aussi l'horloge monotone.
 	* fpacrtd : un voisin de fpac.nodes marqué « Route = yes » reçoit
 	  une route noyau vers sa propre adresse (masque 10) au démarrage
 	  de fpacrtd, si bien qu'un nouveau nœud n'a besoin d'aucune ligne

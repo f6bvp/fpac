@@ -43,19 +43,33 @@ static ax25_address *call_clean(ax25_address *call)
 	return(call);
 }
 
+/* Seconds of a clock that NTP does not move: a Raspberry Pi has no
+ * battery clock and starts from the time it was stopped, then jumps
+ * forward when the time is synchronised. Measured with time(), a wait
+ * of a few seconds could end at once (F6BVP-10, 2026-11-15: fpad gave
+ * up 1 s after fpacwpd started, the clock having jumped 4.5 min). */
+time_t wp_monotonic(void)
+{
+	struct timespec ts;
+
+	if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
+		return time(NULL);
+	return ts.tv_sec;
+}
+
 static int wait_for_local_wp(int timeout)
 {
 	struct proc_rs *rp, *rlist;
-	time_t temps = time(NULL);
+	time_t temps = wp_monotonic();
 	time_t timer = temps + timeout;
 
 	while (timer > temps) {
-		temps = time(NULL);
+		temps = wp_monotonic();
 
 		if ((rlist = read_proc_rs()) == NULL) {
 			if (errno) perror("FPAC: wait_for_local_wp() read_proc_rs");
-		continue;
-/*		return -1;*/
+			sleep(1);	/* was a busy loop */
+			continue;
 		}
 
 		for (rp = rlist; rp != NULL; rp = rp->next) {

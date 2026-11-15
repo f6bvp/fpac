@@ -149,6 +149,7 @@ int wp_get(ax25_address *call, wp_t *wp);
 int wp_listen(void);
 int wp_open(char *);
 int wp_is_open(void);
+time_t wp_monotonic(void);	/* seconds of CLOCK_MONOTONIC, unmoved by NTP */
 int wp_open_remote(char *source_call, struct full_sockaddr_rose *remote, int non_block);
 int wp_receive_pdu(int s, wp_pdu *pdu);
 #ifndef extern	/* pad/fpad.c does '#define extern' to define globals in main;

@@ -472,7 +472,6 @@ int main(int argc, char **argv)
 	char buffer[BUFLEN];
 	struct timeval timeval;
 	time_t wp_timeout = 0L;
-	time_t temps;
 	struct hostent *hp = NULL;
 	struct full_sockaddr_rose wp;
 	struct rose_facilities_struct facilities;
@@ -580,8 +579,6 @@ int main(int argc, char **argv)
 		return 1;
 	}
 */
-	temps = time(NULL);
-
 	/* Open AX25 L2 sockets */
 	for (p = cfg.port ; (p != NULL) ; p = p->next)
 	{
@@ -683,41 +680,22 @@ int main(int argc, char **argv)
 		syslog(LOG_INFO,"FPAD runs in foreground\n");
 	}
 
-	/* Open the WP connection */
+	/* Open the WP connection. fpacwpd is started 2 s after fpad and
+	 * may be late (slow start, clock jump at boot): fpad no longer gives
+	 * up, it works without the White Pages and the main loop below tries
+	 * again in 10 s, then every 60 s, as when fpacwpd is restarted while
+	 * fpad runs. */
 	if (wp_open("FPAD"))
 	{
-		fprintf(stderr, "\nFPAD cannot open WP service\n");
-		syslog(LOG_ERR, "Cannot open WP service\n");
-		closelog();
-	/* No White Page server - Close all opened sockets before aborting */
-		fprintf (stderr, "Closing opened sockets\n");
-		syslog(LOG_ERR, "Closing  opened sockets");
-		for (p = cfg.port ; (p != NULL) ; p = p->next)
-		{	
-			close (p->fd_call);
-			close (p->fd_digi);
-			close (p->fd_appli);
-			for (a = p->alias ; a != NULL ; a = a->next)
-				close (a->fd);
-			for (ap = p->applis ; ap != NULL ; ap = ap->next)
-				close (ap->fd);
-		}
-		close (fd_node[0]);
-		for (d = cfg.addrp ; (d != NULL) ; d = d->next)
-			close (d->fd);
-		for (i = 1, o = cfg.cover ; o != NULL ; i++, o = o->next)
-			close (fd_node[i]);
-	/* No White Page server - Remove all ROSE neighbour nodes */
-		fprintf (stderr, "Removing ROSE nodes\n");
-		syslog(LOG_ERR, "Removing ROSE nodes");
-		clear_nodes();
-		fprintf (stderr, "FPAD aborting\n");
-		syslog(LOG_ERR, "FPAD aborting");
-		return(1);
+		fprintf(stderr, "\nFPAD cannot open WP service yet, will try again in 10 s\n");
+		syslog(LOG_WARNING, "Cannot open WP service yet, will try again in 10 s\n");
+		wp_timeout = wp_monotonic() + 10L;
 	}
-	
-	fprintf (stdout, "FPAD opened WP service\n");
-	syslog(LOG_INFO,"FPAD opened WP service\n");
+	else
+	{
+		fprintf (stdout, "FPAD opened WP service\n");
+		syslog(LOG_INFO,"FPAD opened WP service\n");
+	}
 
 	for (;;) 
 	{
@@ -823,23 +801,25 @@ int main(int argc, char **argv)
 		 */
 
 		timeval.tv_usec = 0;
-		timeval.tv_sec  = 60;
+		/* Wake up sooner while the White Pages are closed, so
+		 * that the retry below is not put off by a whole minute */
+		timeval.tv_sec  = wp_is_open() ? 60 : 5;
 		n = select(maxfd + 1, &fdread, &fdwrite, NULL, &timeval);
 		
 		if (n < 0)
 			continue;
 
-		temps = time(NULL);
-
-		/* Check the WP connection */
-		if (!wp_is_open() && (wp_timeout < temps))
+		/* Check the WP connection (monotonic clock: see libwp.c) */
+		if (!wp_is_open() && (wp_timeout <= wp_monotonic()))
 		{
 			if (wp_open("FPAD"))
 			{
 				fprintf(stderr, "fpad : cannot open WP service\n");
 				syslog(LOG_ERR, "Cannot open WP service\n");
-				wp_timeout = temps + 60L;
+				wp_timeout = wp_monotonic() + 60L;
 			}
+			else
+				syslog(LOG_INFO, "FPAD opened WP service\n");
 		}
 			
 #ifdef __TCP__
