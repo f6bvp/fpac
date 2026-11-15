@@ -1,6 +1,7 @@
 sbin_SCRIPTS = ax25parms versions myfpac.sh
 # Helper of the QSl command of fpacnode (Python, needs python3-pil)
-dist_sbin_SCRIPTS = fpacqsl
+# Writes the minimal configuration of a new node (no fixed route, FPAC 4.2)
+dist_sbin_SCRIPTS = fpacqsl fpac-node-setup
 
 fpacdir = $(AX25_LOCALSTATEDIR)fpac
 fpac_DATA = loggedin

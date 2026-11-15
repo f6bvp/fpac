@@ -1,5 +1,19 @@
 fpac (4.2-rc3, in preparation)
 
+	* fpac-node-setup (new script, installed in /usr/local/sbin): writes
+	  the minimal configuration of a new node from a few answers
+	  (callsigns, ROSE address, IP and UDP port, locator, direct
+	  neighbours), asked on the terminal or read from a file (-a).
+	  fpac.routes stays empty: fpacrtd sets the route to each
+	  "Route = yes" neighbour and learns the rest; a neighbour without
+	  fpacrtd gets the one route it needs. In ax25ipd.conf the routes
+	  whose SSID is 0 go last, as they catch every SSID of their
+	  callsign. Also writes fpac-node-start, fpac-node-stop and
+	  fpac-node.service (started after time-sync.target), saves the
+	  files already there, and prepares to-send-to-neighbours.txt with
+	  the lines each neighbour adds. -d DIR writes under DIR to try it.
+	  Tried on the test node F4KLO-12 and against the hand-made
+	  configuration of f6bvp-6 (2026-11-15).
 	* fpacnode: the messages "Trying", "Connected to", "Failure with"
 	  and "Disconnected from" show the whole ROSE path again. The name
 	  was built in User.dl_name (31 characters), and a second digi was

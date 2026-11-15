@@ -1,0 +1,356 @@
+#!/bin/bash
+# fpac-node-setup - write the minimal configuration of a new FPAC node
+#
+# Run it once linuxax25 (updAX25.sh) and FPAC (updfpac) are installed.
+# It asks for the identity of the node and for its direct neighbours, then
+# writes, after saving the files already there:
+#   /usr/local/etc/ax25: axports rsports nrports nrbroadcast ax25ipd.conf
+#                        ax25d.conf fpac.conf fpac.nodes fpac.routes rc.netrom
+#   /usr/local/sbin: fpac-node-start fpac-node-stop
+#   /etc/systemd/system/fpac-node.service
+# and a text to send to the sysop of each neighbour (the lines they add).
+#
+# No fixed route: fpac.routes stays empty. fpacrtd (FPAC 4.2) sets the route
+# to each neighbour marked "Route = yes" and learns the rest of the network.
+#
+# Usage: fpac-node-setup [-a answers-file] [-d dest-dir] [-y]
+#   -a FILE  read the answers from FILE (KEY=value lines, see -h)
+#   -d DIR   write everything under DIR instead of / (test, no root needed)
+#   -y       do not ask for confirmation before writing
+#
+# Bernard Pidoux F6BVP, November 2026. GPL like FPAC.
+
+set -euo pipefail
+VERSION="2026-11-15"
+ANSWERS=""; DEST=""; YES=0
+while getopts "a:d:yh" o; do
+	case $o in
+	a) ANSWERS=$OPTARG ;;
+	d) DEST=$OPTARG ;;
+	y) YES=1 ;;
+	*) sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'
+	   cat <<'EOF'
+
+Answers file (one KEY=value per line, # for comments):
+  L2CALL=F6BVP-6        callsign of the AX.25 port (level 2)
+  L3CALL=F6BVP-7        ROSE callsign of the node (level 3)
+  TRCALL=F6BVP-15       callsign used by the route tracer
+  DNIC=2090             4 digits
+  ADDRESS=175506        6 digits; DNIC + ADDRESS = the ROSE address
+  INETADDR=44.168.19.5  IP address the neighbours send to
+  UDPPORT=10093         UDP port of ax25ipd on this node
+  CITY=Paris  STATE=75017  COUNTRY=France  LOCATOR=JN18DV
+  PASSWORD=...          sysop password of fpacnode (random if empty)
+  NETROM=yes            also a NET/ROM node
+  NRCALL=F6BVP-14  NRALIAS=BVPN6
+  SERVICE=yes           install and enable fpac-node.service
+  NEIGHBOUR1="F6BVP-12 F6BVP-13 2080 835201 44.168.19.9 10092 yes"
+  NEIGHBOUR2=...        L2-call L3-call DNIC address IP UDP-port fpacrtd(yes/no)
+EOF
+	   exit 0 ;;
+	esac
+done
+
+die() { echo "fpac-node-setup: $*" >&2; exit 1; }
+[ -n "$DEST" ] || [ "$(id -u)" = 0 ] || die "run it as root (sudo), or with -d DIR to try it"
+ROOT=${DEST:-}
+ETC=$ROOT/usr/local/etc/ax25
+SBIN=$ROOT/usr/local/sbin
+UNIT=$ROOT/etc/systemd/system/fpac-node.service
+
+# ---------------------------------------------------------------- answers
+declare -A A
+NEIGH=()
+if [ -n "$ANSWERS" ]; then
+	[ -r "$ANSWERS" ] || die "cannot read $ANSWERS"
+	while IFS= read -r l; do
+		l=${l%%#*}; [[ $l =~ ^[[:space:]]*$ ]] && continue
+		k=${l%%=*}; v=${l#*=}; k=${k//[[:space:]]/}
+		v=${v#\"}; v=${v%\"}; v=${v#"${v%%[![:space:]]*}"}; v=${v%"${v##*[![:space:]]}"}
+		if [[ $k == NEIGHBOUR* ]]; then NEIGH+=("$v"); else A[$k]=$v; fi
+	done < "$ANSWERS"
+fi
+
+ask() {	# ask KEY "question" default
+	local k=$1 q=$2 d=${3:-} r
+	[ -n "${A[$k]+x}" ] && return 0
+	if [ -n "$ANSWERS" ]; then A[$k]=$d; return 0; fi
+	read -r -p "$q${d:+ [$d]}: " r < /dev/tty
+	A[$k]=${r:-$d}
+}
+
+ipguess=$(ip -4 route get 44.0.0.1 2>/dev/null | sed -n 's/.* src \([0-9.]*\).*/\1/p' || true)
+echo "== FPAC node identity"
+ask L2CALL "Callsign of the AX.25 port (level 2), e.g. F6BVP-6"
+ask L3CALL "ROSE callsign of the node (level 3), e.g. F6BVP-7"
+ask TRCALL "Callsign of the route tracer, e.g. F6BVP-15"
+ask DNIC "DNIC (4 digits, 2080 = France)" 2080
+ask ADDRESS "ROSE address (6 digits)"
+ask INETADDR "IP address the neighbours will send to" "$ipguess"
+ask UDPPORT "UDP port of ax25ipd on this node" 10093
+ask CITY "City"; ask STATE "State or postcode"; ask COUNTRY "Country" France
+ask LOCATOR "Maidenhead locator, e.g. JN18DV"
+ask PASSWORD "Sysop password of fpacnode (empty = random)" ""
+[ -n "${A[PASSWORD]}" ] || A[PASSWORD]=$(tr -dc 'a-z0-9' < /dev/urandom 2>/dev/null | head -c 12 || true)
+ask NETROM "Also a NET/ROM node (yes/no)" no
+if [ "${A[NETROM]}" = yes ]; then
+	ask NRCALL "NET/ROM callsign, e.g. F6BVP-14"
+	ask NRALIAS "NET/ROM alias (6 characters max), e.g. BVPN6"
+fi
+ask SERVICE "Install and enable the fpac-node service (yes/no)" yes
+
+if [ ${#NEIGH[@]} -eq 0 ] && [ -z "$ANSWERS" ]; then
+	echo "== Direct neighbours (ask their sysop: callsigns, ROSE address, IP, UDP port)"
+	while :; do
+		read -r -p "Neighbour L2 callsign (empty = done): " n2 < /dev/tty
+		[ -z "$n2" ] && break
+		read -r -p "  its ROSE (L3) callsign: " n3 < /dev/tty
+		read -r -p "  its DNIC [2080]: " nd < /dev/tty; nd=${nd:-2080}
+		read -r -p "  its ROSE address (6 digits): " na < /dev/tty
+		read -r -p "  its IP address or host name: " ni < /dev/tty
+		read -r -p "  its UDP port [10093]: " np < /dev/tty; np=${np:-10093}
+		read -r -p "  does it run fpacrtd, FPAC 4.2 (yes/no) [yes]: " nr < /dev/tty; nr=${nr:-yes}
+		NEIGH+=("$n2 $n3 $nd $na $ni $np $nr")
+	done
+fi
+
+# ---------------------------------------------------------------- checks
+up() { echo "$1" | tr a-z A-Z; }
+for k in L2CALL L3CALL TRCALL; do A[$k]=$(up "${A[$k]}"); done
+call_ok() { [[ $1 =~ ^[A-Z0-9]{1,6}(-([0-9]|1[0-5]))?$ ]]; }
+for k in L2CALL L3CALL TRCALL; do call_ok "${A[$k]}" || die "$k: bad callsign '${A[$k]}'"; done
+[[ ${A[DNIC]} =~ ^[0-9]{4}$ ]] || die "DNIC must have 4 digits"
+[[ ${A[ADDRESS]} =~ ^[0-9]{6}$ ]] || die "ADDRESS must have 6 digits"
+[[ ${A[UDPPORT]} =~ ^[0-9]+$ ]] || die "UDPPORT must be a number"
+[ -n "${A[INETADDR]}" ] || die "INETADDR is empty"
+[[ ${A[LOCATOR]} =~ ^[A-Ra-r]{2}[0-9]{2}([A-Xa-x]{2})?$ ]] || die "bad locator '${A[LOCATOR]}'"
+if [ "${A[NETROM]}" = yes ]; then
+	A[NRCALL]=$(up "${A[NRCALL]}"); A[NRALIAS]=$(up "${A[NRALIAS]}")
+	call_ok "${A[NRCALL]}" || die "NRCALL: bad callsign"
+	[[ ${A[NRALIAS]} =~ ^[A-Z0-9]{1,6}$ ]] || die "NRALIAS: 1 to 6 letters or digits"
+fi
+[ ${#NEIGH[@]} -gt 0 ] || die "give at least one direct neighbour"
+for n in "${NEIGH[@]}"; do
+	set -- $n
+	[ $# -eq 7 ] || die "neighbour '$n': 7 fields expected (L2 L3 DNIC address IP port yes/no)"
+	call_ok "$(up "$1")" && call_ok "$(up "$2")" || die "neighbour '$n': bad callsign"
+	[[ $3 =~ ^[0-9]{4}$ && $4 =~ ^[0-9]{6}$ && $6 =~ ^[0-9]+$ ]] || die "neighbour '$n': bad DNIC, address or port"
+done
+for f in fpac.conf ax25ipd.conf; do
+	[ -e "$ETC/$f" ] || [ -e "$ETC/$f.dist" ] || [ -n "$DEST" ] || die "$ETC/$f missing: install linuxax25 and FPAC first"
+done
+
+FULL=${A[DNIC]}${A[ADDRESS]}
+echo
+echo "Node ${A[L3CALL]} $FULL (port ${A[L2CALL]}), $(echo ${A[INETADDR]}) udp ${A[UDPPORT]}, ${#NEIGH[@]} neighbour(s)"
+if [ $YES = 0 ] && [ -z "$ANSWERS" ]; then
+	read -r -p "Write the configuration (files already there are saved first)? [y/N] " r < /dev/tty
+	[[ $r =~ ^[yYoO] ]] || die "nothing written"
+fi
+
+# ---------------------------------------------------------------- save
+mkdir -p "$ETC" "$SBIN" "$(dirname "$UNIT")"
+SAVE=$ETC/before-fpac-node-setup-$(date +%Y%m%d-%H%M%S)
+FILES="axports rsports nrports nrbroadcast ax25ipd.conf ax25d.conf fpac.conf fpac.nodes fpac.routes rc.netrom"
+mkdir -p "$SAVE"
+for f in $FILES; do [ -e "$ETC/$f" ] && cp -p "$ETC/$f" "$SAVE/"; done
+for f in fpac-node-start fpac-node-stop; do [ -e "$SBIN/$f" ] && cp -p "$SBIN/$f" "$SAVE/"; done
+[ -e "$UNIT" ] && cp -p "$UNIT" "$SAVE/"
+rmdir "$SAVE" 2>/dev/null && SAVE="" || true
+
+# ---------------------------------------------------------------- write
+STAMP="written by fpac-node-setup $VERSION on $(date '+%Y-%m-%d %H:%M')"
+
+printf '# %s\n# name\tcallsign\tspeed\tpaclen\twindow\tdescription\naxudp\t%s\t115200\t253\t4\tAX.25 over UDP (ax25ipd)\n' "$STAMP" "${A[L2CALL]}" > "$ETC/axports"
+printf '# %s\nrose0\t%s\tROSE port %s\n' "$STAMP" "$FULL" "${A[ADDRESS]}" > "$ETC/rsports"
+if [ "${A[NETROM]}" = yes ]; then
+	printf '# %s\n# name\tcallsign\talias\tpaclen\tdescription\nnetnod\t%s\t%s\t236\tNET/ROM node\n' "$STAMP" "${A[NRCALL]}" "${A[NRALIAS]}" > "$ETC/nrports"
+	printf '# %s\naxudp\t5\t255\t100\t1\n' "$STAMP" > "$ETC/nrbroadcast"
+	cat > "$ETC/ax25d.conf" <<EOF
+# $STAMP
+# NET/ROM connections to the node go to fpacnode
+<netnod>
+NOCALL   * * * * * *  L
+default  * * * * * *  -	root  /usr/local/sbin/fpacnode %S
+EOF
+fi
+
+# ax25ipd: one route per callsign of each neighbour. A route whose SSID is 0
+# also catches every other SSID of that callsign, and the first route found
+# wins: such routes go last.
+{
+	echo "# $STAMP"
+	echo "socket udp ${A[UDPPORT]}"
+	echo "mode tnc"
+	echo "device /dev/ptmx"
+	echo "speed 115200"
+	echo "loglevel 3"
+	echo "broadcast QST-0 NODES-0 FBB-0"
+	for pass in exact ssid0; do
+		for n in "${NEIGH[@]}"; do
+			set -- $n
+			for c in "$1" "$2"; do
+				c=$(up "$c"); [[ $c == *-* && ${c##*-} != 0 ]] && kind=exact || kind=ssid0
+				[ $kind = $pass ] || continue
+				[ "$c" = "$(up "$1")" ] && b=" b" || b=""
+				echo "route $(echo "$c" | tr A-Z a-z) $5 udp $6$b"
+			done
+		done
+	done
+} > "$ETC/ax25ipd.conf"
+
+# fpac.conf: the example installed by FPAC, with the identity of this node
+TPL=$ETC/fpac.conf; [ -e "$SAVE/fpac.conf" ] && TPL=$SAVE/fpac.conf
+[ -e "$ETC/fpac.conf.dist" ] && TPL=$ETC/fpac.conf.dist
+if [ -e "$TPL" ]; then
+	sed -e "s|^L2call .*|L2call    = ${A[L2CALL]}|" -e "s|^L3call .*|L3call    = ${A[L3CALL]}|" \
+	    -e "s|^Trcall .*|Trcall    = ${A[TRCALL]}|" -e "s|^DNIC .*|DNIC      = ${A[DNIC]}|" \
+	    -e "s|^Address .*|Address   = ${A[ADDRESS]}|" -e "s|^Coverage .*|Coverage  =|" \
+	    -e "s|^InetPort .*|InetPort  = ${A[UDPPORT]}|" -e "s|^InetAddr .*|InetAddr  = ${A[INETADDR]}|" \
+	    -e "s|^Password .*|Password  = ${A[PASSWORD]}|" -e "s|^City .*|City      = ${A[CITY]}|" \
+	    -e "s|^State .*|State     = ${A[STATE]}|" -e "s|^Country .*|Country   = ${A[COUNTRY]}|" \
+	    -e "s|^Locator .*|Locator   = $(up "${A[LOCATOR]}")|" -e "s|^UserPort .*|UserPort  = axudp|" \
+	    -e "s|^DefPort .*|DefPort   = axudp|" -e "/^Route\(Announce\|Learn\) *=/d" \
+	    -e "s|^# End of Node Information|#\n# Dynamic ROSE routes (fpacrtd): announce and learn, no fixed route\nRouteAnnounce = yes\nRouteLearn    = all\n# End of Node Information|" \
+	    "$TPL" > "$ETC/fpac.conf.new"
+	sed -i "1i # $STAMP" "$ETC/fpac.conf.new"
+	mv -f "$ETC/fpac.conf.new" "$ETC/fpac.conf"
+	grep -q '^RouteAnnounce' "$ETC/fpac.conf" || printf '\nRouteAnnounce = yes\nRouteLearn    = all\n' >> "$ETC/fpac.conf"
+else
+	echo "fpac-node-setup: no fpac.conf to start from (install FPAC first); fpac.conf not written" >&2
+fi
+
+{
+	echo "# $STAMP"
+	echo "# Direct neighbours. \"Route = yes\": it runs fpacrtd; this node exchanges"
+	echo "# routes with it, and fpacrtd sets the kernel route to its address."
+	for n in "${NEIGH[@]}"; do
+		set -- $n
+		printf 'Node = %s\n Path = %s\n DNIC = %s\n Address = %s\n Port = axudp\n NoWp = 0\n' "$(up "$2")" "$(up "$2")" "$3" "$4"
+		[ "$7" = yes ] && echo " Route = yes"
+		echo "End"
+	done
+} > "$ETC/fpac.nodes"
+NOROUTE=""
+for n in "${NEIGH[@]}"; do set -- $n; [ "$7" = yes ] || NOROUTE+="$(up "$2") "; done
+{
+	echo "# $STAMP"
+	echo "# No fixed route: fpacrtd sets the route to each \"Route = yes\" neighbour"
+	echo "# and learns the others."
+	echo "Routes"
+	for n in "${NEIGH[@]}"; do
+		set -- $n
+		[ "$7" = yes ] && continue
+		echo "# $(up "$2") does not run fpacrtd: a route to its address is needed"
+		echo "DNIC = $3"
+		echo "$4 = $(up "$2")"
+	done
+	echo "End"
+} > "$ETC/fpac.routes"
+
+cat > "$ETC/rc.netrom" <<EOF
+#!/bin/bash
+# $STAMP
+# NET/ROM, started by myfpac.sh; netromd learns the neighbours
+[ -f /etc/ax25/nrports ] && grep -q '^netnod' /etc/ax25/nrports || exit 0
+/usr/bin/killall netromd 2>/dev/null
+/sbin/modprobe netrom
+/usr/local/sbin/nrattach -m 236 netnod
+echo 7 > /proc/sys/net/netrom/transport_requested_window_size
+/usr/local/sbin/netromd -d -l -i -t 30
+EOF
+chmod 755 "$ETC/rc.netrom"
+
+cat > "$SBIN/fpac-node-start" <<'EOF'
+#!/bin/bash
+# Start of the FPAC node: modules, ax25ipd + kissattach (port axudp),
+# FPAC (myfpac.sh, which also runs rc.netrom), ax25d and mheardd.
+for m in ax25 rose mkiss netrom; do /sbin/modprobe $m 2>/dev/null; done
+/usr/local/sbin/ax25ipd -c /etc/ax25/ax25ipd.conf -l3 > /tmp/unix98
+PTY=$(tail -1 /tmp/unix98)
+sleep 2
+/usr/local/sbin/kissattach "$PTY" axudp > /tmp/kiss-axudp.txt
+DEV=$(awk '/device/ {print $7}' /tmp/kiss-axudp.txt)
+if [ -n "$DEV" ] && [ -d /proc/sys/net/ax25/$DEV ]; then
+	echo "axudp on $DEV"
+	echo 0 > /proc/sys/net/ax25/$DEV/backoff_type	# fixed T1 on AX.25 over UDP
+else
+	echo "kissattach failed"; cat /tmp/kiss-axudp.txt
+fi
+sleep 1
+/usr/local/sbin/myfpac.sh start
+[ -f /etc/ax25/ax25d.conf ] && grep -q '^<' /etc/ax25/ax25d.conf && /usr/local/sbin/ax25d
+/usr/local/sbin/mheardd 2>/dev/null &
+exit 0
+EOF
+cat > "$SBIN/fpac-node-stop" <<'EOF'
+#!/bin/bash
+# Stop of the FPAC node
+/usr/local/sbin/myfpac.sh stop
+for p in ax25d mheardd netromd kissattach ax25ipd; do /usr/bin/killall $p 2>/dev/null; done
+sleep 1
+exit 0
+EOF
+chmod 755 "$SBIN/fpac-node-start" "$SBIN/fpac-node-stop"
+
+if [ "${A[SERVICE]}" = yes ]; then
+	cat > "$UNIT" <<'EOF'
+[Unit]
+Description=FPAC node (fpac-node-start / fpac-node-stop)
+Wants=network-online.target time-sync.target
+After=network-online.target time-sync.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/fpac-node-start
+ExecStop=/usr/local/sbin/fpac-node-stop
+TimeoutStartSec=5min
+TimeoutStopSec=2min
+
+[Install]
+WantedBy=multi-user.target
+EOF
+fi
+[ -z "$DEST" ] && { [ -e /etc/ax25 ] || ln -s /usr/local/etc/ax25 /etc/ax25; }
+
+# ---------------------------------------------------------------- neighbours
+MSG=$ETC/to-send-to-neighbours.txt
+{
+	echo "New FPAC node ${A[L3CALL]} $FULL - lines for the sysop of each neighbour ($STAMP)"
+	echo
+	for n in "${NEIGH[@]}"; do
+		set -- $n
+		echo "=== For the sysop of $(up "$2") ($5)"
+		echo "1. In ax25ipd.conf, BEFORE any route whose SSID is 0 for the same callsign"
+		echo "   (a route like \"route $(echo ${A[L2CALL]%-*} | tr A-Z a-z)-0 ...\" catches every SSID):"
+		echo "     route $(echo ${A[L2CALL]} | tr A-Z a-z) ${A[INETADDR]} udp ${A[UDPPORT]} b"
+		echo "     route $(echo ${A[L3CALL]} | tr A-Z a-z) ${A[INETADDR]} udp ${A[UDPPORT]}"
+		echo "2. In fpac.nodes:"
+		printf '     Node = %s\n      Path = %s\n      DNIC = %s\n      Address = %s\n      Port = axudp\n      NoWp = 0\n' "${A[L3CALL]}" "${A[L3CALL]}" "${A[DNIC]}" "${A[ADDRESS]}"
+		[ "$7" = yes ] && echo "      Route = yes" || echo "     and in fpac.routes:  DNIC = ${A[DNIC]}  /  ${A[ADDRESS]} = ${A[L3CALL]}"
+		echo "     End"
+		echo "3. Restart the AX.25 stack (ax25ipd does not read its configuration again)."
+		echo
+	done
+} > "$MSG"
+
+# ---------------------------------------------------------------- report
+echo
+echo "Written under ${ROOT:-/}:"
+echo "  $ETC: $FILES"
+echo "  $SBIN: fpac-node-start fpac-node-stop"
+[ "${A[SERVICE]}" = yes ] && echo "  $UNIT"
+[ -n "$SAVE" ] && echo "Files already there saved in $SAVE"
+[ -n "$NOROUTE" ] && echo "Fixed route written in fpac.routes for: $NOROUTE(they do not run fpacrtd)"
+echo "To send to the neighbours: $MSG"
+if [ -z "$DEST" ]; then
+	echo
+	echo "Next: send that file to the neighbours; when they have added the lines and"
+	echo "restarted, start the node:"
+	if [ "${A[SERVICE]}" = yes ]; then
+		echo "  systemctl daemon-reload; systemctl enable --now fpac-node"
+	else
+		echo "  /usr/local/sbin/fpac-node-start"
+	fi
+fi

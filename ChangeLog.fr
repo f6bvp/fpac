@@ -3,6 +3,21 @@ Les noms de fichiers, de fonctions et de variables sont conservés tels quels.
 
 fpac (4.2-rc3, en préparation)
 
+	* fpac-node-setup (nouveau script, installé dans /usr/local/sbin) :
+	  écrit la configuration minimale d'un nouveau nœud à partir de
+	  quelques réponses (indicatifs, adresse ROSE, IP et port UDP,
+	  locator, voisins directs), posées au terminal ou lues dans un
+	  fichier (-a). fpac.routes reste vide : fpacrtd pose la route de
+	  chaque voisin « Route = yes » et apprend le reste ; un voisin sans
+	  fpacrtd reçoit la seule route qu'il lui faut. Dans ax25ipd.conf,
+	  les routes de SSID 0 vont en dernier, car elles captent tous les
+	  SSID de leur indicatif. Écrit aussi fpac-node-start,
+	  fpac-node-stop et fpac-node.service (démarré après
+	  time-sync.target), sauvegarde les fichiers déjà là, et prépare
+	  to-send-to-neighbours.txt avec les lignes que chaque voisin ajoute.
+	  -d DIR écrit sous DIR pour l'essayer. Essayé sur le nœud d'essai
+	  F4KLO-12 et comparé à la configuration faite à la main de f6bvp-6
+	  (15/11/2026).
 	* fpacnode : les messages « Trying », « Connected to », « Failure
 	  with » et « Disconnected from » montrent de nouveau tout le
 	  chemin ROSE. Le nom était construit dans User.dl_name
