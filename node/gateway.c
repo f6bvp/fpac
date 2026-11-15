@@ -584,6 +584,17 @@ static void netrom_show_relay(const char *nodecall)
 	free_proc_nr_nodes(nodes);
 }
 
+/*
+ * F6BVP 2026-11-15: the name of the correspondent as shown in the
+ * messages ("Trying", "Connected to", "Failure with", "Disconnected
+ * from"). User.dl_name keeps 31 characters only: it is a field of the
+ * record shared with the other fpacnode sessions (Users command), whose
+ * layout must not change. A ROSE address with two digis went past it
+ * and the second digi was cut in the messages ("F6BVP-14 @
+ * 2080,175512 F6BVP-5 ").
+ */
+static char dl_full[128];
+
 static int connect_to(char *address[], int family, int escape, char *source,
 		       struct rose_cause_struct *out_cause)
 {
@@ -733,17 +744,20 @@ static int connect_to(char *address[], int family, int escape, char *source,
 		/* F6BVP 2026-11-13: dl_name holds 31 characters. A connection
 		 * through two or three digipeaters with an SSID went past its
 		 * end and the C library stopped fpacnode ("buffer overflow
-		 * detected"). The name shown is cut instead. */
-		snprintf(User.dl_name, sizeof(User.dl_name), "%s @ %s", strupr(address[0]), roseaddr(path));
+		 * detected"). The name shown is cut instead.
+		 * F6BVP 2026-11-15: the whole name goes into dl_full for the
+		 * messages, User.dl_name gets it cut to its field. */
+		snprintf(dl_full, sizeof(dl_full), "%s @ %s", strupr(address[0]), roseaddr(path));
 
 		++pos;
 
 		for (i = pos; address[i]; i++)
 		{
-			size_t used = strlen(User.dl_name);
+			size_t used = strlen(dl_full);
 
-			snprintf(User.dl_name + used, sizeof(User.dl_name) - used, " %s", strupr(address[i]));
+			snprintf(dl_full + used, sizeof(dl_full) - used, " %s", strupr(address[i]));
 		}
+		snprintf(User.dl_name, sizeof(User.dl_name), "%.*s", (int)sizeof(User.dl_name) - 1, dl_full);
 		sockaddr.rose.srose_family = AF_ROSE;
 		sockaddr.rose.srose_ndigis = 0;
 		if (ax25_aton_entry(address[0], sockaddr.rose.srose_call.ax25_call) ==
@@ -959,8 +973,11 @@ FSA*/
 		node_msg(T("Unsupported address family"));
 		return -1;
 	}
+	/* the other families: the name is short, the same in both */
+	if (family != AF_ROSE)
+		snprintf(dl_full, sizeof(dl_full), "%s", User.dl_name);
 	if (family == AF_FLEXNET)
-		node_msg(T("Trying %s%s..."), (source) ? source : "", User.dl_name);
+		node_msg(T("Trying %s%s..."), (source) ? source : "", dl_full);
 	else if (family == AF_AX25)
 	{
 		/* F6BVP 2026-09-16: name the port (User.dl_port, set a few
@@ -969,14 +986,14 @@ FSA*/
 		 * actually being tried. Bernard 2026-09-16: put it inside the
 		 * existing "(user port)" parenthesis rather than after it. */
 		if (source && strcmp(source, "(user port) ") == 0)
-			node_msg(T("Trying (user port %s) %s... Type <RETURN> to abort"), User.dl_port, User.dl_name);
+			node_msg(T("Trying (user port %s) %s... Type <RETURN> to abort"), User.dl_port, dl_full);
 		else if (source && strcmp(source, "(heard) ") == 0)
-			node_msg(T("Trying (heard on port %s) %s... Type <RETURN> to abort"), User.dl_port, User.dl_name);
+			node_msg(T("Trying (heard on port %s) %s... Type <RETURN> to abort"), User.dl_port, dl_full);
 		else
-			node_msg(T("Trying %s%s %s... Type <RETURN> to abort"), (source) ? source : "", User.dl_port, User.dl_name);
+			node_msg(T("Trying %s%s %s... Type <RETURN> to abort"), (source) ? source : "", User.dl_port, dl_full);
 	}
 	else
-		node_msg(T("Trying %s%s... Type <RETURN> to abort"), (source) ? source : "", User.dl_name);
+		node_msg(T("Trying %s%s... Type <RETURN> to abort"), (source) ? source : "", dl_full);
 	usflush(User.fd);
 	/*
 	 * Ok. Now set up a non-blocking connect...
@@ -1015,14 +1032,14 @@ FSA*/
 				rose_cause.diagnostic = 0;
 				break;
 			}
-			node_msg(T("*** Failure with %s"), User.dl_name);
+			node_msg(T("*** Failure with %s"), dl_full);
 			node_msg("*** %s", T(reason(rose_cause.cause)));
 			if (out_cause)
 				*out_cause = rose_cause;
 		}
 		else
 		{
-			node_msg(T("*** Failure with %s"), User.dl_name);
+			node_msg(T("*** Failure with %s"), dl_full);
 			node_msg("*** %s", strerror(errno));
 		}
 		close(fd);
@@ -1063,9 +1080,9 @@ FSA*/
 				{
 					cp = strdup(strerror(ret));
 					strlwr(cp);
-					node_msg(T("*** Failure with %s"), User.dl_name);
+					node_msg(T("*** Failure with %s"), dl_full);
 					node_msg("*** %s", cp);
-					fpaclog(LOGLVL_GW, "Failure with %s: %s", User.dl_name, cp);
+					fpaclog(LOGLVL_GW, "Failure with %s: %s", dl_full, cp);
 					free(cp);
 				}
 				else
@@ -1083,7 +1100,7 @@ FSA*/
 								ax25_ntoa(&facilities.fail_call),
 								fpac2asc(&facilities.fail_addr));
 					}
-					node_msg(T("*** Failure with %s%s"), User.dl_name, origin);
+					node_msg(T("*** Failure with %s%s"), dl_full, origin);
 					node_msg("*** %s", T(cp));
 					free(cp);
 					if (out_cause)
@@ -1126,12 +1143,12 @@ FSA*/
 		else
 			{
 			if (escape == -1)
-				node_msg(T("*** Connected to %s"), User.dl_name);
+				node_msg(T("*** Connected to %s"), dl_full);
 			else
-				node_msg(T("*** Connected to %s (Escape: ~. )"), User.dl_name);
+				node_msg(T("*** Connected to %s (Escape: ~. )"), dl_full);
 			}
 		usflush(User.fd);
-		fpaclog(LOGLVL_GW, "Connected to %s", User.dl_name);
+		fpaclog(LOGLVL_GW, "Connected to %s", dl_full);
 	}
 	if (init_io(fd, paclen, eol) == -1)
 	{
@@ -1923,7 +1940,7 @@ rose_retry:
 	}
 
 	close(fd);
-	fpaclog(LOGLVL_GW, "Disconnected from %s%s", User.dl_name, origin);
+	fpaclog(LOGLVL_GW, "Disconnected from %s%s", dl_full, origin);
 	if (stay)
 	{
 		set_eolmode(User.fd, EOLMODE_TEXT);

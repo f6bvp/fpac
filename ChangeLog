@@ -1,5 +1,12 @@
 fpac (4.2-rc3, in preparation)
 
+	* fpacnode: the messages "Trying", "Connected to", "Failure with"
+	  and "Disconnected from" show the whole ROSE path again. The name
+	  was built in User.dl_name (31 characters), and a second digi was
+	  cut ("F6BVP-14 @ 2080,175512 F6BVP-5 "). It is now built in a
+	  buffer of 128 characters for the messages; User.dl_name gets it
+	  cut to its field, as the record shared with the other sessions
+	  (Users command) keeps its layout.
 	* fpacnode: "Connect CALL via DIGI" for a callsign of the White
 	  Pages now goes through DIGI. The White Pages branch put the
 	  address and the digis of the record in place of the words typed

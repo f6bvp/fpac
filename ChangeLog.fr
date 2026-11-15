@@ -3,6 +3,14 @@ Les noms de fichiers, de fonctions et de variables sont conservés tels quels.
 
 fpac (4.2-rc3, en préparation)
 
+	* fpacnode : les messages « Trying », « Connected to », « Failure
+	  with » et « Disconnected from » montrent de nouveau tout le
+	  chemin ROSE. Le nom était construit dans User.dl_name
+	  (31 caractères), et un deuxième digi était coupé (« F6BVP-14 @
+	  2080,175512 F6BVP-5 »). Il est maintenant construit dans un
+	  tampon de 128 caractères pour les messages ; User.dl_name le
+	  reçoit coupé à sa taille, car la fiche partagée avec les autres
+	  sessions (commande Users) garde sa disposition.
 	* fpacnode : « Connect INDICATIF via DIGI » pour un indicatif des
 	  pages blanches passe maintenant par DIGI. La branche des pages
 	  blanches mettait l'adresse et les digis de la fiche à la place
