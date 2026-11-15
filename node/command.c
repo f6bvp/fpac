@@ -270,7 +270,8 @@ static char *adjacent_station(const char *addr10)
 	static char call[10];
 	node_t *n;
 	char full[11];
-	size_t len;
+	const char *src;
+	size_t len, i;
 
 	for (n = cfg.node; n != NULL; n = n->next)
 	{
@@ -279,10 +280,20 @@ static char *adjacent_station(const char *addr10)
 			 *n->dnic ? n->dnic : cfg.dnic, n->addr);
 		if (strlen(full) != 10 || strncmp(full, addr10, 10) != 0)
 			continue;
-		len = strcspn(n->name, "-");
+		/* The callsign is the first word of Path; the Node name is only a
+		 * label, which a sysop may write in lower case ("we4nc") */
+		src = n->call;
+		len = strcspn(src, "- ,\t");
+		if (len == 0)
+		{
+			src = n->name;
+			len = strcspn(src, "-");
+		}
 		if (len == 0 || len > 6)
 			return NULL;
-		snprintf(call, sizeof(call), "%.*s-?", (int)len, n->name);
+		for (i = 0; i < len; i++)
+			call[i] = toupper((unsigned char)src[i]);
+		strcpy(call + len, "-?");
 		return call;
 	}
 	return NULL;
