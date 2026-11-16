@@ -1,5 +1,11 @@
 fpac (4.2-rc4, in preparation)
 
+	* monitor: a resized window no longer stops the display. With -c,
+	  curses catches SIGWINCH; the signal made select() fail with EINTR,
+	  the sets were left as they were, stdin looked ready and monitor
+	  waited for a key in read() while its socket filled up. select()
+	  is now called again after EINTR.
+
 	* fpacrtd: discovery of new nodes. With FpacAnnounce = yes in
 	  fpac.conf (default no), fpacrtd sends an FPAC announcement, a UI
 	  frame from its L3 callsign to QST-0 on the ports of its

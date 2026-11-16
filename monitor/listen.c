@@ -172,7 +172,18 @@ int main(int argc, char **argv)
 		FD_ZERO(&read_fdset);
 		FD_SET(STDIN_FILENO, &read_fdset);
 		FD_SET(s, &read_fdset);
-		select(s+1, &read_fdset, NULL, NULL, 0);
+		/*
+		 * A signal (SIGWINCH when the window is resized, caught by
+		 * curses) makes select() fail with EINTR and leaves the sets
+		 * untouched: stdin would look ready and monitor would then
+		 * wait for a key in read().  Only trust the sets on success.
+		 */
+		if (select(s+1, &read_fdset, NULL, NULL, 0) < 0) {
+			if (errno == EINTR)
+				continue;
+			perror("select");
+			return 1;
+		}
 
 		if (FD_ISSET(STDIN_FILENO, &read_fdset))
 		{

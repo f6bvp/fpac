@@ -3,6 +3,13 @@ Les noms de fichiers, de fonctions et de variables sont conservés tels quels.
 
 fpac (4.2-rc4, en préparation)
 
+	* monitor : le redimensionnement de la fenêtre n'arrête plus
+	  l'affichage. Avec -c, curses capte SIGWINCH ; le signal faisait
+	  échouer select() avec EINTR, les ensembles restaient tels quels,
+	  stdin semblait prêt et monitor attendait une touche dans read()
+	  pendant que sa socket se remplissait. select() est maintenant
+	  rappelé après EINTR.
+
 	* fpacrtd : découverte des nouveaux nœuds. Avec FpacAnnounce = yes
 	  dans fpac.conf (défaut no), fpacrtd émet une annonce FPAC, une
 	  trame UI de son indicatif L3 vers QST-0 sur les ports de ses
