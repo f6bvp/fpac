@@ -3,6 +3,32 @@ Les noms de fichiers, de fonctions et de variables sont conservés tels quels.
 
 fpac (4.2-rc4, en préparation)
 
+	* fpacrtd : découverte des nouveaux nœuds. Avec FpacAnnounce = yes
+	  dans fpac.conf (défaut no), fpacrtd émet une annonce FPAC, une
+	  trame UI de son indicatif L3 vers QST-0 sur les ports de ses
+	  voisins, au démarrage puis toutes les 30 min (à 2 min près) :
+	  « FPAC/1 L2=... L3=... NUA=... V=... RT=1 ». Avec
+	  FpacDiscover = yes (le défaut ; ask ou no), un nœud entendu ainsi
+	  et inconnu de fpac.nodes est accepté à titre provisoire : fpacrtd
+	  pose la route noyau vers son adresse, l'appelle comme un voisin
+	  « Route = yes », lui répond par sa propre annonce, envoyée à lui
+	  seul, et le garde dans fpacrt.discovered d'un démarrage à
+	  l'autre. Le sysop l'invalide par « fpacrtd -x INDICATIF » (session
+	  fermée, route retirée, nœud inscrit dans fpacrt.refused),
+	  l'accepte de nouveau par « fpacrtd -a INDICATIF », et liste les
+	  nœuds par « fpacrtd -l » ; le démon en marche est prévenu par
+	  SIGUSR1. Avec ask, un nœud entendu attend dans fpacrt.pending la
+	  commande « fpacrtd -a ». Un nœud n'est pas accepté quand son
+	  adresse a une route dans fpac.routes, appartient à un autre
+	  voisin ou se trouve dans son bloc, ou est déjà annoncée par un
+	  voisin, ni au-delà de 8 nœuds provisoires. Un voisin de
+	  fpac.nodes entendu alors que sa session est coupée est appelé
+	  aussitôt. Un nouveau nœud dont le seul voisin est F6BVP-12 a été
+	  trouvé, relié et a reçu ses routes en une minute environ, sans
+	  rien écrire sur F6BVP-12 (nœud d'essai F4KLO-12, 16/11/2026).
+	  fpacrtd ne s'arrête plus quand seuls FpacAnnounce ou FpacDiscover
+	  sont réglés.
+
 	* fpacrtd : après un appel refusé ou une session perdue, le voisin
 	  est rappelé après 1 min, puis 5 min, et ensuite seulement toutes
 	  les 30 min comme avant ; une session restée établie 10 min remet

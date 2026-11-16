@@ -71,6 +71,21 @@
 #define RT_MAX_QUEUE		1024
 
 #define RT_STATE_FILE		AX25_LOCALSTATEDIR "fpac/fpacrt.dat"
+/* Discovery of new nodes (FpacAnnounce, FpacDiscover) */
+#define RT_DISC_FILE		AX25_LOCALSTATEDIR "fpac/fpacrt.discovered"
+#define RT_PENDING_FILE		AX25_LOCALSTATEDIR "fpac/fpacrt.pending"
+#define RT_REFUSED_FILE		AX25_LOCALSTATEDIR "fpac/fpacrt.refused"
+#define RT_ANN_PERIOD		(30 * 60)	/* FPAC announcement period */
+#define RT_ANN_JITTER		120		/* +/- seconds around it */
+#define RT_ANN_REPLY		(10 * 60)	/* At most one direct reply per node */
+#define RT_DISC_MAX		8		/* Nodes accepted provisionally */
+#define RT_MAX_PORTS		8
+#define DISC_NO			0
+#define DISC_ASK		1
+#define DISC_YES		2
+#ifndef AX25_P_TEXT
+#define AX25_P_TEXT		0xF0	/* PID of text frames */
+#endif
 #define RT_LOCK_FILE		AX25_LOCALSTATEDIR "fpac/fpacrtd.lock"
 
 #define LEARN_NO	0
@@ -91,6 +106,9 @@ struct rt_neigh {
 	char	port[10];	/* AX.25 port of its Node block */
 	int	digis;		/* Path of its Node block goes through digipeaters */
 	int	excluded;	/* No "Route = yes" in its Node block */
+	int	provisional;	/* Heard and accepted, not in fpac.nodes */
+	int	invalidated;	/* Was provisional, invalidated by the sysop */
+	time_t	last_reply;	/* Last direct announcement sent to it */
 	char	nr_dev[16];	/* Device of the route set to its address, "" = none */
 	int	fd;
 	int	state;
@@ -138,6 +156,9 @@ static int rt_announce;			/* RouteAnnounce */
 static int rt_learn = LEARN_NO;		/* RouteLearn */
 static int rt_wp;			/* RouteWp */
 static int rt_neighbours;		/* RouteNeighbours */
+static int fpac_announce;		/* FpacAnnounce */
+static int fpac_discover = DISC_YES;	/* FpacDiscover: no, ask or yes */
+static volatile sig_atomic_t lists_changed;	/* SIGUSR1: fpacrtd -a or -x */
 static char rt_origin[32][5];		/* RouteOrigin */
 static int nb_origin;
 
@@ -245,6 +266,17 @@ static void conf_scan(const char *file)
 			rt_wp = conf_yes(val);
 		else if (strcasecmp(key, "routeneighbours") == 0)
 			rt_neighbours = conf_yes(val);
+		else if (strcasecmp(key, "fpacannounce") == 0)
+			fpac_announce = conf_yes(val);
+		else if (strcasecmp(key, "fpacdiscover") == 0)
+		{
+			if (strcasecmp(val, "ask") == 0)
+				fpac_discover = DISC_ASK;
+			else if (conf_yes(val))
+				fpac_discover = DISC_YES;
+			else
+				fpac_discover = DISC_NO;
+		}
 		else if (strcasecmp(key, "routeorigin") == 0)
 		{
 			if (strlen(val) == 4 && strspn(val, "0123456789") == 4 && nb_origin < 32)
@@ -515,48 +547,51 @@ static void state_save(void)
  * it would remove the neighbour from the kernel, with every circuit through
  * it, at each restart of fpacrtd. A restart of fpad clears it with the rest.
  */
-static void neigh_routes_set(void)
+static void neigh_route_set(struct rt_neigh *v)
 {
 	char call[16];
 	char *dev;
-	int i, ports;
 
-	ports = ax25_config_load_ports();
-	for (i = 0; i < nb_neigh; i++)
+	if (v->excluded || v->nr_dev[0])
+		return;
+	if (is_manual(v->addr, 10))
+		return;
+	dev = ax25_config_get_dev(v->port[0] ? v->port : NULL);
+	if (kernel_next_hop(v->addr, 10, call, sizeof(call)))
 	{
-		struct rt_neigh *v = &neigh[i];
-
-		if (v->excluded || v->nr_dev[0])
-			continue;
-		if (is_manual(v->addr, 10))
-			continue;
-		dev = (ports > 0) ? ax25_config_get_dev(v->port[0] ? v->port : NULL) : NULL;
-		if (kernel_next_hop(v->addr, 10, call, sizeof(call)))
+		if (strcasecmp(call, v->call) == 0 && dev != NULL)
 		{
-			if (strcasecmp(call, v->call) == 0 && dev != NULL)
-			{
-				rt_log(LOG_INFO, "neighbour %s %s: route kept", v->call, v->addr);
-				snprintf(v->nr_dev, sizeof(v->nr_dev), "%s", dev);
-			}
-			else
-				rt_log(LOG_INFO, "neighbour %s %s: kernel route via %s already there", v->call, v->addr, call);
-			continue;
-		}
-		if (v->digis)
-		{
-			rt_log(LOG_WARNING, "neighbour %s %s: path through digipeaters, no route set (write it in fpac.routes)",
-			       v->call, v->addr);
-			continue;
-		}
-		if (dev == NULL)
-		{
-			rt_log(LOG_WARNING, "neighbour %s %s: unknown AX.25 port \"%s\", no route set",
-			       v->call, v->addr, v->port);
-			continue;
-		}
-		if (kernel_route(1, v->addr, 10, v->call, dev) == 0)
+			rt_log(LOG_INFO, "neighbour %s %s: route kept", v->call, v->addr);
 			snprintf(v->nr_dev, sizeof(v->nr_dev), "%s", dev);
+		}
+		else
+			rt_log(LOG_INFO, "neighbour %s %s: kernel route via %s already there", v->call, v->addr, call);
+		return;
 	}
+	if (v->digis)
+	{
+		rt_log(LOG_WARNING, "neighbour %s %s: path through digipeaters, no route set (write it in fpac.routes)",
+		       v->call, v->addr);
+		return;
+	}
+	if (dev == NULL)
+	{
+		rt_log(LOG_WARNING, "neighbour %s %s: unknown AX.25 port \"%s\", no route set",
+		       v->call, v->addr, v->port);
+		return;
+	}
+	if (kernel_route(1, v->addr, 10, v->call, dev) == 0)
+		snprintf(v->nr_dev, sizeof(v->nr_dev), "%s", dev);
+}
+
+static void neigh_routes_set(void)
+{
+	int i;
+
+	if (ax25_config_load_ports() <= 0)
+		return;
+	for (i = 0; i < nb_neigh; i++)
+		neigh_route_set(&neigh[i]);
 }
 
 static void state_purge(void)
@@ -1244,10 +1279,476 @@ static int neigh_has_routes(int idx)
 	return 0;
 }
 
+/************************************************************************
+ * Discovery of new nodes (FpacAnnounce, FpacDiscover)
+ *
+ * A node with FpacAnnounce = yes sends an FPAC announcement, a UI frame
+ * with PID 0xF0 from its L3 callsign to QST-0, on the ports of its
+ * neighbours: at start, then every 30 min. A node that hears an
+ * announcement from a node it does not know, and runs with
+ * FpacDiscover = yes (the default), accepts it provisionally: it sets the
+ * kernel route to its address, calls it as a "Route = yes" neighbour and
+ * answers with its own announcement, sent to the new node only. The sysop
+ * can invalidate it later (fpacrtd -x CALL). With FpacDiscover = ask the
+ * node waits for fpacrtd -a CALL; with no, it is only logged.
+ *
+ * The announcement:
+ *	FPAC/1 L2=F4KLO-12 L3=F4KLO-13 NUA=2080175512 V=4.2-rc4 RT=1
+ ************************************************************************/
+
+struct rt_port {
+	char	name[16];	/* AX.25 port, as in axports */
+	char	call[10];	/* Its callsign, to bind on it */
+	int	qst_fd;		/* Raw socket bound to QST-0: announcements */
+	int	l3_fd;		/* Raw socket bound to our L3 call: direct replies */
+	int	tx_fd;		/* Datagram socket bound to our L3 call: sending */
+};
+
+static struct rt_port ports[RT_MAX_PORTS];
+static int nb_ports;
+static time_t next_announce;
+
+/* One line per callsign in a list file */
+static int list_has(const char *file, const char *call)
+{
+	char line[128], word[16];
+	FILE *fp;
+	int found = 0;
+
+	if ((fp = fopen(file, "r")) == NULL)
+		return 0;
+	while (!found && fgets(line, sizeof(line), fp))
+		found = sscanf(line, "%15s", word) == 1 && strcasecmp(word, call) == 0;
+	fclose(fp);
+	return found;
+}
+
+/* Remove the lines of a callsign, keep the others */
+static void list_remove(const char *file, const char *call)
+{
+	char line[128], word[16], tmp[256];
+	FILE *in, *out;
+
+	if ((in = fopen(file, "r")) == NULL)
+		return;
+	snprintf(tmp, sizeof(tmp), "%s.new", file);
+	if ((out = fopen(tmp, "w")) == NULL)
+	{
+		fclose(in);
+		return;
+	}
+	while (fgets(line, sizeof(line), in))
+		if (sscanf(line, "%15s", word) != 1 || strcasecmp(word, call) != 0)
+			fputs(line, out);
+	fclose(in);
+	fclose(out);
+	rename(tmp, file);
+}
+
+static void list_add(const char *file, const char *line)
+{
+	FILE *fp;
+
+	if ((fp = fopen(file, "a")) == NULL)
+		return;
+	fprintf(fp, "%s\n", line);
+	fclose(fp);
+}
+
+static int ax25_bind_on(int fd, const char *call, const char *portcall)
+{
+	struct full_sockaddr_ax25 sa;
+
+	memset(&sa, 0, sizeof(sa));
+	sa.fsa_ax25.sax25_family = AF_AX25;
+	sa.fsa_ax25.sax25_ndigis = 1;
+	if (ax25_aton_entry(call, sa.fsa_ax25.sax25_call.ax25_call) != 0
+	    || ax25_aton_entry(portcall, sa.fsa_digipeater[0].ax25_call) != 0)
+		return -1;
+	return bind(fd, (struct sockaddr *)&sa, sizeof(sa));
+}
+
+/* The ports of the neighbours, where announcements are sent and heard */
+static void ports_open(void)
+{
+	int i, j, flag = 1;
+	char *call, *name;
+
+	for (i = 0; i < nb_neigh && nb_ports < RT_MAX_PORTS; i++)
+	{
+		struct rt_port *p = &ports[nb_ports];
+
+		/* No Port in the Node block: the first port of axports, as for
+		 * the route of the neighbour */
+		name = neigh[i].port[0] ? neigh[i].port : ax25_config_get_next(NULL);
+		if (name == NULL)
+			continue;
+		for (j = 0; j < nb_ports; j++)
+			if (strcmp(ports[j].name, name) == 0)
+				break;
+		if (j < nb_ports)
+			continue;
+		if ((call = ax25_config_get_addr(name)) == NULL)
+			continue;
+		snprintf(p->name, sizeof(p->name), "%s", name);
+		snprintf(p->call, sizeof(p->call), "%s", call);
+		p->qst_fd = socket(AF_AX25, SOCK_RAW, AX25_P_TEXT);
+		p->l3_fd = socket(AF_AX25, SOCK_RAW, AX25_P_TEXT);
+		p->tx_fd = socket(AF_AX25, SOCK_DGRAM, 0);
+		if (p->qst_fd < 0 || ax25_bind_on(p->qst_fd, "QST-0", p->call) != 0
+		    || p->l3_fd < 0 || ax25_bind_on(p->l3_fd, cfg.callsign, p->call) != 0
+		    || p->tx_fd < 0 || ax25_bind_on(p->tx_fd, cfg.callsign, p->call) != 0)
+		{
+			rt_log(LOG_WARNING, "port %s: cannot open the FPAC announcement sockets: %s",
+			       p->name, strerror(errno));
+			if (p->qst_fd >= 0)
+				close(p->qst_fd);
+			if (p->l3_fd >= 0)
+				close(p->l3_fd);
+			if (p->tx_fd >= 0)
+				close(p->tx_fd);
+			continue;
+		}
+		ioctl(p->qst_fd, FIONBIO, &flag);
+		ioctl(p->l3_fd, FIONBIO, &flag);
+		ioctl(p->tx_fd, FIONBIO, &flag);
+		rt_log(LOG_INFO, "FPAC announcements heard%s on port %s (%s)",
+		       fpac_announce ? " and sent" : "", p->name, p->call);
+		nb_ports++;
+	}
+}
+
+/* Send our announcement on one port, to QST-0 or to one node */
+static void announce_send(struct rt_port *p, const char *to)
+{
+	struct full_sockaddr_ax25 sa;
+	char text[200];
+	int n;
+
+	n = snprintf(text, sizeof(text), "FPAC/1 L2=%s L3=%s NUA=%s V=%s RT=%d\r",
+		     cfg.alt_callsign, cfg.callsign, cfg.fulladdr, VERSION,
+		     (rt_announce || rt_learn != LEARN_NO) ? 1 : 0);
+	memset(&sa, 0, sizeof(sa));
+	sa.fsa_ax25.sax25_family = AF_AX25;
+	if (ax25_aton_entry(to, sa.fsa_ax25.sax25_call.ax25_call) != 0)
+		return;
+	if (sendto(p->tx_fd, text, n, 0, (struct sockaddr *)&sa, sizeof(struct sockaddr_ax25)) < 0)
+		rt_log(LOG_WARNING, "port %s: FPAC announcement to %s: %s", p->name, to, strerror(errno));
+	else if (verbose)
+		rt_log(LOG_DEBUG, "port %s: FPAC announcement sent to %s", p->name, to);
+}
+
+static int nb_provisional(void)
+{
+	int i, n = 0;
+
+	for (i = 0; i < nb_neigh; i++)
+		n += neigh[i].provisional;
+	return n;
+}
+
+static struct rt_neigh *neigh_by_call(const char *call)
+{
+	int i;
+
+	for (i = 0; i < nb_neigh; i++)
+		if (strcasecmp(neigh[i].call, call) == 0)
+			return &neigh[i];
+	return NULL;
+}
+
+/* Why this node cannot be accepted, or NULL */
+static const char *disc_refusal(const char *call, const char *nua)
+{
+	struct rt_dest *d;
+	int i;
+
+	if (list_has(RT_REFUSED_FILE, call))
+		return "invalidated by the sysop (fpacrtd -a to accept it again)";
+	if (is_manual(nua, 10))
+		return "its address has a route in fpac.routes";
+	for (i = 0; i < nb_neigh; i++)
+		if (!neigh[i].excluded && strcmp(neigh[i].addr, nua) == 0)
+			return "its address belongs to another neighbour";
+	if ((d = dest_find(nua, 10, 0)) != NULL)
+		for (i = 0; i < nb_neigh; i++)
+			if (d->cost[i])
+				return "its address is already announced by another neighbour";
+	for (i = 0; i < nb_neigh; i++)
+		if (!neigh[i].excluded && in_neigh_block(nua, i))
+			return "its address is in the block of another neighbour";
+	if (nb_provisional() >= RT_DISC_MAX)
+		return "too many nodes accepted provisionally";
+	if (nb_neigh >= RT_MAX_NEIGH)
+		return "no room for one more neighbour";
+	return NULL;
+}
+
+/* Take a heard node as a provisional "Route = yes" neighbour */
+static struct rt_neigh *neigh_add_heard(const char *call, const char *nua, const char *port)
+{
+	struct rt_neigh *v = neigh_by_call(call);
+
+	if (v == NULL)
+	{
+		if (nb_neigh >= RT_MAX_NEIGH)
+			return NULL;
+		v = &neigh[nb_neigh++];
+		memset(v, 0, sizeof(*v));
+		v->fd = -1;
+	}
+	snprintf(v->name, sizeof(v->name), "*%s", call);
+	snprintf(v->call, sizeof(v->call), "%s", call);
+	snprintf(v->addr, sizeof(v->addr), "%s", nua);
+	snprintf(v->port, sizeof(v->port), "%s", port);
+	v->excluded = 0;
+	v->provisional = 1;
+	v->invalidated = 0;
+	v->failures = 0;
+	v->retry = time(NULL);
+	neigh_route_set(v);
+	return v;
+}
+
+/* The sysop invalidated a provisional neighbour */
+static void neigh_drop_heard(struct rt_neigh *v)
+{
+	if (v->state != N_DOWN)
+		neigh_close(v, "invalidated by the sysop");
+	if (v->nr_dev[0])
+		kernel_route(0, v->addr, 10, v->call, v->nr_dev);
+	v->nr_dev[0] = '\0';
+	v->excluded = 1;
+	v->provisional = 0;
+	v->invalidated = 1;
+	rt_log(LOG_WARNING, "node %s %s invalidated by the sysop", v->call, v->addr);
+}
+
+/* Nodes accepted before a restart, and the decisions of fpacrtd -a / -x */
+static void disc_lists_load(void)
+{
+	char line[128], call[16], nua[16], port[16];
+	struct rt_neigh *v;
+	FILE *fp;
+	int i;
+
+	for (i = 0; i < nb_neigh; i++)
+		if (neigh[i].provisional && list_has(RT_REFUSED_FILE, neigh[i].call))
+			neigh_drop_heard(&neigh[i]);
+	if ((fp = fopen(RT_DISC_FILE, "r")) == NULL)
+		return;
+	while (fgets(line, sizeof(line), fp))
+	{
+		if (sscanf(line, "%15s %15s %15s", call, nua, port) != 3)
+			continue;
+		if (list_has(RT_REFUSED_FILE, call))
+			continue;
+		v = neigh_by_call(call);
+		if (v != NULL && !v->provisional && !v->invalidated)
+			continue;	/* in fpac.nodes: the sysop decided */
+		if (v == NULL || !v->provisional)
+		{
+			if ((v = neigh_add_heard(call, nua, port)) != NULL)
+				rt_log(LOG_WARNING, "node %s %s on %s accepted provisionally (fpacrtd -x %s to invalidate it)",
+				       call, nua, port, call);
+		}
+	}
+	fclose(fp);
+}
+
+/* An FPAC announcement was heard on a port */
+static void disc_heard(struct rt_port *p, const char *from, char *text, int direct)
+{
+	char l3[16] = "", nua[16] = "", line[128];
+	const char *why;
+	struct rt_neigh *v;
+	char *tok, *save = NULL;
+	int rt = 0, i;
+	time_t now = time(NULL);
+
+	if (strncmp(text, "FPAC/1 ", 7) != 0)
+		return;
+	for (tok = strtok_r(text + 7, " \r\n", &save); tok; tok = strtok_r(NULL, " \r\n", &save))
+	{
+		if (strncmp(tok, "L3=", 3) == 0)
+			snprintf(l3, sizeof(l3), "%s", tok + 3);
+		else if (strncmp(tok, "NUA=", 4) == 0)
+			snprintf(nua, sizeof(nua), "%s", tok + 4);
+		else if (strncmp(tok, "RT=", 3) == 0)
+			rt = atoi(tok + 3);
+	}
+	for (i = 0; l3[i]; i++)
+		l3[i] = toupper((unsigned char)l3[i]);
+	if (strlen(nua) != 10 || strspn(nua, "0123456789") != 10 || !*l3)
+		return;
+	/* The announcement is sent by the L3 callsign it gives */
+	if (strcasecmp(l3, from) != 0)
+		return;
+	if (strcasecmp(l3, cfg.callsign) == 0 || strcmp(nua, cfg.fulladdr) == 0)
+		return;
+
+	v = neigh_by_call(l3);
+	if (v != NULL && (!v->excluded || v->provisional))
+	{
+		/* Known neighbour: call it now if its session is down */
+		if (v->state == N_DOWN && v->retry > now + 5)
+		{
+			rt_log(LOG_INFO, "%s (%s) heard on %s, calling it now", v->call, v->addr, p->name);
+			v->retry = now;
+			v->failures = 0;
+		}
+		if (fpac_announce && now - v->last_reply >= RT_ANN_REPLY)
+		{
+			v->last_reply = now;
+			announce_send(p, l3);
+		}
+		return;
+	}
+	if (v != NULL && !v->invalidated)
+		return;		/* in fpac.nodes without "Route = yes": the sysop decided */
+
+	if (fpac_discover == DISC_NO || !rt)
+	{
+		if (verbose)
+			rt_log(LOG_DEBUG, "FPAC node %s %s heard on %s%s", l3, nua, p->name,
+			       rt ? "" : " (no fpacrtd)");
+		return;
+	}
+	if ((why = disc_refusal(l3, nua)) != NULL)
+	{
+		rt_log(LOG_INFO, "FPAC node %s %s heard on %s, not accepted: %s", l3, nua, p->name, why);
+		return;
+	}
+	snprintf(line, sizeof(line), "%s %s %s %ld", l3, nua, p->name, (long)now);
+	if (fpac_discover == DISC_ASK)
+	{
+		if (!list_has(RT_PENDING_FILE, l3))
+		{
+			list_add(RT_PENDING_FILE, line);
+			rt_log(LOG_WARNING, "FPAC node %s %s heard on %s: waiting for the sysop (fpacrtd -a %s)",
+			       l3, nua, p->name, l3);
+		}
+		return;
+	}
+	if ((v = neigh_add_heard(l3, nua, p->name)) == NULL)
+		return;
+	list_remove(RT_DISC_FILE, l3);
+	list_add(RT_DISC_FILE, line);
+	rt_log(LOG_WARNING, "FPAC node %s %s heard on %s%s: accepted provisionally (fpacrtd -x %s to invalidate it)",
+	       l3, nua, p->name, direct ? " (direct)" : "", l3);
+	if (fpac_announce)
+	{
+		v->last_reply = now;
+		announce_send(p, l3);
+	}
+}
+
+static void disc_read(struct rt_port *p, int fd, int direct)
+{
+	struct full_sockaddr_ax25 from;
+	socklen_t len = sizeof(from);
+	char buf[300], call[16];
+	int n, k;
+	char *text;
+
+	while ((n = recvfrom(fd, buf, sizeof(buf) - 1, 0, (struct sockaddr *)&from, &len)) > 0)
+	{
+		buf[n] = '\0';
+		/*
+		 * A raw socket also gets what is left of the control byte and
+		 * the PID: ax25_recvmsg() removes one byte, the control byte of
+		 * a UI frame, and keeps the PID. Look for the keyword in the
+		 * first bytes rather than count them.
+		 */
+		for (k = 0; k < 3 && k < n; k++)
+			if (strncmp(buf + k, "FPAC/1 ", 7) == 0)
+				break;
+		if (k == 3 || k >= n)
+			continue;
+		text = buf + k;
+		snprintf(call, sizeof(call), "%s", ax25_ntoa(&from.fsa_ax25.sax25_call));
+		disc_heard(p, call, text, direct);
+		len = sizeof(from);
+	}
+}
+
+/* fpacrtd -l, -a CALL, -x CALL */
+static void show_file(const char *title, const char *file)
+{
+	char line[128];
+	FILE *fp;
+
+	printf("%s (%s):\n", title, file);
+	if ((fp = fopen(file, "r")) == NULL)
+		return;
+	while (fgets(line, sizeof(line), fp))
+		printf("  %s", line);
+	fclose(fp);
+}
+
+static int sysop_command(int cmd, const char *arg)
+{
+	char call[16], line[128], word[16], nua[16], port[16];
+	long when;
+	FILE *fp;
+	int i, n, found = 0;
+
+	if (cmd == 'l')
+	{
+		show_file("Accepted provisionally", RT_DISC_FILE);
+		show_file("Waiting for the sysop", RT_PENDING_FILE);
+		show_file("Invalidated", RT_REFUSED_FILE);
+		return 0;
+	}
+	snprintf(call, sizeof(call), "%s", arg);
+	for (i = 0; call[i]; i++)
+		call[i] = toupper((unsigned char)call[i]);
+	if (cmd == 'x')
+	{
+		list_remove(RT_DISC_FILE, call);
+		list_remove(RT_PENDING_FILE, call);
+		if (!list_has(RT_REFUSED_FILE, call))
+			list_add(RT_REFUSED_FILE, call);
+		printf("%s invalidated\n", call);
+	}
+	else
+	{
+		list_remove(RT_REFUSED_FILE, call);
+		if ((fp = fopen(RT_PENDING_FILE, "r")) != NULL)
+		{
+			while (!found && fgets(line, sizeof(line), fp))
+				if (sscanf(line, "%15s %15s %15s %ld", word, nua, port, &when) == 4
+				    && strcasecmp(word, call) == 0)
+					found = 1;
+			fclose(fp);
+		}
+		if (found)
+		{
+			list_remove(RT_PENDING_FILE, call);
+			list_remove(RT_DISC_FILE, call);
+			snprintf(line, sizeof(line), "%s %s %s %ld", call, nua, port, (long)time(NULL));
+			list_add(RT_DISC_FILE, line);
+			printf("%s %s accepted\n", call, nua);
+		}
+		else
+			printf("%s may be accepted again when it is heard\n", call);
+	}
+	/* Tell the running daemon */
+	if ((fp = fopen(RT_LOCK_FILE, "r")) != NULL)
+	{
+		if (fscanf(fp, "%d", &n) == 1 && n > 0)
+			kill(n, SIGUSR1);
+		fclose(fp);
+	}
+	return 0;
+}
+
 static void on_signal(int sig)
 {
-	(void)sig;
-	stop = 1;
+	if (sig == SIGUSR1)
+		lists_changed = 1;
+	else
+		stop = 1;
 }
 
 static void timers(void)
@@ -1255,6 +1756,14 @@ static void timers(void)
 	static time_t next_check;
 	time_t now = time(NULL);
 	int i;
+
+	if (fpac_announce && nb_ports && now >= next_announce)
+	{
+		for (i = 0; i < nb_ports; i++)
+			announce_send(&ports[i], "QST-0");
+		next_announce = now + RT_ANN_PERIOD - RT_ANN_JITTER
+				+ rand() % (2 * RT_ANN_JITTER + 1);
+	}
 
 	for (i = 0; i < nb_neigh; i++)
 	{
@@ -1358,6 +1867,12 @@ static void main_loop(void)
 
 	while (!stop)
 	{
+		/* Before the sets are built: it may close sessions */
+		if (lists_changed)
+		{
+			lists_changed = 0;
+			disc_lists_load();
+		}
 		FD_ZERO(&rfds);
 		FD_ZERO(&wfds);
 		FD_SET(listen_fd, &rfds);
@@ -1375,6 +1890,18 @@ static void main_loop(void)
 			if (v->fd > maxfd)
 				maxfd = v->fd;
 		}
+		for (i = 0; i < nb_ports; i++)
+		{
+			FD_SET(ports[i].qst_fd, &rfds);
+			FD_SET(ports[i].l3_fd, &rfds);
+			FD_SET(ports[i].tx_fd, &rfds);
+			if (ports[i].qst_fd > maxfd)
+				maxfd = ports[i].qst_fd;
+			if (ports[i].l3_fd > maxfd)
+				maxfd = ports[i].l3_fd;
+			if (ports[i].tx_fd > maxfd)
+				maxfd = ports[i].tx_fd;
+		}
 		tv.tv_sec = 5;
 		tv.tv_usec = 0;
 		if (select(maxfd + 1, &rfds, &wfds, NULL, &tv) < 0)
@@ -1385,6 +1912,20 @@ static void main_loop(void)
 		}
 		if (FD_ISSET(listen_fd, &rfds))
 			listen_accept();
+		for (i = 0; i < nb_ports; i++)
+		{
+			char junk[300];
+
+			if (FD_ISSET(ports[i].qst_fd, &rfds))
+				disc_read(&ports[i], ports[i].qst_fd, 0);
+			if (FD_ISSET(ports[i].l3_fd, &rfds))
+				disc_read(&ports[i], ports[i].l3_fd, 1);
+			/* The sending socket also gets the UI frames for our L3
+			 * call: the raw socket above reads them */
+			if (FD_ISSET(ports[i].tx_fd, &rfds))
+				while (recv(ports[i].tx_fd, junk, sizeof(junk), 0) > 0)
+					;
+		}
 		for (i = 0; i < nb_neigh; i++)
 		{
 			struct rt_neigh *v = &neigh[i];
@@ -1429,6 +1970,9 @@ static void show_config(void)
 	       cfg.callsign, cfg.fulladdr, rt_announce ? "yes" : "no",
 	       rt_learn == LEARN_ALL ? "all" : rt_learn == LEARN_NODES ? "nodes" : "no",
 	       rt_wp ? "yes" : "no", rt_neighbours ? "yes" : "no", dry_run ? ", dry run" : "");
+	rt_log(LOG_INFO, "FPAC announcement %s, discovery of new nodes %s",
+	       fpac_announce ? "yes" : "no",
+	       fpac_discover == DISC_YES ? "yes" : fpac_discover == DISC_ASK ? "ask" : "no");
 	for (i = 0; i < nb_neigh; i++)
 		rt_log(LOG_INFO, "neighbour %-9s %s%s", neigh[i].call, neigh[i].addr,
 		       neigh[i].excluded ? " (not taking part)" : " (Route = yes)");
@@ -1490,10 +2034,15 @@ int main(int argc, char **argv)
 {
 	int c, i;
 
-	while ((c = getopt(argc, argv, "c:fntvh")) != -1)
+	while ((c = getopt(argc, argv, "c:fntvhla:x:")) != -1)
 	{
 		switch (c)
 		{
+		case 'l':
+			return sysop_command('l', NULL);
+		case 'a':
+		case 'x':
+			return sysop_command(c, optarg);
 		case 'c':
 			extra_conf = optarg;
 			break;
@@ -1511,6 +2060,10 @@ int main(int argc, char **argv)
 			break;
 		default:
 			fprintf(stderr, "Usage: fpacrtd [-c file] [-f] [-n] [-t] [-v]\n"
+				"       fpacrtd -l | -a CALL | -x CALL\n"
+				"  -l  list the nodes heard: accepted, waiting, invalidated\n"
+				"  -a  accept a node (FpacDiscover = ask), or again after -x\n"
+				"  -x  invalidate a node accepted provisionally\n"
 				"  -c  also read the Route keywords of this file\n"
 				"  -f  stay in the foreground, log to stderr\n"
 				"  -n  dry run: never change the kernel routes\n"
@@ -1528,9 +2081,10 @@ int main(int argc, char **argv)
 	if (check_only)
 		return 0;
 
-	if (!rt_announce && rt_learn == LEARN_NO && !rt_wp)
+	if (!rt_announce && rt_learn == LEARN_NO && !rt_wp && !fpac_announce
+	    && fpac_discover == DISC_NO)
 	{
-		rt_log(LOG_INFO, "none of RouteAnnounce, RouteLearn, RouteWp is set in fpac.conf: nothing to do");
+		rt_log(LOG_INFO, "none of RouteAnnounce, RouteLearn, RouteWp, FpacAnnounce, FpacDiscover is set in fpac.conf: nothing to do");
 		return 0;
 	}
 
@@ -1550,9 +2104,14 @@ int main(int argc, char **argv)
 	signal(SIGTERM, on_signal);
 	signal(SIGINT, on_signal);
 	signal(SIGPIPE, SIG_IGN);
+	signal(SIGUSR1, on_signal);
 
 	state_purge();
 	neigh_routes_set();
+	ports_open();
+	disc_lists_load();
+	srand(time(NULL) ^ getpid());
+	next_announce = time(NULL) + 5;
 
 	if ((listen_fd = listen_open()) < 0)
 	{

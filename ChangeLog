@@ -1,5 +1,30 @@
 fpac (4.2-rc4, in preparation)
 
+	* fpacrtd: discovery of new nodes. With FpacAnnounce = yes in
+	  fpac.conf (default no), fpacrtd sends an FPAC announcement, a UI
+	  frame from its L3 callsign to QST-0 on the ports of its
+	  neighbours, at start and every 30 min (+/- 2 min):
+	  "FPAC/1 L2=... L3=... NUA=... V=... RT=1". With
+	  FpacDiscover = yes (the default; ask or no), a node heard this
+	  way and unknown to fpac.nodes is accepted provisionally: fpacrtd
+	  sets the kernel route to its address, calls it as a
+	  "Route = yes" neighbour, answers with its own announcement sent
+	  to that node only, and keeps it in fpacrt.discovered across
+	  restarts. The sysop invalidates it with "fpacrtd -x CALL"
+	  (session closed, route removed, the node is listed in
+	  fpacrt.refused), accepts it again with "fpacrtd -a CALL", and
+	  lists the nodes with "fpacrtd -l"; the running daemon is told by
+	  SIGUSR1. With ask, a heard node waits in fpacrt.pending for
+	  "fpacrtd -a". A node is not accepted when its address has a route
+	  in fpac.routes, belongs to or is in the block of another
+	  neighbour, or is already announced by one, nor beyond 8
+	  provisional nodes. A neighbour of fpac.nodes that is heard while
+	  its session is down is called at once. A new node whose only
+	  neighbour is F6BVP-12 was found, joined and given its routes in
+	  about a minute, with nothing written on F6BVP-12 (test node
+	  F4KLO-12, 2026-11-16). fpacrtd no longer exits when only
+	  FpacAnnounce or FpacDiscover is set.
+
 	* fpacrtd: after a failed call or a lost session, a neighbour is
 	  called again after 1 min, then 5 min, and only then every 30 min
 	  as before; a session that stayed up 10 min resets the count. The
