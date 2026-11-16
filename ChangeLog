@@ -1,5 +1,17 @@
 fpac (4.2-rc4, in preparation)
 
+	* fpacrtd: after a failed call or a lost session, a neighbour is
+	  called again after 1 min, then 5 min, and only then every 30 min
+	  as before; a session that stayed up 10 min resets the count. The
+	  first call after a restart often fails: the link to the neighbour
+	  is not restarted yet, so the kernel sends the call on a less
+	  specific route (to another node, which clears it) while it brings
+	  that link up. A new node whose only neighbour is the node that
+	  restarted stayed without routes for 30 min (test node F4KLO-12
+	  behind F6BVP-12, 2026-11-16); it is now joined again within
+	  about a minute. The log gives the cause and diagnostic of the
+	  Clear Request and the delay before the next call.
+
 	* fpacnode: in the Routes command, the station shown for the address
 	  of a direct neighbour unknown to the White Pages ("CALL-?") is now
 	  taken from the first word of Path in its Node block, in upper

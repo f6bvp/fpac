@@ -49,6 +49,14 @@
 #define RT_MAX_COST		6		/* Hops ceiling */
 #define RT_PERIOD		(30 * 60)	/* Full table period */
 #define RT_RETRY		(30 * 60)	/* Retry a refused neighbour */
+/*
+ * The first call after a restart of either node often fails: the link to
+ * the neighbour is not restarted yet, so the kernel tries a less specific
+ * route, while it brings that link up. Call again soon, then less often.
+ */
+#define RT_RETRY_FIRST		60	/* After the 1st failure in a row */
+#define RT_RETRY_SECOND		(5 * 60)	/* After the 2nd */
+#define RT_STABLE		(10 * 60)	/* A session up that long resets the count */
 #define RT_CONNECT_TIMEOUT	120
 #define RT_START_DELAY		30		/* Before the first call */
 #define RT_MISSED_MAX		3		/* Tables without the route */
@@ -90,6 +98,8 @@ struct rt_neigh {
 	int	hello;		/* FPACRT line received */
 	int	nb_rcvd;	/* R lines since the last E */
 	time_t	retry;
+	int	failures;	/* Calls or sessions lost in a row */
+	time_t	up_since;	/* Start of the current session */
 	time_t	deadline;	/* Connect timeout */
 	time_t	next_table;
 	time_t	last_table;	/* Last full table received, or session start */
@@ -901,6 +911,24 @@ static void neigh_send(struct rt_neigh *v, const char *fmt, ...)
 	neigh_flush(v);
 }
 
+/* When to call a neighbour again after a failed call or a lost session */
+static time_t next_retry(struct rt_neigh *v)
+{
+	time_t now = time(NULL);
+
+	if (v->state == N_UP && now - v->up_since >= RT_STABLE)
+		v->failures = 0;
+	switch (v->failures++) {
+	case 0:
+		return now + RT_RETRY_FIRST;
+	case 1:
+		return now + RT_RETRY_SECOND;
+	default:
+		v->failures = 2;
+		return now + RT_RETRY;
+	}
+}
+
 static void neigh_close(struct rt_neigh *v, const char *why)
 {
 	int idx = v - neigh;
@@ -908,13 +936,14 @@ static void neigh_close(struct rt_neigh *v, const char *why)
 
 	if (v->fd >= 0)
 		close(v->fd);
+	v->retry = next_retry(v);
 	if (v->state != N_DOWN)
-		rt_log(LOG_INFO, "%s (%s) closed: %s", v->call, v->addr, why);
+		rt_log(LOG_INFO, "%s (%s) closed: %s, next call in %ld s", v->call, v->addr,
+		       why, (long)(v->retry - time(NULL)));
 	v->fd = -1;
 	v->state = N_DOWN;
 	v->hello = 0;
 	v->incoming = 0;
-	v->retry = time(NULL) + RT_RETRY;
 	for (i = 0; i < v->nb_queue; i++)
 		free(v->queue[i]);
 	v->nb_queue = 0;
@@ -995,6 +1024,7 @@ static void neigh_up(struct rt_neigh *v)
 	v->hello = 0;
 	v->nb_rcvd = 0;
 	v->last_table = time(NULL);
+	v->up_since = v->last_table;
 	rt_log(LOG_INFO, "%s (%s) connected%s", v->call, v->addr,
 	       v->incoming ? " (incoming)" : "");
 	neigh_send(v, "FPACRT %d %s", RT_VERSION, cfg.callsign);
@@ -1139,6 +1169,7 @@ static void neigh_connect(struct rt_neigh *v)
 			rt_log(LOG_DEBUG, "%s (%s): connect: %s", v->call, v->addr, strerror(errno));
 		close(v->fd);
 		v->fd = -1;
+		v->retry = next_retry(v);
 		return;
 	}
 	v->state = N_CONNECTING;
@@ -1365,9 +1396,19 @@ static void main_loop(void)
 				err = 0;
 				len = sizeof(err);
 				getsockopt(v->fd, SOL_SOCKET, SO_ERROR, &err, &len);
-				if (err)
-					neigh_close(v, strerror(err));
-				else
+				if (err) {
+					struct rose_cause_struct rc;
+					char why[80];
+
+					/* Cause and diagnostic of the Clear Request, if any */
+					memset(&rc, 0, sizeof(rc));
+					if (ioctl(v->fd, SIOCRSGCAUSE, &rc) == 0 && (rc.cause || rc.diagnostic))
+						snprintf(why, sizeof(why), "%s (cause 0x%02x, diagnostic 0x%02x)",
+							 strerror(err), rc.cause, rc.diagnostic);
+					else
+						snprintf(why, sizeof(why), "%s", strerror(err));
+					neigh_close(v, why);
+				} else
 					neigh_up(v);
 				continue;
 			}

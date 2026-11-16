@@ -3,6 +3,19 @@ Les noms de fichiers, de fonctions et de variables sont conservés tels quels.
 
 fpac (4.2-rc4, en préparation)
 
+	* fpacrtd : après un appel refusé ou une session perdue, le voisin
+	  est rappelé après 1 min, puis 5 min, et ensuite seulement toutes
+	  les 30 min comme avant ; une session restée établie 10 min remet
+	  le compte à zéro. Le premier appel qui suit un redémarrage échoue
+	  souvent : la liaison avec le voisin n'est pas encore redémarrée,
+	  le noyau envoie donc l'appel par une route moins précise (vers un
+	  autre nœud, qui le refuse) tout en remettant cette liaison en
+	  route. Un nouveau nœud dont le seul voisin est le nœud redémarré
+	  restait 30 min sans routes (nœud d'essai F4KLO-12 derrière
+	  F6BVP-12, 16/11/2026) ; il est maintenant relié en une minute
+	  environ. Le journal donne la cause et le diagnostic de la demande
+	  de libération, et le délai avant le prochain appel.
+
 	* fpacnode : dans la commande Routes, la station affichée pour
 	  l'adresse d'un voisin direct inconnu des pages blanches
 	  (« INDICATIF-? ») est maintenant tirée du premier mot de Path dans
