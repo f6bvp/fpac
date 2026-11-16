@@ -11,6 +11,7 @@
 #include <sys/utsname.h>
 /*#include <sys/types.h>*/
 #include <dirent.h>
+#include <sys/wait.h>
 /*#include <sys/stat.h>*/
 #include <sys/ioctl.h>
 /*#include <sys/socket.h>*/
@@ -82,6 +83,7 @@ int do_rose_ckt(int argc, char **argv);
 int do_stat_heure(int argc, char **argv);
 int do_stat_jour(int argc, char **argv);
 int do_dnic(int argc, char **argv);
+int do_hnodes(int argc, char **argv);
 /*
  * State of the AX.25 link carrying NetRom to neighbour <call>, read in
  * /proc/net/ax25 (source = callsign of a NetRom port): 0 if none,
@@ -137,6 +139,7 @@ void init_nodecmds(void)
 add_internal_cmd(&Nodecmds, "LAng", 2, 1, do_lang);
 	add_internal_cmd(&Nodecmds, "Links", 1, 1, do_links);
 	add_internal_cmd(&Nodecmds, "HRD", 3, 1, do_hrd);
+	add_internal_cmd(&Nodecmds, "HNodes", 2, 1, do_hnodes);
 	add_internal_cmd(&Nodecmds, "Mheard", 1, 1, do_mheard);
 	add_internal_cmd(&Nodecmds, "NEtrom", 2, 1, do_netrom);
 	add_internal_cmd(&Nodecmds, "NNetrom", 2, 1, do_nnetrom);
@@ -4152,5 +4155,198 @@ int do_dest(int argc, char **argv)
 	free_flex_dst(fdst);
 	free_flex_gt(flgt);
 
+	return 0;
+}
+
+/*
+ * HNodes: the FPAC nodes heard by fpacrtd (discovery), from its files:
+ * accepted provisionally, waiting for the sysop (FpacDiscover = ask) and
+ * invalidated, with the state of the ROSE link. The sysop may accept a
+ * node (HN CALL) or invalidate it (HN -X CALL): fpacnode runs
+ * fpacrtd -a / -x, which keeps the files and tells the daemon.
+ */
+#define HN_DISC_FILE	AX25_LOCALSTATEDIR "fpac/fpacrt.discovered"
+#define HN_PEND_FILE	AX25_LOCALSTATEDIR "fpac/fpacrt.pending"
+#define HN_REFU_FILE	AX25_LOCALSTATEDIR "fpac/fpacrt.refused"
+
+/* "yes" if the ROSE link to call is up, "no" if down, NULL if no neighbour */
+static const char *hn_link(const char *call)
+{
+	static char restart[8];
+	char line[256], c[16];
+	FILE *fp;
+	const char *st = NULL;
+
+	if ((fp = fopen("/proc/net/rose_neigh", "r")) == NULL)
+		return NULL;
+	while (st == NULL && fgets(line, sizeof(line), fp))
+		if (sscanf(line, "%*s %15s %*s %*s %*s %*s %7s", c, restart) == 2
+		    && strcasecmp(c, call) == 0)
+			st = restart;
+	fclose(fp);
+	return st;
+}
+
+static int hn_show(const char *file, const char *state)
+{
+	char line[128], call[16], nua[16], port[16], when[24];
+	const char *ln;
+	long t;
+	time_t tt;
+	int n, count = 0;
+	FILE *fp;
+
+	if ((fp = fopen(file, "r")) == NULL)
+		return 0;
+	while (fgets(line, sizeof(line), fp))
+	{
+		n = sscanf(line, "%15s %15s %15s %ld", call, nua, port, &t);
+		if (n < 1)
+			continue;
+		if (n < 4)
+		{
+			strcpy(nua, "-");
+			strcpy(port, "-");
+			strcpy(when, "-");
+		}
+		else
+		{
+			tt = t;
+			strftime(when, sizeof(when), "%d/%m %H:%M", gmtime(&tt));
+		}
+		ln = hn_link(call);
+		tprintf("%-9s  %-10s  %-6s  %-11s  %s%s\n", call, nua, port, when,
+			state, ln == NULL ? "" : strcmp(ln, "yes") == 0 ? ", linked" : ", not linked");
+		count++;
+	}
+	fclose(fp);
+	return count;
+}
+
+static int hn_valid_call(const char *call)
+{
+	int i, dash = 0;
+
+	if (strlen(call) < 3 || strlen(call) > 9)
+		return 0;
+	for (i = 0; call[i]; i++)
+	{
+		if (call[i] == '-' && i > 0 && !dash && call[i + 1])
+			dash = 1;
+		else if (!isalnum((unsigned char)call[i]) || (dash && !isdigit((unsigned char)call[i])))
+			return 0;
+	}
+	return 1;
+}
+
+/* Run fpacrtd -a or -x CALL (fpacrtd sits next to fpacnode), show what it says */
+static void hn_fpacrtd(const char *opt, const char *call)
+{
+	char prog[512], line[256];
+	char *argv[4];
+	ssize_t n;
+	int fd[2], status;
+	pid_t pid;
+	FILE *fp;
+
+	n = readlink("/proc/self/exe", prog, sizeof(prog) - 1);
+	if (n <= 0 || n > (ssize_t)(sizeof(prog) - 9))
+		strcpy(prog, "/usr/local/sbin/fpacnode");
+	else
+		prog[n] = '\0';
+	strcpy(strrchr(prog, '/') ? strrchr(prog, '/') + 1 : prog, "fpacrtd");
+	if (access(AX25_LOCALSTATEDIR "fpac", W_OK) != 0)
+	{
+		node_msg("This session may not change the FPAC files (%s)", strerror(errno));
+		return;
+	}
+	if (pipe(fd) < 0)
+	{
+		node_perror("HNodes: pipe", errno);
+		return;
+	}
+	alarm(0L);
+	if ((pid = fork()) < 0)
+	{
+		node_perror("HNodes: fork", errno);
+		close(fd[0]);
+		close(fd[1]);
+		return;
+	}
+	if (pid == 0)
+	{
+		dup2(fd[1], 1);
+		dup2(fd[1], 2);
+		close(fd[0]);
+		close(fd[1]);
+		argv[0] = "fpacrtd";
+		argv[1] = (char *)opt;
+		argv[2] = (char *)call;
+		argv[3] = NULL;
+		execv(prog, argv);
+		dprintf(1, "cannot run %s: %s\n", prog, strerror(errno));
+		_exit(1);
+	}
+	close(fd[1]);
+	if ((fp = fdopen(fd[0], "r")) != NULL)
+	{
+		while (fgets(line, sizeof(line), fp))
+		{
+			line[strcspn(line, "\n")] = '\0';
+			node_msg("%s", line);
+		}
+		fclose(fp);
+	}
+	else
+		close(fd[0]);
+	waitpid(pid, &status, 0);
+}
+
+int do_hnodes(int argc, char **argv)
+{
+	char call[16];
+	const char *opt = "-a";
+	int i, n = 0;
+
+	if (argc > 1 && *argv[1] == '?')
+	{
+		node_msg("usage : hnodes  |  hnodes <call> (sysop: accept)  |  hnodes -x <call> (sysop: invalidate)");
+		return 0;
+	}
+	if (argc > 1)
+	{
+		i = 1;
+		if (strcasecmp(argv[1], "-x") == 0)
+		{
+			opt = "-x";
+			i = 2;
+		}
+		if (argc != i + 1 || !hn_valid_call(argv[i]))
+		{
+			node_msg("usage : hnodes  |  hnodes <call>  |  hnodes -x <call>");
+			return 0;
+		}
+		if (!is_sysop())
+		{
+			node_msg("Accepting or invalidating a node is reserved to the sysop (SYSop command)");
+			return 0;
+		}
+		snprintf(call, sizeof(call), "%s", argv[i]);
+		for (n = 0; call[n]; n++)
+			call[n] = toupper((unsigned char)call[n]);
+		hn_fpacrtd(opt, call);
+		return 0;
+	}
+	if (Colored)
+		tprintf("%s", NodeColors.en_tete);
+	tprintf("Callsign   Address     Port    Since (UTC)  State");
+	if (Colored)
+		tprintf("%s", ResetColor);
+	tprintf("\n");
+	n += hn_show(HN_DISC_FILE, "provisional");
+	n += hn_show(HN_PEND_FILE, "waiting for the sysop");
+	n += hn_show(HN_REFU_FILE, "invalidated");
+	if (n == 0)
+		node_msg("No FPAC node heard by fpacrtd");
 	return 0;
 }

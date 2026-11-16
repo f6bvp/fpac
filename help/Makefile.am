@@ -4,6 +4,7 @@ doc_DATA = Alias.hlp \
 	CALLbook.hlp \
 	Connect.hlp \
 	HOst.hlp \
+	HNodes.hlp \
 	IPRoutes.hlp \
 	Mheard.hlp \
 	Ports.hlp \

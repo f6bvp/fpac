@@ -3,6 +3,14 @@ Les noms de fichiers, de fonctions et de variables sont conservés tels quels.
 
 fpac (4.2-rc4, en préparation)
 
+	* fpacnode : nouvelle commande HNodes (HN), les nœuds FPAC entendus
+	  par fpacrtd : acceptés provisoirement, en attente du sysop
+	  (FpacDiscover = ask) ou invalidés, avec la date et l'état du lien
+	  ROSE. Après la commande SYSop, « HN INDICATIF » accepte un nœud
+	  et « HN -X INDICATIF » l'invalide : fpacnode lance fpacrtd -a /
+	  -x, pris à côté de fpacnode, qui tient les fichiers et prévient
+	  le démon. Un usager ordinaire peut seulement lister.
+
 	* monitor : le redimensionnement de la fenêtre n'arrête plus
 	  l'affichage. Avec -c, curses capte SIGWINCH ; le signal faisait
 	  échouer select() avec EINTR, les ensembles restaient tels quels,

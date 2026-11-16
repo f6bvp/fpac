@@ -1,5 +1,13 @@
 fpac (4.2-rc4, in preparation)
 
+	* fpacnode: new command HNodes (HN), the FPAC nodes heard by
+	  fpacrtd: accepted provisionally, waiting for the sysop
+	  (FpacDiscover = ask) or invalidated, with the time and the state
+	  of the ROSE link. After the SYSop command, "HN CALL" accepts a
+	  node and "HN -X CALL" invalidates it: fpacnode runs fpacrtd -a /
+	  -x, found next to fpacnode, which keeps the files and tells the
+	  daemon. An ordinary user may only list.
+
 	* monitor: a resized window no longer stops the display. With -c,
 	  curses catches SIGWINCH; the signal made select() fail with EINTR,
 	  the sets were left as they were, stdin looked ready and monitor

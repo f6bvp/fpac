@@ -1,0 +1,14 @@
+
+USAGE
+        HNodes
+        HNodes <callsign>          (sysop)
+        HNodes -X <callsign>       (sysop)
+
+DESCRIPTION
+        Shows the FPAC nodes heard by fpacrtd (discovery of new nodes):
+	    provisional           = accepted provisionally, called as a neighbour
+	    waiting for the sysop = heard, not accepted (FpacDiscover = ask)
+	    invalidated           = refused by the sysop
+	"linked" or "not linked" gives the state of the ROSE link.
+	After the SYSop command, "HNodes <callsign>" accepts a node
+	(fpacrtd -a) and "HNodes -X <callsign>" invalidates it (fpacrtd -x).
