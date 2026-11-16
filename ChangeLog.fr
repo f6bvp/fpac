@@ -20,8 +20,11 @@ fpac (4.2-rc4, en préparation)
 	  SIGUSR1. Avec ask, un nœud entendu attend dans fpacrt.pending la
 	  commande « fpacrtd -a ». Un nœud n'est pas accepté quand son
 	  adresse a une route dans fpac.routes, appartient à un autre
-	  voisin ou se trouve dans son bloc, ou est déjà annoncée par un
-	  voisin, ni au-delà de 8 nœuds provisoires. Un voisin de
+	  voisin ou se trouve dans son bloc, ni au-delà de 8 nœuds provisoires.
+	  Un nœud entendu de son propre indicatif est accepté même quand un
+	  autre voisin annonce son adresse (avertissement au journal) : la
+	  route apprise est remplacée par sa route directe, que
+	  dest_update() garde ensuite. Un voisin de
 	  fpac.nodes entendu alors que sa session est coupée est appelé
 	  aussitôt. Un nouveau nœud dont le seul voisin est F6BVP-12 a été
 	  trouvé, relié et a reçu ses routes en une minute environ, sans

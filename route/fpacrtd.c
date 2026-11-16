@@ -1241,6 +1241,7 @@ static void listen_accept(void)
 	}
 	if (v->state != N_DOWN)
 		neigh_close(v, "replaced by the incoming session");
+	v->failures = 0;	/* a crossed call, not a failure */
 	ioctl(fd, FIONBIO, &flag);
 	v->fd = fd;
 	v->incoming = 1;
@@ -1460,7 +1461,6 @@ static struct rt_neigh *neigh_by_call(const char *call)
 /* Why this node cannot be accepted, or NULL */
 static const char *disc_refusal(const char *call, const char *nua)
 {
-	struct rt_dest *d;
 	int i;
 
 	if (list_has(RT_REFUSED_FILE, call))
@@ -1470,10 +1470,6 @@ static const char *disc_refusal(const char *call, const char *nua)
 	for (i = 0; i < nb_neigh; i++)
 		if (!neigh[i].excluded && strcmp(neigh[i].addr, nua) == 0)
 			return "its address belongs to another neighbour";
-	if ((d = dest_find(nua, 10, 0)) != NULL)
-		for (i = 0; i < nb_neigh; i++)
-			if (d->cost[i])
-				return "its address is already announced by another neighbour";
 	for (i = 0; i < nb_neigh; i++)
 		if (!neigh[i].excluded && in_neigh_block(nua, i))
 			return "its address is in the block of another neighbour";
@@ -1488,6 +1484,7 @@ static const char *disc_refusal(const char *call, const char *nua)
 static struct rt_neigh *neigh_add_heard(const char *call, const char *nua, const char *port)
 {
 	struct rt_neigh *v = neigh_by_call(call);
+	struct rt_dest *d;
 
 	if (v == NULL)
 	{
@@ -1506,6 +1503,21 @@ static struct rt_neigh *neigh_add_heard(const char *call, const char *nua, const
 	v->invalidated = 0;
 	v->failures = 0;
 	v->retry = time(NULL);
+	/*
+	 * A route learned through another neighbour may hold its address:
+	 * nodes that still list it in their fpac.nodes announce it, though
+	 * the node may no longer take them as neighbours. The node was heard
+	 * here, from its own callsign: give it its direct route. Once its
+	 * link is open, dest_update() keeps learned routes off its address.
+	 */
+	if ((d = dest_find(nua, 10, 0)) != NULL && d->installed >= 0)
+	{
+		rt_log(LOG_INFO, "%s %s was reached through %s: direct route instead", call, nua,
+		       d->inst_call);
+		kernel_route(0, d->addr, d->mask, d->inst_call, d->inst_dev);
+		d->installed = -1;
+		state_save();
+	}
 	neigh_route_set(v);
 	return v;
 }
@@ -1629,6 +1641,17 @@ static void disc_heard(struct rt_port *p, const char *from, char *text, int dire
 			       l3, nua, p->name, l3);
 		}
 		return;
+	}
+	{
+		struct rt_dest *d = dest_find(nua, 10, 0);
+
+		for (i = 0; d != NULL && i < nb_neigh; i++)
+			if (d->cost[i])
+			{
+				rt_log(LOG_WARNING, "FPAC node %s %s: its address is also announced by %s",
+				       l3, nua, neigh[i].call);
+				break;
+			}
 	}
 	if ((v = neigh_add_heard(l3, nua, p->name)) == NULL)
 		return;

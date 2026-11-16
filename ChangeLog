@@ -17,9 +17,12 @@ fpac (4.2-rc4, in preparation)
 	  SIGUSR1. With ask, a heard node waits in fpacrt.pending for
 	  "fpacrtd -a". A node is not accepted when its address has a route
 	  in fpac.routes, belongs to or is in the block of another
-	  neighbour, or is already announced by one, nor beyond 8
-	  provisional nodes. A neighbour of fpac.nodes that is heard while
-	  its session is down is called at once. A new node whose only
+	  neighbour, nor beyond 8 provisional nodes. A node heard
+	  from its own callsign is accepted even when another neighbour
+	  announces its address (a warning is logged): the learned route is
+	  replaced by its direct route, which dest_update() then keeps. A
+	  neighbour of fpac.nodes that is heard while its session is down
+	  is called at once. A new node whose only
 	  neighbour is F6BVP-12 was found, joined and given its routes in
 	  about a minute, with nothing written on F6BVP-12 (test node
 	  F4KLO-12, 2026-11-16). fpacrtd no longer exits when only
