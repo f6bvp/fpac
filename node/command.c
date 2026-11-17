@@ -4216,7 +4216,7 @@ static int hn_show(const char *file, const char *state)
 		}
 		ln = hn_link(call);
 		tprintf("%-9s  %-10s  %-6s  %-11s  %s%s\n", call, nua, port, when,
-			state, ln == NULL ? "" : strcmp(ln, "yes") == 0 ? ", linked" : ", not linked");
+			state, ln == NULL ? "" : strcmp(ln, "yes") == 0 ? T(", linked") : T(", not linked"));
 		count++;
 	}
 	fclose(fp);
@@ -4239,6 +4239,27 @@ static int hn_valid_call(const char *call)
 	return 1;
 }
 
+/*
+ * Show a line written by fpacrtd -a / -x in the session language: fpacrtd
+ * itself only speaks English, and its answers have three known forms.
+ */
+static void hn_answer(const char *line)
+{
+	char call[16], nua[16];
+	int end = 0;
+
+	if (sscanf(line, "%15s invalidated%n", call, &end) == 1 && line[end] == '\0' && end > 0)
+		node_msg(T("%s invalidated"), call);
+	else if (end = 0, sscanf(line, "%15s %15s accepted%n", call, nua, &end) == 2
+		 && line[end] == '\0' && end > 0)
+		node_msg(T("%s %s accepted"), call, nua);
+	else if (end = 0, sscanf(line, "%15s may be accepted again when it is heard%n", call, &end) == 1
+		 && line[end] == '\0' && end > 0)
+		node_msg(T("%s may be accepted again when it is heard"), call);
+	else
+		node_msg("%s", line);
+}
+
 /* Run fpacrtd -a or -x CALL (fpacrtd sits next to fpacnode), show what it says */
 static void hn_fpacrtd(const char *opt, const char *call)
 {
@@ -4257,7 +4278,7 @@ static void hn_fpacrtd(const char *opt, const char *call)
 	strcpy(strrchr(prog, '/') ? strrchr(prog, '/') + 1 : prog, "fpacrtd");
 	if (access(AX25_LOCALSTATEDIR "fpac", W_OK) != 0)
 	{
-		node_msg("This session may not change the FPAC files (%s)", strerror(errno));
+		node_msg(T("This session may not change the FPAC files (%s)"), strerror(errno));
 		return;
 	}
 	if (pipe(fd) < 0)
@@ -4284,7 +4305,8 @@ static void hn_fpacrtd(const char *opt, const char *call)
 		argv[2] = (char *)call;
 		argv[3] = NULL;
 		execv(prog, argv);
-		dprintf(1, "cannot run %s: %s\n", prog, strerror(errno));
+		dprintf(1, T("cannot run %s: %s"), prog, strerror(errno));
+		dprintf(1, "\n");
 		_exit(1);
 	}
 	close(fd[1]);
@@ -4293,7 +4315,7 @@ static void hn_fpacrtd(const char *opt, const char *call)
 		while (fgets(line, sizeof(line), fp))
 		{
 			line[strcspn(line, "\n")] = '\0';
-			node_msg("%s", line);
+			hn_answer(line);
 		}
 		fclose(fp);
 	}
@@ -4310,7 +4332,7 @@ int do_hnodes(int argc, char **argv)
 
 	if (argc > 1 && *argv[1] == '?')
 	{
-		node_msg("usage : hnodes  |  hnodes <call> (sysop: accept)  |  hnodes -x <call> (sysop: invalidate)");
+		node_msg("%s", T("usage : hnodes  |  hnodes <call> (sysop: accept)  |  hnodes -x <call> (sysop: invalidate)"));
 		return 0;
 	}
 	if (argc > 1)
@@ -4323,12 +4345,12 @@ int do_hnodes(int argc, char **argv)
 		}
 		if (argc != i + 1 || !hn_valid_call(argv[i]))
 		{
-			node_msg("usage : hnodes  |  hnodes <call>  |  hnodes -x <call>");
+			node_msg("%s", T("usage : hnodes  |  hnodes <call>  |  hnodes -x <call>"));
 			return 0;
 		}
 		if (!is_sysop())
 		{
-			node_msg("Accepting or invalidating a node is reserved to the sysop (SYSop command)");
+			node_msg("%s", T("Accepting or invalidating a node is reserved to the sysop (SYSop command)"));
 			return 0;
 		}
 		snprintf(call, sizeof(call), "%s", argv[i]);
@@ -4339,14 +4361,14 @@ int do_hnodes(int argc, char **argv)
 	}
 	if (Colored)
 		tprintf("%s", NodeColors.en_tete);
-	tprintf("Callsign   Address     Port    Since (UTC)  State");
+	tprintf("%s", T("Callsign   Address     Port    Since (UTC)  State"));
 	if (Colored)
 		tprintf("%s", ResetColor);
 	tprintf("\n");
-	n += hn_show(HN_DISC_FILE, "provisional");
-	n += hn_show(HN_PEND_FILE, "waiting for the sysop");
-	n += hn_show(HN_REFU_FILE, "invalidated");
+	n += hn_show(HN_DISC_FILE, T("provisional"));
+	n += hn_show(HN_PEND_FILE, T("waiting for the sysop"));
+	n += hn_show(HN_REFU_FILE, T("invalidated"));
 	if (n == 0)
-		node_msg("No FPAC node heard by fpacrtd");
+		node_msg("%s", T("No FPAC node heard by fpacrtd"));
 	return 0;
 }

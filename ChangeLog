@@ -6,7 +6,9 @@ fpac (4.2-rc4, in preparation)
 	  of the ROSE link. After the SYSop command, "HN CALL" accepts a
 	  node and "HN -X CALL" invalidates it: fpacnode runs fpacrtd -a /
 	  -x, found next to fpacnode, which keeps the files and tells the
-	  daemon. An ordinary user may only list.
+	  daemon. An ordinary user may only list. HNodes speaks the
+	  language of the session (LAng), and shows the answers of
+	  fpacrtd, which only speaks English, in that language too.
 
 	* monitor: a resized window no longer stops the display. With -c,
 	  curses catches SIGWINCH; the signal made select() fail with EINTR,
