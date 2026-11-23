@@ -40,9 +40,10 @@ aprslist must be run by root (it opens a raw packet socket). It
 reads its configuration once, at start: restart it after a change.
 Stop it with "killall aprslist".
 
-Each time a position report is heard, the whole list is printed on
-the standard output, even in daemon mode. Redirect the output to a
-file, or to /dev/null, when you start it from a script.
+With -d, aprslist prints its position and beacon text at start,
+then the whole list each time a position report is heard. As a
+daemon it prints nothing: once started it leaves the terminal, and
+its errors go to the system log with -l.
 
 3. Configuration file
 
@@ -185,9 +186,10 @@ aprslist doit être lancé par root (il ouvre un socket de capture).
 Il lit sa configuration une seule fois, au démarrage : le relancer
 après une modification. L'arrêter par "killall aprslist".
 
-À chaque position entendue, la liste complète est écrite sur la
-sortie standard, même en mode démon. Rediriger la sortie vers un
-fichier, ou vers /dev/null, quand on le lance depuis un script.
+Avec -d, aprslist affiche sa position et le texte de sa balise au
+démarrage, puis la liste complète à chaque position entendue. En
+démon il n'affiche rien : une fois démarré il lâche le terminal, et
+ses erreurs vont au journal système avec -l.
 
 3. Fichier de configuration
 

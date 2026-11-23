@@ -28,6 +28,8 @@
 #include <sys/stat.h>
 
 #include <unistd.h>
+#include <stdarg.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -125,6 +127,9 @@ int mask = U_MASK;
 
 int logging = FALSE;
 
+/* -d: stay in the foreground and print the stations heard */
+static int foreground = FALSE;
+
 /* Datagram tcp send*/
 int dg;
 struct sockaddr_in sg;
@@ -134,6 +139,24 @@ int dgx;
 
 static int ftype(unsigned char *, int *, int);
 static void SignalTERM(int);
+
+/*
+ * A runtime error: on stderr (the terminal with -d, /dev/null once a
+ * daemon) and, with -l, in the system log.
+ */
+static void aprs_error(const char *fmt, ...)
+{
+	char msg[256];
+	va_list ap;
+
+	va_start(ap, fmt);
+	vsnprintf(msg, sizeof(msg), fmt, ap);
+	va_end(ap);
+
+	fprintf(stderr, "aprslist: %s\n", msg);
+	if (logging)
+		syslog(LOG_ERR, "%s", msg);
+}
 
 static void SignalTERM(int code)
 {
@@ -170,7 +193,7 @@ int send_ax25(sport *ps)
 	ptmp = ax25_config_get_addr (ps->name);
 	if (ptmp == NULL)
 	{
-		fprintf(stderr, "aprslist: invalid port name '%s' in %s\n", ps->name, CONF_APRSLIST_FILE);
+		aprs_error("invalid port name '%s' in %s", ps->name, CONF_APRSLIST_FILE);
 		return 1;
 	}
 
@@ -180,27 +203,27 @@ int send_ax25(sport *ps)
 
 	if ((dlen = ax25_aton(ps->to, &dest)) == -1)
 	{
-		fprintf(stderr, "aprslist: unable to convert callsign '%s'\n", ps->to);
+		aprs_error("unable to convert callsign '%s'", ps->to);
 		return 1;
 	}
 
 	/* Ax25 send socket */
 	if ((rg = socket(AF_AX25, SOCK_DGRAM, 0)) == -1) 
 	{
-		perror("aprslist: socket");
+		aprs_error("socket: %s", strerror(errno));
 		return 1;
 	}
   
 	if (bind(rg, (struct sockaddr *)&src, slen) == -1) 
 	{
-		perror("aprslist: bind");
+		aprs_error("bind: %s", strerror(errno));
 		close(rg);
 		return 1;
 	}
   
 	if (sendto(rg, ptr, len, 0, (struct sockaddr *)&dest, dlen) == -1) 
 	{
-		perror("aprslist: beacon sendto");
+		aprs_error("beacon sendto: %s", strerror(errno));
 		close(rg);
 		return 1;
 	}
@@ -447,8 +470,10 @@ void decode_aprs(char *from_call, char *data, int size)
 		if (data[17] != 'E' && data[17] != 'W')
 			break;
 		add_aprs(from_call, data);
-		printf("\n");
-		dump_aprs();
+		if (foreground) {
+			printf("\n");
+			dump_aprs();
+		}
 		write_aprs();
 		break;
 	}
@@ -795,7 +820,6 @@ void load_config(void)
 	}
 	
 	snprintf(my_loc, sizeof(my_loc), "=%.8s/%.9s", slat, slon);
-	printf("%s\n%s\n", my_loc, beacon);
 }
 
 int send_beacon(void)
@@ -837,6 +861,7 @@ int main(int argc, char **argv)
 				break;
 			case 'd':
 				daemon = 0;
+				foreground = TRUE;
 				break;
 			case 'v':
 				printf("aprslist: %s\n", VERSION);
@@ -887,6 +912,23 @@ int main(int argc, char **argv)
 
 	fpac_single_instance_pid("aprslist");
 
+	if (daemon)
+	{
+		/* daemon_start() keeps the terminal: let nothing more go to it */
+		int fd = open("/dev/null", O_RDWR);
+
+		if (fd >= 0)
+		{
+			dup2(fd, STDIN_FILENO);
+			dup2(fd, STDOUT_FILENO);
+			dup2(fd, STDERR_FILENO);
+			if (fd > STDERR_FILENO)
+				close(fd);
+		}
+	}
+	else
+		printf("%s\n%s\n", my_loc, beacon);
+
 	/* Use syslog for error messages rather than perror/fprintf */
 	if (logging) 
 	{
@@ -906,7 +948,7 @@ int main(int argc, char **argv)
 
 		if (select(s+1, &read_fdset, 0, 0, &to) == -1)
 		{
-			printf("aprslist: select %s\n", strerror(errno));
+			aprs_error("select: %s", strerror(errno));
 			break;
 		}
 

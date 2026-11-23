@@ -1,3 +1,15 @@
+fpac (4.2-rc5)
+
+	* aprslist: as a daemon it no longer writes to the terminal it was
+	  started from. daemon_start() keeps stdin, stdout and stderr, so
+	  the position and beacon text read at start (printed twice, the
+	  buffer being copied by fork()) and the whole list of stations at
+	  each position heard went on appearing in that terminal, or in
+	  the output of the script that started it. The daemon now points
+	  them to /dev/null; its errors (port, socket, bind, sendto,
+	  select) also go to the system log with -l. With -d it prints as
+	  before; -s only shows the stations. Issue #11 (2011).
+
 fpac (4.2-rc4)
 
 	* fpacnode: new command HNodes (HN), the FPAC nodes heard by

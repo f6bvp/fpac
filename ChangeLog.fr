@@ -1,6 +1,19 @@
 Traduction française du ChangeLog de FPAC. Original en anglais dans le fichier ChangeLog.
 Les noms de fichiers, de fonctions et de variables sont conservés tels quels.
 
+fpac (4.2-rc5)
+
+	* aprslist : en démon, il n'écrit plus sur le terminal d'où il a
+	  été lancé. daemon_start() garde stdin, stdout et stderr : la
+	  position et le texte de balise lus au démarrage (affichés deux
+	  fois, le tampon étant recopié par fork()) et la liste complète
+	  des stations à chaque position entendue continuaient d'arriver
+	  dans ce terminal, ou dans la sortie du script qui l'avait lancé.
+	  Le démon les dirige maintenant vers /dev/null ; ses erreurs
+	  (port, socket, bind, sendto, select) vont aussi au journal
+	  système avec -l. Avec -d il affiche comme avant ; -s montre
+	  seulement les stations. Issue #11 (2011).
+
 fpac (4.2-rc4)
 
 	* fpacnode : nouvelle commande HNodes (HN), les nœuds FPAC entendus

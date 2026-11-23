@@ -24,7 +24,10 @@ Write "starting" and the errors to the system log
 Display the stations recorded in aprs.dat and exit; nothing is sent
 .TP 20
 .BI \-d
-Run in foreground
+Run in foreground, and print the position, the beacon text and the
+list of the stations each time a position report is heard. As a daemon
+nothing is printed: errors go to the system log with
+.BR \-l .
 .TP 20
 .BI \-v  
 print version and exit
