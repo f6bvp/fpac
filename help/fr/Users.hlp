@@ -1,0 +1,23 @@
+
+UTILISATION
+        Users [* | <indicatif>]
+
+DESCRIPTION
+        Montre ce qui est connecté au nœud local, en trois listes au
+        plus :
+
+        AX.25 Level 2 sessions
+                les liaisons AX.25 du nœud. Elles portent les
+                utilisateurs qui y sont connectés et aussi ses liaisons
+                avec les autres nœuds, montrées avec les indicatifs que
+                les nœuds utilisent entre eux.
+        ROSE Level 3 sessions
+                les circuits ROSE qui commencent ou finissent sur ce
+                nœud.
+        ROSE Level 3 transits
+                les circuits ROSE que ce nœud relaie entre deux de ses
+                voisins.
+
+        Avec un indicatif, seules les lignes de cet indicatif sont
+        montrées. Avec *, les sockets AX.25 en attente de connexion
+        sont aussi données.

@@ -1,0 +1,17 @@
+
+UTILISATION
+        Destinations [*|indicatif]
+
+DESCRIPTION
+        Sans argument, donne la liste des destinations (la table des
+        destinations) vers lesquelles le nœud sait router. Pour chaque
+        indicatif sont donnés la plage de SSID et le temps aller-retour
+        depuis le Flexgate, par pas de 100 ms.
+
+        Avec un indicatif, affiche le SSID, le temps aller-retour (RTT)
+        et le Flexgate.
+
+        Les jokers ? et * sont acceptés.
+
+        D F*    affiche toutes les destinations commençant par F,
+        D F?K*  affiche toutes les destinations de radio-clubs français.

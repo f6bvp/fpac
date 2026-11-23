@@ -1,0 +1,10 @@
+
+UTILISATION
+        Routes [adresse Rose/Fpac]
+
+DESCRIPTION
+        La table de routage montre les routes principales et de secours
+        définies pour les adresses.
+        Note :
+            Open   = disponible
+            Closed = indisponible pour le moment.

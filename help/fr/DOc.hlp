@@ -1,0 +1,11 @@
+UTILISATION
+        DOc
+
+DESCRIPTION
+        Affiche une courte présentation de ce qu'offre le nœud FPAC,
+        avec des exemples : trouver une station dans les Pages
+        Blanches, se connecter par l'indicatif seul ou à une adresse
+        ROSE, et les principales commandes. Le texte est en français
+        ou en anglais, selon la langue choisie avec LAng.
+        Le sysop peut l'adapter : ce sont les fichiers _doc.fr et
+        _doc.en du répertoire d'aide de FPAC.

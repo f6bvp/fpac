@@ -1,0 +1,16 @@
+
+UTILISATION
+        Wp [-acdnrl nb] [indicatif]
+
+DESCRIPTION
+        Donne accès à la base des Pages Blanches (White Pages) de FPAC.
+options :
+         n = nœuds seulement
+         l = longueur de la liste
+  tri par :
+         a adresse
+         c indicatif (par défaut)
+         d date
+         r ordre inverse
+
+         Les jokers ? et * sont acceptés dans l'indicatif.

@@ -4,5 +4,8 @@ USAGE
 
 DESCRIPTION
         Gives help for the specified command or this text if no
-        command is specified. Commands can not be abbreviated.
-        Use the "?" command to retrieve a list of available commands.
+        command is specified. Use the "?" command to retrieve a list
+        of available commands.
+        A command may be abbreviated down to its capital letters:
+        SYSop may be typed SYS, HNodes HN, Help H. The same goes for
+        the command given to Help: "H SYS" gives the help of SYSop.

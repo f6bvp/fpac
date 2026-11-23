@@ -1,0 +1,15 @@
+
+UTILISATION
+        PIng <nom d'hôte> [<longueur>]
+
+DESCRIPTION
+        Vérifie qu'un hôte est joignable par le réseau en lui envoyant
+        un paquet ICMP Echo Request et en attendant sa réponse. Si une
+        réponse arrive, le temps aller-retour (RTT) entre la machine
+        locale et l'hôte distant est affiché.
+
+        Si une longueur est donnée, la partie données du paquet est
+        remplie de ce nombre d'octets.
+
+EXEMPLE
+        ping soul.oh7rba.ampr.org

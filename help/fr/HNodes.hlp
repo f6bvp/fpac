@@ -1,0 +1,15 @@
+
+UTILISATION
+        HNodes
+        HNodes <indicatif>         (sysop)
+        HNodes -X <indicatif>      (sysop)
+
+DESCRIPTION
+        Montre les nœuds FPAC entendus par fpacrtd (découverte de
+        nouveaux nœuds) :
+            provisoire           = accepté provisoirement, appelé comme voisin
+            en attente du sysop  = entendu, non accepté (FpacDiscover = ask)
+            invalidé             = refusé par le sysop
+        "relié" ou "non relié" donne l'état du lien ROSE.
+        Après la commande SYSop, "HNodes <indicatif>" accepte un nœud
+        (fpacrtd -a) et "HNodes -X <indicatif>" l'invalide (fpacrtd -x).

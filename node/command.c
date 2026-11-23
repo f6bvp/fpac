@@ -1197,6 +1197,24 @@ int do_mheard(int argc, char **argv)
 	return 0;
 }
 
+/*
+ * Open a help file: in French, help/fr/<name> first, then the English
+ * help/<name>, so that a command not yet translated is still described.
+ */
+static FILE *open_help(char *fname, size_t size, const char *name)
+{
+	FILE *fp;
+
+	if (UserLang == LANG_FR)
+	{
+		snprintf(fname, size, "%sfr/%s", FPAC_HELP_DIR, name);
+		if ((fp = fopen(fname, "r")) != NULL)
+			return fp;
+	}
+	snprintf(fname, size, "%s%s", FPAC_HELP_DIR, name);
+	return fopen(fname, "r");
+}
+
 int do_help(int argc, char **argv)
 {
 	FILE *fp;
@@ -1207,6 +1225,7 @@ int do_help(int argc, char **argv)
 	DIR *dir;
 	struct dirent *ent;
 	char *ptr;
+	char hname[256] = "";
 
 
 	if (*argv[0] == '?')
@@ -1264,7 +1283,7 @@ int do_help(int argc, char **argv)
 	}
 	else if (argc == 1)
 	{							/* "help"   */
-		snprintf(fname, sizeof(fname), "%s%s", FPAC_HELP_DIR, "Help.hlp");
+		strcpy(hname, "Help.hlp");
 	}
 	else
 	{							/* "help <cmd>" */
@@ -1281,6 +1300,11 @@ int do_help(int argc, char **argv)
 
 				ptr = ent->d_name;
 
+				/* Only the help files: not fr/, _doc.en, _doc.fr */
+				len = strlen(ptr);
+				if (len < 5 || strcmp(ptr + len - 4, ".hlp") != 0)
+					continue;
+
 				/* Counts the minimal number of letters */
 				len = 0;
 				while (isupper(*ptr))
@@ -1294,30 +1318,30 @@ int do_help(int argc, char **argv)
 
 				if (strncasecmp(ent->d_name, argv[1], len) == 0)
 				{
-					snprintf(fname, sizeof(fname), "%s%s",
-							 FPAC_HELP_DIR, ent->d_name);
+					snprintf(hname, sizeof(hname), "%s", ent->d_name);
 					found = 1;
 					break;
 				}
 			}
 
 			if (!found)
-			{
-				snprintf(fname, sizeof(fname), "%s%s",
-						 FPAC_HELP_DIR, "not_found.hlp");
-			}
+				strcpy(hname, "not_found.hlp");
 
 			closedir(dir);
 		}
 	}
-	if ((fp = fopen(fname, "r")) == NULL)
+	if (*hname)
+		fp = open_help(fname, sizeof(fname), hname);
+	else
+		fp = fopen(fname, "r");
+	if (fp == NULL)
 	{
 		if (*argv[0] != 'i')
-			node_msg("No help for command %s", argv[1] ? argv[1] : "help");
+			node_msg(T("No help for command %s"), argv[1] ? argv[1] : "help");
 		return 0;
 	}
 	if (*argv[0] != 'i')
-		node_msg("Help for command %s", argv[1] ? argv[1] : "help");
+		node_msg(T("Help for command %s"), argv[1] ? argv[1] : "help");
 	while (fgets(line, 256, fp) != NULL)
 		tputs(line);
 	tputs("\n");

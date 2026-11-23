@@ -1,0 +1,11 @@
+
+UTILISATION
+        Ports
+
+DESCRIPTION
+        Montre les ports AX.25 disponibles : nom du port, vitesse du
+        port (en bits/s) et courte description.
+        Le nom du port sert avec la commande Connect pour joindre un
+        utilisateur ou un service qui n'utilise pas NET/ROM (c'est-à-
+        dire absent de la liste Nodes). Le nom du port apparaît aussi
+        dans les listes Routes et Links.

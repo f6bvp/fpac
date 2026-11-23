@@ -1,0 +1,11 @@
+
+UTILISATION
+        HOst <nom d'hôte>|<adresse ip>
+
+DESCRIPTION
+        Donne des informations sur un hôte Internet. L'hôte peut être
+        désigné par son nom (par exemple zone.oh7rba.ampr.org) ou par
+        son adresse IP (par exemple 44.139.39.6).
+
+        Renvoie le nom de l'hôte, ses adresses IP et ses alias connus.
+        Les informations viennent du DNS (service de noms de domaine).

@@ -1,0 +1,14 @@
+
+UTILISATION
+        CALLbook <indicatif>[@<nom d'hôte>]
+
+DESCRIPTION
+        Recherche les informations sur un indicatif auprès d'un serveur
+        callbook accessible par Internet. Le nom d'hôte peut en général
+        être omis, car le serveur par défaut configuré par l'opérateur
+        convient le plus souvent. On peut en désigner un autre en
+        donnant un nom d'hôte.
+
+EXEMPLES
+        callbook oh7lzb
+        callbook oh7lzb@zone.oh7rba.ampr.org

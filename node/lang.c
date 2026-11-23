@@ -209,6 +209,10 @@ static const struct msg_pair catalog[] =
 	  "Pas de mot de passe sysop dans fpac.conf (Password =)" },
 	{ "Refused: answer with the 5 characters or the MD5 key (see HELP SYSop)",
 	  "Refusé : répondre par les 5 caractères ou la clé MD5 (voir HELP SYSop)" },
+	{ "No help for command %s",
+	  "Pas d'aide pour la commande %s" },
+	{ "Help for command %s",
+	  "Aide de la commande %s" },
 	{ NULL, NULL }
 };
 

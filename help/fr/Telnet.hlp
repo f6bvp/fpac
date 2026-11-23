@@ -1,0 +1,24 @@
+
+UTILISATION
+        Telnet <hôte> [<port>] [s|d]
+
+DESCRIPTION
+        Ouvre une session telnet vers un hôte distant en TCP/IP.
+        La connexion peut être impossible à cause des règles d'usage du
+        nœud fixées par l'opérateur local, ou simplement parce que
+        l'hôte n'est pas joignable à la suite d'une panne du réseau. La
+        commande ping permet de vérifier qu'un hôte est joignable.
+
+        Par défaut, telnet se connecte au port TCP 23 (réservé à
+        telnet). On peut indiquer un autre port TCP, par son numéro ou
+        par son nom.
+
+        Avec un `s' seul en dernier paramètre, vous revenez sur ce nœud
+        quand l'hôte distant se déconnecte. Avec un `d' seul en dernier
+        paramètre, vous êtes aussi déconnecté de ce nœud. Sans `s' ni
+        `d', le comportement dépend de la configuration du sysop.
+
+EXEMPLES
+        telnet soul.oh7rba.ampr.org
+        telnet soul.oh7rba 7
+        telnet 44.139.39.8 echo

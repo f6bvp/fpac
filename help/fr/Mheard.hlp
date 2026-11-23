@@ -1,0 +1,8 @@
+
+UTILISATION
+        Mheard <port>
+
+DESCRIPTION
+        Donne la liste des stations AX.25 entendues sur le port
+        indiqué. La commande "Ports" donne la liste des ports
+        disponibles.

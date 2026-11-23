@@ -1,0 +1,12 @@
+
+UTILISATION
+        DNic [dnic]
+
+DESCRIPTION
+        Donne le DNIC de ce nœud et les DNIC pour lesquels il a des
+        routes, avec le nom du pays de chacun.
+        Avec un DNIC en argument, donne le pays de ce DNIC.
+
+EXEMPLES
+        DN
+        DN 5050

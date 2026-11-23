@@ -148,8 +148,8 @@ am__uninstall_files_from_dir = { \
   || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
        $(am__cd) "$$dir" && echo $$files | $(am__xargs_n) 40 $(am__rm_f); }; \
   }
-am__installdirs = "$(DESTDIR)$(docdir)"
-DATA = $(doc_DATA)
+am__installdirs = "$(DESTDIR)$(docdir)" "$(DESTDIR)$(frhelpdir)"
+DATA = $(doc_DATA) $(frhelp_DATA)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 am__DIST_COMMON = $(srcdir)/Makefile.in
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -321,7 +321,49 @@ doc_DATA = Alias.hlp \
 	Telnet.hlp \
 	VERsions.hlp
 
-EXTRA_DIST = $(doc_DATA)
+
+# French help, shown when the session language is French (LAng); a
+# command without a French file is described by the English one.
+frhelpdir = @localstatedir@/ax25/fpac/help/fr
+frhelp_DATA = fr/APplications.hlp \
+	fr/Alias.hlp \
+	fr/BBs.hlp \
+	fr/Bye.hlp \
+	fr/CALLbook.hlp \
+	fr/CLuster.hlp \
+	fr/CONVers.hlp \
+	fr/Connect.hlp \
+	fr/DNic.hlp \
+	fr/DOc.hlp \
+	fr/Destinations.hlp \
+	fr/Finger.hlp \
+	fr/HNodes.hlp \
+	fr/HOst.hlp \
+	fr/Help.hlp \
+	fr/IPLinks.hlp \
+	fr/IPRoutes.hlp \
+	fr/Info.hlp \
+	fr/Links.hlp \
+	fr/Mheard.hlp \
+	fr/NEtrom.hlp \
+	fr/NNetrom.hlp \
+	fr/Nodes.hlp \
+	fr/PIng.hlp \
+	fr/Ports.hlp \
+	fr/QSl.hlp \
+	fr/Quit.hlp \
+	fr/Routes.hlp \
+	fr/STats.hlp \
+	fr/SYSop.hlp \
+	fr/Status.hlp \
+	fr/TAlk.hlp \
+	fr/TRace.hlp \
+	fr/Telnet.hlp \
+	fr/Users.hlp \
+	fr/VERsions.hlp \
+	fr/Wp.hlp
+
+EXTRA_DIST = $(doc_DATA) $(frhelp_DATA)
 all: all-am
 
 .SUFFIXES:
@@ -381,6 +423,27 @@ uninstall-docDATA:
 	@list='$(doc_DATA)'; test -n "$(docdir)" || list=; \
 	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
 	dir='$(DESTDIR)$(docdir)'; $(am__uninstall_files_from_dir)
+install-frhelpDATA: $(frhelp_DATA)
+	@$(NORMAL_INSTALL)
+	@list='$(frhelp_DATA)'; test -n "$(frhelpdir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(frhelpdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(frhelpdir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(frhelpdir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(frhelpdir)" || exit $$?; \
+	done
+
+uninstall-frhelpDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(frhelp_DATA)'; test -n "$(frhelpdir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(frhelpdir)'; $(am__uninstall_files_from_dir)
 tags TAGS:
 
 ctags CTAGS:
@@ -425,7 +488,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(docdir)"; do \
+	for dir in "$(DESTDIR)$(docdir)" "$(DESTDIR)$(frhelpdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -478,7 +541,7 @@ info: info-am
 
 info-am:
 
-install-data-am: install-docDATA
+install-data-am: install-docDATA install-frhelpDATA
 
 install-dvi: install-dvi-am
 
@@ -522,7 +585,7 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-docDATA
+uninstall-am: uninstall-docDATA uninstall-frhelpDATA
 
 .MAKE: install-am install-strip
 
@@ -531,13 +594,14 @@ uninstall-am: uninstall-docDATA
 	distclean-libtool distdir dvi dvi-am html html-am info info-am \
 	install install-am install-data install-data-am \
 	install-docDATA install-dvi install-dvi-am install-exec \
-	install-exec-am install-html install-html-am install-info \
-	install-info-am install-man install-pdf install-pdf-am \
-	install-ps install-ps-am install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-generic \
-	mostlyclean-libtool pdf pdf-am ps ps-am tags-am uninstall \
-	uninstall-am uninstall-docDATA
+	install-exec-am install-frhelpDATA install-html \
+	install-html-am install-info install-info-am install-man \
+	install-pdf install-pdf-am install-ps install-ps-am \
+	install-strip installcheck installcheck-am installdirs \
+	maintainer-clean maintainer-clean-generic mostlyclean \
+	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+	tags-am uninstall uninstall-am uninstall-docDATA \
+	uninstall-frhelpDATA
 
 .PRECIOUS: Makefile
 

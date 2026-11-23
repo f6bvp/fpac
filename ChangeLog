@@ -48,6 +48,17 @@ fpac (4.2-rc5)
 	  too. HELP SYSop shows how to answer; fpac.conf(5), fpacshell(1)
 	  and the HOWTO are updated.
 
+	* fpacnode: HELP speaks the language of the session. When it is
+	  French (LAng, or Language in fpac.conf), HELP <command> shows
+	  help/fr/<file>.hlp, installed in the fr/ subdirectory of the
+	  help directory, and falls back on the English file for a
+	  command not translated yet. The 37 help files are translated.
+	  "Help for command" and "No help for command" follow the language
+	  too. HELP only considers the *.hlp files, so that "H fr" does
+	  not match the new fr/ directory, nor "H _doc" the DOc texts.
+	  Help.hlp no longer says that commands can not be abbreviated:
+	  they can, down to their capital letters (SYS, HN, H).
+
 fpac (4.2-rc4)
 
 	* fpacnode: new command HNodes (HN), the FPAC nodes heard by

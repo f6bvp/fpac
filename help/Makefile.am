@@ -39,5 +39,46 @@ doc_DATA = Alias.hlp \
 	Telnet.hlp \
 	VERsions.hlp
 
-EXTRA_DIST = $(doc_DATA)
+# French help, shown when the session language is French (LAng); a
+# command without a French file is described by the English one.
+frhelpdir = @localstatedir@/ax25/fpac/help/fr
+frhelp_DATA = fr/APplications.hlp \
+	fr/Alias.hlp \
+	fr/BBs.hlp \
+	fr/Bye.hlp \
+	fr/CALLbook.hlp \
+	fr/CLuster.hlp \
+	fr/CONVers.hlp \
+	fr/Connect.hlp \
+	fr/DNic.hlp \
+	fr/DOc.hlp \
+	fr/Destinations.hlp \
+	fr/Finger.hlp \
+	fr/HNodes.hlp \
+	fr/HOst.hlp \
+	fr/Help.hlp \
+	fr/IPLinks.hlp \
+	fr/IPRoutes.hlp \
+	fr/Info.hlp \
+	fr/Links.hlp \
+	fr/Mheard.hlp \
+	fr/NEtrom.hlp \
+	fr/NNetrom.hlp \
+	fr/Nodes.hlp \
+	fr/PIng.hlp \
+	fr/Ports.hlp \
+	fr/QSl.hlp \
+	fr/Quit.hlp \
+	fr/Routes.hlp \
+	fr/STats.hlp \
+	fr/SYSop.hlp \
+	fr/Status.hlp \
+	fr/TAlk.hlp \
+	fr/TRace.hlp \
+	fr/Telnet.hlp \
+	fr/Users.hlp \
+	fr/VERsions.hlp \
+	fr/Wp.hlp
+
+EXTRA_DIST = $(doc_DATA) $(frhelp_DATA)
 

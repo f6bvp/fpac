@@ -1,0 +1,16 @@
+
+UTILISATION
+        NNetrom
+
+DESCRIPTION
+        Donne les voisins NetRom de ce nœud (/proc/net/nr_neigh) :
+        numéro, indicatif, interface, qualité, verrouillage, nombre de
+        routes qui passent par ce voisin, liaisons en échec et
+        digipeaters.
+        En couleur, l'indicatif prend la couleur "connecté" de Links
+        quand la liaison AX.25 vers le voisin est établie, et un jaune
+        clair quand il n'y en a pas (NetRom ouvre la liaison quand il
+        en a besoin et la ferme quand elle est inactive).
+        Un voisin dont la liaison AX.25 attend la connexion est marqué
+        "SABM n/N" (essais faits / permis).
+        NN suffit.

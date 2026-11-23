@@ -1,0 +1,14 @@
+
+UTILISATION
+        SYSop
+
+DESCRIPTION
+        Pose un défi de mot de passe pour obtenir les droits du sysop :
+
+        noeud> 3 7 1 12 5 [1795430000]
+
+        Répondre soit par les caractères du mot de passe aux 5
+        positions données (ici le 3e, le 7e, le 1er, le 12e et le 5e),
+        soit par la clé MD5 du nombre entre crochets suivi du mot de
+        passe. Le mot de passe lui-même, tapé en clair, est refusé :
+        il passerait sur l'air.

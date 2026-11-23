@@ -1,0 +1,16 @@
+
+UTILISATION
+        TAlk <utilisateur> <message>
+
+DESCRIPTION
+        Envoie un message d'une ligne à un autre utilisateur du nœud.
+        Cet utilisateur doit être inactif (c'est-à-dire ni connecté ni
+        en train de se connecter ailleurs, ni en train d'utiliser un
+        programme).
+
+        Si l'utilisateur a un SSID autre que zéro, il faut le donner.
+        Si plusieurs utilisateurs sont connectés avec le même indicatif
+        et le même SSID, ceux qui sont inactifs reçoivent le message.
+
+EXEMPLES
+        talk oh7lzb-3 Bonsoir, Hessu !

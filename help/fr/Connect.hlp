@@ -1,0 +1,30 @@
+
+UTILISATION
+        Connect <port> <indicatif> [via <digi1> ...] [s|d]  En AX.25
+        Connect <indicatif>                             En AX.25/WP/Mheard/Flexnet
+        Connect <indicatif | alias> [s|d]               En NET/ROM
+        Connect <indicatif> <adresse> [<digi>] [d|s]    En ROSE
+
+DESCRIPTION
+        Établit une connexion AX.25, NET/ROM ou ROSE vers une station
+        distante. Si plus de deux paramètres sont donnés et que le
+        deuxième fait dix caractères, c'est une connexion ROSE ;
+        sinon le premier paramètre est pris comme nom de port et la
+        connexion se fait en AX.25 par ce port. Avec un seul
+        paramètre, la connexion passe par NET/ROM ou Flexgate.
+
+        Si l'indicatif est connu des Pages Blanches (WP), il suffit de
+        le donner seul : le routage est automatique.
+
+        Si l'indicatif est inconnu des Pages Blanches mais a été entendu
+        par le démon mheardd, une connexion AX.25 est lancée sur le
+        dernier port où il a été entendu.
+
+        Si l'indicatif est inconnu des Pages Blanches mais connu de la
+        table des destinations Flexnet, une connexion AX.25 est lancée
+        par le Flexgate.
+
+        Avec un `s' seul en dernier paramètre, vous revenez sur ce nœud
+        quand la station distante se déconnecte. Avec un `d' seul en
+        dernier paramètre, vous êtes aussi déconnecté de ce nœud. Sans
+        `s' ni `d', le comportement dépend de la configuration du sysop.

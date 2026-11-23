@@ -1,0 +1,14 @@
+
+UTILISATION
+        Help [<commande>]
+
+DESCRIPTION
+        Donne l'aide de la commande indiquée, ou ce texte si aucune
+        commande n'est indiquée. La commande "?" donne la liste des
+        commandes disponibles.
+        Une commande peut être abrégée jusqu'à ses majuscules : SYSop
+        peut s'écrire SYS, HNodes HN, Help H. Il en va de même pour la
+        commande donnée à Help : "H SYS" donne l'aide de SYSop.
+        L'aide est en français ou en anglais, selon la langue choisie
+        avec LAng ; une commande sans aide en français est décrite en
+        anglais.

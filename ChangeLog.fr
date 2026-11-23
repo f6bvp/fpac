@@ -54,6 +54,19 @@ fpac (4.2-rc5)
 	  refuse aussi le mot de passe en clair. HELP SYSop montre comment
 	  répondre ; fpac.conf(5), fpacshell(1) et le HOWTO sont à jour.
 
+	* fpacnode : HELP parle la langue de la session. Quand elle est
+	  le français (LAng, ou Language dans fpac.conf), HELP <commande>
+	  montre help/fr/<fichier>.hlp, installé dans le sous-répertoire
+	  fr/ du répertoire d'aide, et revient au fichier anglais pour une
+	  commande pas encore traduite. Les 37 fiches d'aide sont
+	  traduites. « Aide de la commande » et « Pas d'aide pour la
+	  commande » suivent aussi la langue. HELP ne considère que les
+	  fichiers *.hlp, pour que « H fr » ne tombe pas sur le nouveau
+	  répertoire fr/, ni « H _doc » sur les textes de DOc.
+	  Help.hlp ne dit plus que les commandes ne peuvent pas être
+	  abrégées : elles le peuvent, jusqu'à leurs majuscules (SYS, HN,
+	  H).
+
 fpac (4.2-rc4)
 
 	* fpacnode : nouvelle commande HNodes (HN), les nœuds FPAC entendus

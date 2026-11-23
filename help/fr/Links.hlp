@@ -1,0 +1,10 @@
+
+UTILISATION
+        Links [* | <indicatif>]
+
+DESCRIPTION
+        Donne la liste des connexions AX.25 actives depuis et vers la
+        machine locale. Avec un astérisque (*) en argument, montre
+        aussi les sockets AX.25 en attente de connexion. Avec un
+        indicatif en argument, donne la liste des connexions dont
+        l'indicatif source ou destination est <indicatif>.

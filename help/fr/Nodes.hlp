@@ -1,0 +1,19 @@
+
+UTILISATION
+        Nodes [<motif> | <indicatif de nœud> ...]
+
+DESCRIPTION
+        Montre les nœuds FPAC connus des Pages Blanches de ce nœud.
+        Chaque nœud est donné avec l'indicatif à indiquer à la
+        commande Connect et avec son adresse ROSE (DNIC et adresse).
+
+        L'indicatif affiché est celui auquel les utilisateurs se
+        connectent. Ce n'est pas l'indicatif que le nœud utilise sur
+        ses liaisons avec les autres nœuds : celui-ci porte un autre
+        SSID et apparaît dans les commandes Users et Routes.
+
+        Avec un motif (jokers * et ?) ou un ou plusieurs indicatifs,
+        les nœuds correspondants sont donnés avec leur pays, leur
+        locator et leur ville.
+
+        Les nœuds NET/ROM sont donnés par la commande NEtrom.

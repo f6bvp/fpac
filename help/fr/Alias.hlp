@@ -1,0 +1,10 @@
+
+UTILISATION
+        Alias
+
+DESCRIPTION
+        Donne la liste des alias. Un alias permet de se connecter à
+        n'importe quel indicatif (même distant) en utilisant un
+        indicatif local.
+        Les alias peuvent aussi être connectés directement par
+        l'utilisateur sans passer par fpacnode.

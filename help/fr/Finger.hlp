@@ -1,0 +1,13 @@
+
+UTILISATION
+        Finger [<utilisateur>][@<nom d'hôte>]
+
+DESCRIPTION
+        Donne des informations sur les utilisateurs d'un système. Sans
+        nom d'utilisateur, montre les utilisateurs connectés à l'hôte.
+        Sans nom d'hôte, il s'agit de la machine locale.
+
+EXEMPLES
+        finger @soul.oh7rba.ampr.org
+        finger oh7lzb@soul.oh7rba.ampr.org
+        finger oh7lzb

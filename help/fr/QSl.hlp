@@ -1,0 +1,10 @@
+
+UTILISATION
+        QSl
+
+DESCRIPTION
+        Montre une carte QSL qui confirme votre connexion à ce nœud :
+        votre indicatif, la date et l'heure (UTC) et l'identité du
+        nœud. Quand le sysop l'a prévu, la carte est aussi faite en
+        image et le nœud donne le lien pour la télécharger avec un
+        navigateur web.
