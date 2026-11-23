@@ -2,11 +2,21 @@
 .SH NAME 
 wpedit \- FPAC White Pages database editor.
 .SH SYNOPSIS
-.B wpedit callsign
+.B wpedit
+[\-c] [\-v]
+.I callsign
 .SH DESCRIPTION
 .LP
 .B wpedit
-opens an edit session for a callsign record present in the in the FPAC WP database.
+opens an edit session for a callsign record present in the FPAC WP database.
+.SH OPTIONS
+.TP 20
+.B \-c
+End the lines with a carriage return only, as a packet radio terminal
+expects, instead of a line feed.
+.TP 20
+.B \-v
+Verbose: report the White Pages server calls in the system log.
 .SH COMMANDS
 .TP 20
 .BI "\-a   rose_address"

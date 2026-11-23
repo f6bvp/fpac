@@ -10,6 +10,12 @@ fpac (4.2-rc5)
 	  select) also go to the system log with -l. With -d it prints as
 	  before; -s only shows the stations. Issue #11 (2011).
 
+	* wpedit: the options are -c and -v only. getopt() still declared
+	  "-l <arg>", which was accepted and silently ignored, and the two
+	  usage lines differed. The manual page now gives the synopsis
+	  "wpedit [-c] [-v] callsign" and describes both options.
+	  Issue #14 (2011).
+
 fpac (4.2-rc4)
 
 	* fpacnode: new command HNodes (HN), the FPAC nodes heard by

@@ -14,6 +14,12 @@ fpac (4.2-rc5)
 	  système avec -l. Avec -d il affiche comme avant ; -s montre
 	  seulement les stations. Issue #11 (2011).
 
+	* wpedit : les options sont -c et -v seulement. getopt() déclarait
+	  encore « -l <arg> », accepté puis ignoré sans rien dire, et les
+	  deux lignes d'usage différaient. La page de manuel donne
+	  maintenant le synopsis « wpedit [-c] [-v] indicatif » et décrit
+	  les deux options. Issue #14 (2011).
+
 fpac (4.2-rc4)
 
 	* fpacnode : nouvelle commande HNodes (HN), les nœuds FPAC entendus

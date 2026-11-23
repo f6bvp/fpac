@@ -123,7 +123,7 @@ int main(int ac, char **av)
 
 	wp_progress = 1;	/* F6BVP : show '.' while waiting for the WP server */
 
-	while ((p = getopt(ac, av, "vcl:")) != -1) 
+	while ((p = getopt(ac, av, "cv")) != -1) 
 	{
 		switch (p)
 		{
@@ -135,7 +135,7 @@ int main(int ac, char **av)
 			cr = 1;
 			break;
 		case '?' :
-			fprintf(stderr, "usage: wpedit [-c CR] [-v verbose] callsign\n");
+			fprintf(stderr, "usage: wpedit [-c] [-v] callsign\n");
 			return(1);
 		}
 	}
