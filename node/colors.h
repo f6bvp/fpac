@@ -62,6 +62,9 @@ typedef struct {
     char ind_oui[COLOR_LEN];        /* ex : restart = yes               */
     char ind_non[COLOR_LEN];        /* ex : restart = no                */
 
+    /* [commandes] liste de la commande « ? » */
+    char sysop[COLOR_LEN];          /* commandes réservées au sysop     */
+
 } node_colors_t;
 
 /* ── Variable globale ───────────────────────────────────────────── */

@@ -175,6 +175,9 @@ void colors_set_defaults(void)
     /* [indicateurs] */
     snprintf(NodeColors.ind_oui,           COLOR_LEN, "%s%s", F_Black,  B_Green);
     snprintf(NodeColors.ind_non,           COLOR_LEN, "%s%s", F_Black,  B_Red);
+
+    /* [commandes] */
+    snprintf(NodeColors.sysop,             COLOR_LEN, "%s", F_Yellow);
 }
 
 /* ── Parseur principal ──────────────────────────────────────────── */
@@ -279,6 +282,8 @@ int read_colors(void)
         /* [indicateurs] */
         SET("indicateurs", "oui",          ind_oui);
         SET("indicateurs", "non",          ind_non);
+        /* [commandes] */
+        SET("commandes",   "sysop",        sysop);
 
 #undef SET
     }

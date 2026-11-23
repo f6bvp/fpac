@@ -1231,7 +1231,12 @@ int do_help(int argc, char **argv)
 	if (*argv[0] == '?')
 	{							/* "?"      */
 		if (is_sysop())
-			node_msg("Sysop:");
+		{
+			if (Colored)
+				node_msg("%sSysop:%s", NodeColors.sysop, ResetColor);
+			else
+				node_msg("Sysop:");
+		}
 		for (cmdp = Nodecmds; cmdp != NULL; cmdp = cmdp->next)
 		{
 			if (!cmdp->valid)
@@ -1251,7 +1256,12 @@ int do_help(int argc, char **argv)
 				if (!cmdp->valid)
 					continue;
 
-				tprintf("%s%s", i ? ", " : "", cmdp->name);
+				/* sysop commands stand out from the user ones */
+				if (Colored)
+					tprintf("%s%s%s%s", i ? ", " : "",
+							NodeColors.sysop, cmdp->name, ResetColor);
+				else
+					tprintf("%s%s", i ? ", " : "", cmdp->name);
 				if (++i == 10)
 				{
 					tprintf("\n");
