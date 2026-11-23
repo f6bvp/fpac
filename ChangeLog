@@ -36,6 +36,18 @@ fpac (4.2-rc5)
 	  node. UINT4 is now uint32_t: the six test vectors of RFC 1321
 	  pass. Nothing changes on 32-bit systems.
 
+	* fpacnode: SYSop no longer accepts the password in plain text,
+	  which goes on the air where anybody may read it: answer with the
+	  characters at the 5 positions given, or with the MD5 key. A
+	  refused answer is now told ("Refused: answer with the 5
+	  characters or the MD5 key"); when it was the password itself,
+	  only the log says so, with the callsign, so that a listener does
+	  not learn it was right while the sysop knows to change it. With
+	  no Password in fpac.conf, SYSop says so instead of ending the
+	  session (random() % 0). fpacshell refuses the plain password
+	  too. HELP SYSop shows how to answer; fpac.conf(5), fpacshell(1)
+	  and the HOWTO are updated.
+
 fpac (4.2-rc4)
 
 	* fpacnode: new command HNodes (HN), the FPAC nodes heard by

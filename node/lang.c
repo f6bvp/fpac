@@ -205,6 +205,10 @@ static const struct msg_pair catalog[] =
 	  "%s %s accepté" },
 	{ "%s may be accepted again when it is heard",
 	  "%s pourra être accepté de nouveau quand il sera entendu" },
+	{ "No sysop password in fpac.conf (Password =)",
+	  "Pas de mot de passe sysop dans fpac.conf (Password =)" },
+	{ "Refused: answer with the 5 characters or the MD5 key (see HELP SYSop)",
+	  "Refusé : répondre par les 5 caractères ou la clé MD5 (voir HELP SYSop)" },
 	{ NULL, NULL }
 };
 

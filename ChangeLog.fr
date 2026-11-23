@@ -42,6 +42,18 @@ fpac (4.2-rc5)
 	  uint32_t : les six vecteurs d'essai de la RFC 1321 passent. Rien
 	  ne change sur les systèmes 32 bits.
 
+	* fpacnode : SYSop n'accepte plus le mot de passe en clair, qui
+	  passe sur l'air où chacun peut le lire : répondre par les
+	  caractères aux 5 positions données, ou par la clé MD5. Une
+	  réponse refusée est maintenant signalée (« Refusé : répondre par
+	  les 5 caractères ou la clé MD5 ») ; quand c'était le mot de passe
+	  lui-même, seul le journal le dit, avec l'indicatif, pour qu'un
+	  auditeur n'apprenne pas qu'il était juste tandis que le sysop
+	  sait qu'il faut le changer. Sans Password dans fpac.conf, SYSop
+	  le dit au lieu de terminer la session (random() % 0). fpacshell
+	  refuse aussi le mot de passe en clair. HELP SYSop montre comment
+	  répondre ; fpac.conf(5), fpacshell(1) et le HOWTO sont à jour.
+
 fpac (4.2-rc4)
 
 	* fpacnode : nouvelle commande HNodes (HN), les nœuds FPAC entendus

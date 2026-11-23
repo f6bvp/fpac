@@ -244,6 +244,8 @@ int md_check (cfg_t * cfg)
 	time (&now);
 
 	len = strlen (cfg->password);
+	if (len == 0)		/* random() % 0 */
+		return 0;
 
 	srandom(time(NULL));
 	
@@ -292,9 +294,7 @@ int md_check (cfg_t * cfg)
 
 	if (*buf)
 	{
-		/* Plain text */
-		if (!strcasecmp (buf, cfg->password))
-			return 1;
+		/* The password in plain text is refused: it would go on the air */
 		/* NetRom */
 		if (!strcasecmp (buf, netrom))
 			return 1;

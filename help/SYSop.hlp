@@ -3,4 +3,12 @@ USAGE
         SYSop
 
 DESCRIPTION
-        Give a password prompt (with MD5 encryption) to get sysop's privileges.
+        Give a password challenge to get sysop's privileges:
+
+        node> 3 7 1 12 5 [1795430000]
+
+        Answer either with the characters of the password found at
+        the 5 positions given (here the 3rd, 7th, 1st, 12th and 5th),
+        or with the MD5 key of the number in brackets followed by the
+        password. The password itself, typed in plain text, is refused:
+        it would go on the air.

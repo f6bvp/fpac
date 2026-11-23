@@ -103,7 +103,8 @@ fpacnode has a built-in set of commands. They can be disabled or new
 commands may be easily added. A second set of commands is added
 after the SYS (sysop) command is successfull.
 .Pp
-Password to change to sys mode is either plain text, netrom or MD2/MD5 keys.
+Password to change to sys mode is either netrom or MD5 keys. The password
+itself, sent in plain text, is refused.
 .Pp
 Here are some examples of the node commands :
 .DS
@@ -468,8 +469,8 @@ F6FBB-10  24/07/98 13:59 => 2080 931502  Node JN03QL Roquettes
 fpacshell opens a LINUX shell session to the user, normally in sysop mode.
 This session is opened mostly for maintenance with root priviledges.
 .Pp
-For safety reasons a password accepting plain text, NetRom key or MD2/MD5
-key is provided.
+For safety reasons a password accepting a NetRom key or an MD5 key is
+provided; the password in plain text is refused.
 .Pp
 fpacshell is run from the command or sysop section of the FPAC configuration
 file. See .

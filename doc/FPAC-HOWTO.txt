@@ -165,8 +165,8 @@
   commands may be easily added. A second set of commands is added after
   the SYS (sysop) command is successfull.
 
-  Password to change to sys mode is either plain text, netrom or MD2/MD5
-  keys.
+  Password to change to sys mode is either netrom or MD5 keys. The
+  password itself, sent in plain text, is refused.
 
   Here are some examples of the node commands :
 
@@ -533,8 +533,8 @@
   mode.  This session is opened mostly for maintenance with root
   priviledges.
 
-  For safety reasons a password accepting plain text, NetRom key or
-  MD2/MD5 key is provided.
+  For safety reasons a password accepting a NetRom key or an MD5 key
+  is provided; the password in plain text is refused.
 
   fpacshell is run from the command or sysop section of the FPAC
   configuration file. See ``Sysop section''.

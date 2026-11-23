@@ -37,9 +37,16 @@ int do_sysop(int argc, char **argv)
 	char source[256];
 	char netrom[6];
 
+	len = strlen (cfg.password);
+	if (len == 0)
+	{
+		/* random() % 0 would kill the session */
+		node_msg("%s", T("No sysop password in fpac.conf (Password =)"));
+		return(0);
+	}
+
 	md5key = time(NULL);
 	srandom(md5key);
-	len = strlen (cfg.password);
 
 	for (i = 0; i < 5; i++)
 	{
@@ -76,14 +83,8 @@ int do_sysop(int argc, char **argv)
 		break;
 	}
 
-	/* Plain text */
-	if (strcasecmp(p, cfg.password) == 0)
-	{
-		sys_mode = 1;
-		node_msg("Pass OK");
-	}
 	/* NetRom */
-	else if (strcasecmp(p, netrom) == 0)
+	if (strcasecmp(p, netrom) == 0)
 	{
 		sys_mode = 1;
 		node_msg("Nrom OK");
@@ -94,7 +95,19 @@ int do_sysop(int argc, char **argv)
 		sys_mode = 1;
 		node_msg("MD5 OK");
 	}
-	
+	else
+	{
+		/*
+		 * The password itself is no longer accepted: typed in plain
+		 * text it goes on the air, where anybody may read it.  Tell
+		 * the sysop in the log, not on the link, so that a listener
+		 * does not learn that it was the right one.
+		 */
+		if (strcasecmp(p, cfg.password) == 0)
+			fpaclog(LOGLVL_ERROR, "%s sent the sysop password in plain text: refused, change Password in fpac.conf", User.call);
+		node_msg("%s", T("Refused: answer with the 5 characters or the MD5 key (see HELP SYSop)"));
+	}
+
 	return(0);
 }
 

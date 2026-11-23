@@ -36,7 +36,9 @@ An address is required. Use 44.128.0.1 if you do not require TCP/IP routing.
 The UDP port #(10093) from ax25ipd.conf. Used if you create a AxUDP port.
 .TP 10
 .BI "\ Password = " "sysop's passwd"
-This password will be used to correctly respond to the SYS challenge
+This password will be used to correctly respond to the SYS challenge,
+with the characters found at the 5 positions given or with the MD5 key.
+The password itself, sent in plain text, is refused
 .TP 10
 .BI "\ City = " Node-QTH
 The City location of the node
