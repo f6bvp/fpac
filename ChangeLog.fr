@@ -33,6 +33,15 @@ fpac (4.2-rc5)
 	  de fpacshell, le README et le HOWTO le disent. Une mise à jour ne
 	  modifie pas les fpac.conf existants.
 
+	* Les clés MD5 étaient fausses sur les systèmes 64 bits.
+	  lib/global.h déclarait le mot de 32 bits du code MD5 (UINT4) en
+	  unsigned long, qui y fait 8 octets : MD5("abc") donnait
+	  7999dc75... au lieu de 900150983cd2..., si bien que la réponse
+	  MD5 au défi de SYSop, calculée avec un outil MD5 ordinaire, était
+	  toujours refusée sur un nœud 64 bits. UINT4 est maintenant
+	  uint32_t : les six vecteurs d'essai de la RFC 1321 passent. Rien
+	  ne change sur les systèmes 32 bits.
+
 fpac (4.2-rc4)
 
 	* fpacnode : nouvelle commande HNodes (HN), les nœuds FPAC entendus

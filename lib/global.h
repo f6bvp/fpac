@@ -10,14 +10,17 @@ The following makes PROTOTYPES default to 0 if it has not already
 #define PROTOTYPES 1
 #endif
 
+#include <stdint.h>
+
 /* POINTER defines a generic pointer type */
 typedef unsigned char *POINTER;
 
 /* UINT2 defines a two byte word */
-typedef unsigned short int UINT2;
+typedef uint16_t UINT2;
 
-/* UINT4 defines a four byte word */
-typedef unsigned long int UINT4;
+/* UINT4 defines a four byte word: unsigned long is 8 bytes on 64-bit
+   systems, which made every MD5 key wrong there */
+typedef uint32_t UINT4;
 
 /* PROTO_LIST is defined depending on how PROTOTYPES is defined above.
 If using PROTOTYPES, then PROTO_LIST returns the list, otherwise it
