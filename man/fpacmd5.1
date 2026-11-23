@@ -1,0 +1,67 @@
+.TH FPACMD5 1 "23 November 2026" Linux "FPAC Operator's Manual"
+.SH NAME
+fpacmd5 \- MD5 answer to the SYSop challenge of an FPAC node
+.SH SYNOPSIS
+.B fpacmd5
+[\-n] [\-l fr|en]
+.RI [ challenge ]
+.SH DESCRIPTION
+.LP
+The
+.B SYSop
+command of
+.BR fpacnode (1)
+shows a challenge such as
+.IP
+F6BVP-12> 3 7 1 12 5 [1795430000]
+.LP
+.B fpacmd5
+prints the MD5 answer to it: the MD5 of the number in brackets, as shown,
+followed by the sysop password
+.RB ( Password
+in
+.BR fpac.conf (5)).
+Paste that answer in the session. It changes with every challenge and
+reveals nothing of the password, unlike the answer with the characters at
+the 5 positions, which shows 5 of them to whoever listens.
+.LP
+The challenge may be given on the command line (in quotes, because of the
+brackets), whole or as the number in brackets alone; otherwise it is
+asked for. The password is then asked without echo and is written
+nowhere. When the standard input is not a terminal, the password is read
+from its first line.
+.LP
+.B fpacmd5
+uses the MD5 code of
+.B fpacnode
+itself. It is meant to be run by the sysop on the machine he connects
+from; it needs no AX.25 library.
+.SH OPTIONS
+.TP 12
+.B \-n
+Also print the answer with the characters at the 5 positions (needs the
+whole challenge line).
+.TP 12
+.B "\-l fr|en"
+Language of the messages, French or English. By default, after
+LC_ALL, LC_MESSAGES, LANGUAGE or LANG.
+.TP 12
+.B \-h
+Print the usage and exit.
+.SH EXAMPLE
+.nf
+$ fpacmd5 'F6BVP-12> 3 7 1 12 5 [1795430000]'
+Sysop password:
+74dd087233db623217dac114659be142
+.fi
+.LP
+(with the password "mypassword").
+.SH NOTES
+A node running FPAC older than 4.2-rc5 on a 64-bit system works out a
+wrong MD5 and refuses this answer: use the 5 characters there
+.RB ( \-n ).
+Since 4.2-rc5 the password itself, typed in plain text, is refused.
+.SH SEE ALSO
+fpacnode(1), fpac.conf(5)
+.SH AUTHOR
+Bernard Pidoux F6BVP <bernard.f6bvp@gmail.com>

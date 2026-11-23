@@ -66,6 +66,7 @@ rm -rf $RPM_BUILD_ROOT
 %config %{_sysconfdir}/ax25/fpac.nodes
 %config %{_sysconfdir}/ax25/fpac.routes
 %config %{_sysconfdir}/ax25/itu.dnic
+%{_bindir}/fpacmd5
 %{_sbindir}/aprslist
 %{_sbindir}/ax25parms
 %{_sbindir}/calibrate

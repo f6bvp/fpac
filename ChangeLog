@@ -59,6 +59,15 @@ fpac (4.2-rc5)
 	  Help.hlp no longer says that commands can not be abbreviated:
 	  they can, down to their capital letters (SYS, HN, H).
 
+	* fpacmd5: new program, run by the sysop on the machine he
+	  connects from, which prints the MD5 answer to the SYSop
+	  challenge: fpacmd5 'F6BVP-12> 3 7 1 12 5 [1795430000]', then
+	  the password, asked without echo and written nowhere. With -n
+	  it also prints the answer with the 5 characters. It uses the
+	  MD5 code of fpacnode, needs no AX.25 library and speaks French
+	  or English after LANG (-l fr|en). Installed in bin/, with the
+	  manual page fpacmd5(1); HELP SYSop mentions it.
+
 fpac (4.2-rc4)
 
 	* fpacnode: new command HNodes (HN), the FPAC nodes heard by

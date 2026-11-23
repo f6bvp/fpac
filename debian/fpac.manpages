@@ -17,6 +17,7 @@ man/ax25parms.1
 man/flexd.conf.5
 man/fpac.dnic.5
 man/fpac.nodes.5
+man/fpacmd5.1
 man/fpacshell.1
 man/fpad.1
 man/monitor.1

@@ -12,3 +12,7 @@ DESCRIPTION
         soit par la clé MD5 du nombre entre crochets suivi du mot de
         passe. Le mot de passe lui-même, tapé en clair, est refusé :
         il passerait sur l'air.
+
+        Sur une machine Linux avec FPAC, le programme fpacmd5 calcule la
+        clé MD5 : fpacmd5 'noeud> 3 7 1 12 5 [1795430000]' puis le mot
+        de passe (demandé sans écho).

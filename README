@@ -88,6 +88,7 @@ versions	lists the versions of the installed AX.25 applications and tools
 monitor		Simple monitoring tool (AX.25, NetRom, ROSE, IP frames)
 aprslist	lists the APRS stations heard and sends APRS beacons
 calibrate	sends a sequence of UI frames to a port (transmitter test)
+fpacmd5		works out the MD5 answer to the SYSop challenge (sysop side)
 mailbbs		Simple mailer to send Fpac's service messages to a BBS
 
 Set aside: fpacwdog, calld and mon_tcp are no longer built nor installed

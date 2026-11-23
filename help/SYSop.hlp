@@ -12,3 +12,7 @@ DESCRIPTION
         or with the MD5 key of the number in brackets followed by the
         password. The password itself, typed in plain text, is refused:
         it would go on the air.
+
+        On a Linux machine with FPAC, the fpacmd5 program works out the
+        MD5 key: fpacmd5 'node> 3 7 1 12 5 [1795430000]' then the
+        password (asked without echo).

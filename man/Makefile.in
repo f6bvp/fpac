@@ -303,6 +303,7 @@ man_MANS = \
 	fpacnode.1 \
 	fpacroute.1 \
 	fpacrtd.1 \
+	fpacmd5.1 \
 	fpacshell.1 \
 	fpacstat.1 \
 	fpacwpd.1 \
