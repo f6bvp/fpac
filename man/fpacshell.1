@@ -6,6 +6,27 @@ fpacshell \- command line shell for FPAC node.
 .SH DESCRIPTION
 .LP
 .B fpacshell
-runs a shell with MD5 protection from the FPAC node. Fpacshell is executed in response to the FPAC SYSop command.
+runs a shell with MD5 protection from the FPAC node, when the Sysop
+section of fpac.conf defines a command such as
+.B "SYSop = /usr/local/sbin/fpacshell".
+.SH WARNING
+The shell is
+.B /bin/sh
+with the rights of
+.BR fpacnode ,
+which usually runs as root: whoever passes the password gets a shell on
+the whole Linux system, over the radio. The password may even be typed
+in plain text. For this reason the default
+.B fpac.conf
+leaves this line commented out; the built-in
+.B SYSop
+command of
+.B fpacnode
+only gives the sysop rights inside the node.
+.P
+fpacshell also opens the old BSD pseudo-terminals
+.RI ( /dev/ptyXX ),
+which current kernels no longer provide (CONFIG_LEGACY_PTYS), so it
+stops with "Out of pty".
 .SH AUTHOR
 Bernard Pidoux F6BVP <bernard.f6bvp@gmail.com>

@@ -86,7 +86,12 @@ Sysop
 	CAT  = /bin/cat /tmp/%1
 	YGET = @prefix@/sbin/yapp -u /tmp/%1
 	YPUT = @prefix@/sbin/yapp -d /tmp/%1
-	SYSop= @prefix@/sbin/fpacshell
+#	SYSop= @prefix@/sbin/fpacshell
+#	  Do NOT enable: fpacshell runs /bin/sh with the rights of fpacnode,
+#	  usually root, i.e. a shell on the whole Linux system from the
+#	  radio. It also needs the old BSD ptys (/dev/ptyXX), absent from
+#	  current kernels ("Out of pty"). The built-in SYSop command, which
+#	  only gives the sysop rights inside the node, stays available.
 	WEdit	= @prefix@/sbin/wpedit %*
 End
 # End of Sysop commands

@@ -64,7 +64,8 @@ fpacrtd		(4.2) announces ROSE routes to the direct neighbours and learns theirs
 Node and user access
 
 fpacnode	The FPAC node client
-fpacshell	(node) Runs a shell with MD5 protection (SYSop command)
+fpacshell	(node) Runs /bin/sh (root) behind the SYSop password; not enabled
+		in fpac.conf, see man fpacshell
 yapp		(node) Uploads or downloads files with the YAPP protocol
 call_tcp	(node) Links a user of the node to the telnet port of a BBS
 

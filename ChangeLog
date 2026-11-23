@@ -16,6 +16,18 @@ fpac (4.2-rc5)
 	  "wpedit [-c] [-v] callsign" and describes both options.
 	  Issue #14 (2011).
 
+	* fpac.conf: the line "SYSop = fpacshell" of the Sysop section is
+	  commented out, with a warning. Once in sysop mode it replaced
+	  the built-in SYSop command by fpacshell, which runs /bin/sh with
+	  the rights of fpacnode, usually root: a shell on the whole Linux
+	  system from the radio, the password being accepted even in plain
+	  text. fpacshell also needs the old BSD ptys (/dev/ptyXX), absent
+	  from current kernels, and stops with "Out of pty" (issue #8,
+	  2011): it is kept as it is, not repaired. The built-in SYSop
+	  command, which only gives the sysop rights inside the node, is
+	  unchanged. The fpacshell manual page, the README and the HOWTO
+	  say so. Existing fpac.conf files are not changed by an upgrade.
+
 fpac (4.2-rc4)
 
 	* fpacnode: new command HNodes (HN), the FPAC nodes heard by

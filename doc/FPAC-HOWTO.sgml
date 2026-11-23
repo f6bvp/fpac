@@ -401,6 +401,7 @@ This session is opened mostly for maintenance with root priviledges.
 key is provided.
 <p>fpacshell is run from the command or sysop section of the FPAC configuration
 file. See <ref id="sysop-section" name="Sysop section">.
+<p>Warning: fpacshell is no longer enabled in the default fpac.conf: it gives a root shell on the whole Linux system, and it needs the old BSD ptys absent from current kernels ("Out of pty").
 
 <sect1>fpacstat
 <p>fpacstat is the statistics applications. It computes the traffic statistics
@@ -535,7 +536,7 @@ Sysop
         CAT  = /bin/cat /tmp/%1
         YGET = /usr/sbin/yapp -u /tmp/%1
         YPUT = /usr/sbin/yapp -d /tmp/%1
-        SYSop= /usr/sbin/fpacshell
+#       SYSop= /usr/sbin/fpacshell
 end
 
 #
@@ -728,8 +729,9 @@ pages database.
 <p>The Sysop section adds extended commands to the main menu when the SYSop
 command has succeded. Generally, maintenance commands are added. Think that
 these commands will be executed with the root priviledges, so avoid if 
-possible destructive commands. The SYSop command is redefined to allow
-running a LINUX shell via <bf/fpacshell/.
+possible destructive commands. Redefining the SYSop command to run a LINUX
+shell via <bf/fpacshell/ gives a root shell from the radio: it is left
+commented out.
 <tscreen><verb>
 #
 # Other SysOp commands
@@ -742,7 +744,7 @@ Sysop
         CAT  = /bin/cat /tmp/%1
         YGET = /usr/sbin/yapp -u /tmp/%1
         YPUT = /usr/sbin/yapp -d /tmp/%1
-        SYSop= /usr/sbin/fpacshell
+#       SYSop= /usr/sbin/fpacshell
 end
 </verb></tscreen>
 <sect1><heading>Application section

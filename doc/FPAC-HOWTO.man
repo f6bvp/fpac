@@ -474,6 +474,8 @@ key is provided.
 fpacshell is run from the command or sysop section of the FPAC configuration
 file. See .
 .Pp
+Warning: fpacshell is no longer enabled in the default fpac.conf: it gives a root shell on the whole Linux system, and it needs the old BSD ptys absent from current kernels ("Out of pty").
+.Pp
 .SH fpacstat
 
 .Pp
@@ -639,7 +641,7 @@ Sysop
         CAT  = /bin/cat /tmp/%1
         YGET = /usr/sbin/yapp -u /tmp/%1
         YPUT = /usr/sbin/yapp -d /tmp/%1
-        SYSop= /usr/sbin/fpacshell
+#       SYSop= /usr/sbin/fpacshell
 end
 
 #
@@ -885,8 +887,9 @@ pages database.
 The Sysop section adds extended commands to the main menu when the SYSop
 command has succeded. Generally, maintenance commands are added. Think that
 these commands will be executed with the root priviledges, so avoid if 
-possible destructive commands. The SYSop command is redefined to allow
-running a LINUX shell via \fBfpacshell\fP.
+possible destructive commands. Redefining the SYSop command to run a LINUX
+shell via \fBfpacshell\fP gives a root shell from the radio: it is left
+commented out.
 .DS
 .sp 
 .ft RR
@@ -902,7 +905,7 @@ Sysop
         CAT  = /bin/cat /tmp/%1
         YGET = /usr/sbin/yapp -u /tmp/%1
         YPUT = /usr/sbin/yapp -d /tmp/%1
-        SYSop= /usr/sbin/fpacshell
+#       SYSop= /usr/sbin/fpacshell
 end
 .DE
 .fi 
