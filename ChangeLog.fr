@@ -1,7 +1,7 @@
 Traduction française du ChangeLog de FPAC. Original en anglais dans le fichier ChangeLog.
 Les noms de fichiers, de fonctions et de variables sont conservés tels quels.
 
-fpac (4.2-rc4, en préparation)
+fpac (4.2-rc4)
 
 	* fpacnode : nouvelle commande HNodes (HN), les nœuds FPAC entendus
 	  par fpacrtd : acceptés provisoirement, en attente du sysop

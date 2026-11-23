@@ -1,3 +1,34 @@
+FPAC 4.2-rc4 — routes ROSE dynamiques (version candidate, expérimentale)
+========================================================================
+
+  * Découverte des nouveaux nœuds. Avec « FpacAnnounce = yes » dans
+    fpac.conf, fpacrtd annonce son nœud à ses voisins toutes les 30
+    minutes. Un nœud qui entend l'annonce d'un nœud inconnu l'accepte
+    à titre provisoire, pose la route vers lui et l'appelle : un nouveau
+    nœud dont le seul voisin a FPAC 4.2 est relié en une minute
+    environ, sans rien écrire chez ce voisin. « FpacDiscover = ask »
+    attend plutôt l'accord du sysop, « FpacDiscover = no » coupe la
+    découverte. FpacAnnounce est désactivé par défaut : rien ne change
+    sur un nœud qui ne l'active pas.
+
+  * fpacnode : nouvelle commande sysop HNodes (HN), qui liste les nœuds
+    trouvés ainsi et les accepte (« HN CALL ») ou les refuse
+    (« HN -X CALL »). On fait de même depuis le shell avec
+    « fpacrtd -l », « -a CALL » et « -x CALL ».
+
+  * fpacrtd rappelle un voisin perdu après 1 minute, puis 5 minutes,
+    et seulement ensuite toutes les 30 minutes comme avant. Après un
+    redémarrage, un nœud est de nouveau relié en une minute environ au
+    lieu d'une demi-heure.
+
+  * fpacnode : la commande Routes affiche l'indicatif d'un voisin direct
+    inconnu des pages blanches en majuscules et tiré de son Path, et non
+    plus l'étiquette de son bloc Node (un bloc « Node = we4nc »
+    affichait « we4nc-? »).
+
+  * monitor ne se fige plus quand sa fenêtre change de taille ou que
+    l'écran est éteint.
+
 FPAC 4.2-rc3 — routes ROSE dynamiques (version candidate, expérimentale)
 ========================================================================
 

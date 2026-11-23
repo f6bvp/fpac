@@ -1,3 +1,34 @@
+FPAC 4.2-rc4 — dynamic ROSE routes (release candidate, experimental)
+====================================================================
+
+  * Discovery of new nodes. With "FpacAnnounce = yes" in fpac.conf,
+    fpacrtd announces its node to its neighbours every 30 minutes. A
+    node that hears the announcement of an unknown node accepts it
+    provisionally, sets the route to it and calls it: a new node whose
+    only neighbour runs FPAC 4.2 is joined in about a minute, with
+    nothing to write on that neighbour. "FpacDiscover = ask" waits for
+    the sysop instead, "FpacDiscover = no" turns discovery off.
+    FpacAnnounce is off by default: nothing changes on a node that does
+    not set it.
+
+  * fpacnode: new sysop command HNodes (HN) lists the nodes found this
+    way, and accepts ("HN CALL") or refuses ("HN -X CALL") them. The
+    same is done from the shell with "fpacrtd -l", "-a CALL" and
+    "-x CALL".
+
+  * fpacrtd calls a lost neighbour again after 1 minute, then 5
+    minutes, and only then every 30 minutes as before. After a restart,
+    a node is joined again within about a minute instead of half an
+    hour.
+
+  * fpacnode: the Routes command shows the callsign of a direct
+    neighbour unknown to the White Pages in upper case and taken from
+    its Path, no longer the label of its Node block (a block
+    "Node = we4nc" showed "we4nc-?").
+
+  * monitor no longer freezes when its window is resized or the screen
+    is switched off.
+
 FPAC 4.2-rc3 — dynamic ROSE routes (release candidate, experimental)
 ====================================================================
 

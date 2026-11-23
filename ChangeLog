@@ -1,4 +1,4 @@
-fpac (4.2-rc4, in preparation)
+fpac (4.2-rc4)
 
 	* fpacnode: new command HNodes (HN), the FPAC nodes heard by
 	  fpacrtd: accepted provisionally, waiting for the sysop
