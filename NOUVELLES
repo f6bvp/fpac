@@ -1,3 +1,26 @@
+FPAC 4.2-rc5 — routes ROSE dynamiques (version candidate, expérimentale)
+========================================================================
+
+  * Passage en mode sysop : SYSop n'accepte plus le mot de passe en
+    clair, qui passait sur l'air. On répond avec les 5 caractères aux
+    positions demandées, ou avec la clé MD5. La clé MD5 était toujours
+    refusée sur les nœuds 64 bits (x86_64, aarch64) : elle est
+    maintenant juste. Le nouveau programme fpacmd5 calcule la réponse
+    sur la machine du sysop. Une réponse refusée est désormais
+    signalée.
+
+  * fpac.conf : la ligne « SYSop = fpacshell » est mise en commentaire
+    dans l'exemple. Elle donnait un shell root depuis la radio. Les
+    fpac.conf existants ne sont pas modifiés : il est conseillé aux
+    sysops de la commenter.
+
+  * fpacnode : HELP en français quand la session est en français
+    (37 fiches traduites) ; en mode sysop, « ? » affiche les commandes
+    sysop en couleur.
+
+  * aprslist n'écrit plus sur son terminal en démon (issue #11) ;
+    wpedit n'accepte plus que -c et -v (issue #14).
+
 FPAC 4.2-rc4 — routes ROSE dynamiques (version candidate, expérimentale)
 ========================================================================
 

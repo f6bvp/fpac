@@ -68,6 +68,12 @@ fpac (4.2-rc5)
 	  or English after LANG (-l fr|en). Installed in bin/, with the
 	  manual page fpacmd5(1); HELP SYSop mentions it.
 
+	* fpacnode: in sysop mode, "?" shows the "Sysop:" heading and the
+	  sysop commands in colour, yellow by default, so that they stand
+	  out from the user commands. The colour is set by the key sysop
+	  of the section [commandes] of fpacnode.colors. Without colours
+	  the list is unchanged.
+
 fpac (4.2-rc4)
 
 	* fpacnode: new command HNodes (HN), the FPAC nodes heard by
