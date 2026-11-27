@@ -1,3 +1,11 @@
+FPAC 4.2-rc6 (en préparation)
+=============================
+
+  * fpad démarre de nouveau quand le module rose crée moins de dix
+    interfaces (rose_ndevs inférieur à 10 dans /etc/modprobe.d). Il
+    s'arrêtait sur « cannot find free ROSE device » et le nœud ne
+    fonctionnait pas.
+
 FPAC 4.2-rc5 — routes ROSE dynamiques (version candidate, expérimentale)
 ========================================================================
 

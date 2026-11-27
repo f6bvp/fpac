@@ -1,6 +1,21 @@
 Traduction française du ChangeLog de FPAC. Original en anglais dans le fichier ChangeLog.
 Les noms de fichiers, de fonctions et de variables sont conservés tels quels.
 
+fpac (4.2-rc6, en préparation)
+
+	* fpad : démarre de nouveau quand le noyau a moins de dix
+	  interfaces ROSE (module rose chargé avec rose_ndevs inférieur
+	  à 10). getfreedev() cherche d'abord parmi rose0 à rose9 celle
+	  déjà liée à l'adresse du nœud ; la première interface absente
+	  la faisait abandonner (« rsattach SIOCGIFHWADDR: No such
+	  device », puis « cannot find free ROSE device ») au lieu de
+	  chercher une interface libre. rose0 restait alors arrêtée, et
+	  tout le nœud avec elle : fpacwpd, fpacrtd et fpacnode (« No
+	  ROSE port configured »). Une interface absente (ENODEV) termine
+	  maintenant la liste dans les deux recherches. Un échec de
+	  socket() renvoyait aussi 0, compris comme « interface déjà
+	  active » : c'est maintenant une erreur.
+
 fpac (4.2-rc5)
 
 	* aprslist : en démon, il n'écrit plus sur le terminal d'où il a

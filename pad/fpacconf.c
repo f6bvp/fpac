@@ -16,6 +16,7 @@
  
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
@@ -236,9 +237,13 @@ static int getfreedev(char *dev, char *address)
 	
 	if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		perror("FPAD : rsattach socket");
-		return FALSE;
+		return(-1);
 	}
 
+	/*
+	 * The kernel creates rose0 to rose<rose_ndevs - 1>: a missing
+	 * device (ENODEV) is the end of the list, not an error.
+	 */
 	for (i = 0; i < 10; i++) 
 	{
 		sprintf(dev, "rose%d", i);
@@ -246,6 +251,8 @@ static int getfreedev(char *dev, char *address)
 	
 		if (ioctl(fd, SIOCGIFHWADDR, &ifr) != 0) 
 		{
+			if (errno == ENODEV)
+				break;
 			perror("FPAD : rsattach SIOCGIFHWADDR");
 			close(fd);
 			return(-1);
@@ -283,6 +290,8 @@ static int getfreedev(char *dev, char *address)
 	
 		if (ioctl(fd, SIOCGIFFLAGS, &ifr) < 0) 
 		{
+			if (errno == ENODEV)
+				break;
 			perror("rsattach: SIOCGIFFLAGS");
 			close(fd);
 			return(-1);

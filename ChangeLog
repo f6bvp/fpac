@@ -1,3 +1,17 @@
+fpac (4.2-rc6, in preparation)
+
+	* fpad: starts again when the kernel has fewer than ten ROSE
+	  interfaces (rose module loaded with rose_ndevs below 10).
+	  getfreedev() first looks among rose0 to rose9 for the one
+	  already bound to the node address; the first missing device
+	  made it give up ("rsattach SIOCGIFHWADDR: No such device",
+	  then "cannot find free ROSE device") instead of looking for a
+	  free one. rose0 was then left down and the whole node with it:
+	  fpacwpd, fpacrtd and fpacnode ("No ROSE port configured").
+	  A missing device (ENODEV) now ends the list in both searches.
+	  A failed socket() also returned 0, read as "device already
+	  up": it is now an error.
+
 fpac (4.2-rc5)
 
 	* aprslist: as a daemon it no longer writes to the terminal it was
